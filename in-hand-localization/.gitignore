@@ -5,3 +5,7 @@
 
 #Build folder
 /build*/
+/src/in-hand-segmentation/build*/
+
+# Linux temp files
+*~
