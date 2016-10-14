@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(in-hand-segmentation)
+project(cloudExtractor)
 
 find_package(YARP REQUIRED)
 find_package(ICUBcontrib REQUIRED)
@@ -25,3 +25,7 @@ include_directories(${YARP_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME} ${sources} idl.thrift ${IDL_GEN_FILES})
 target_link_libraries(${PROJECT_NAME} ${YARP_LIBRARIES} ${OpenCV_LIBRARIES})
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+file(GLOB conf ${CMAKE_CURRENT_SOURCE_DIR}/app/conf/*.ini)
+yarp_install(FILES ${conf} DESTINATION ${ICUBCONTRIB_CONTEXTS_INSTALL_DIR}/${PROJECT_NAME})
+

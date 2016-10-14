@@ -37,7 +37,7 @@ int main(int argc,char *argv[])
 
     pointCloudExtraction mod;
     ResourceFinder rf;
-    rf.setDefaultContext("seg2cloud");
+    rf.setDefaultContext("cloudExtractor");
     rf.configure(argc,argv);
     return mod.runModule(rf);
 }
