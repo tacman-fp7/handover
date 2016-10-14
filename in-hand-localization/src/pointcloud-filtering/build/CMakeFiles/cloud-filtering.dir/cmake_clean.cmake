@@ -6,6 +6,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/cloud-filtering.dir/src/pointCloudExtraction_IDL.cpp.o"
   "bin/cloud-filtering.pdb"
   "bin/cloud-filtering"
+  "bin/cloud-filtering.pdb"
+  "CMakeFiles/CMakeRelink.dir/cloud-filtering"
 )
 
 # Per-language clean rules from dependency scanning.

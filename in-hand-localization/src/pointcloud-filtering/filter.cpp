@@ -42,8 +42,12 @@ class filteringModule : public RFModule
     double radius;
     int nnThreshold;
     int numVertices;
+    double radius_color;
+    int nnThreshold_color;
+    int diff_color;
 
     bool spatial_filter;
+    bool gray_filter;
 
 public:
 
@@ -64,9 +68,13 @@ public:
         cout<<"Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl;
         fileCount=0;
 
-        spatial_filter=(rf.check("spatial_filter", Value("yes")).asString()=="yes");
+        spatial_filter=(rf.check("spatial_filter", Value("no")).asString()=="yes");
+        gray_filter=(rf.check("spatial_filter", Value("yes")).asString()=="yes");
         radius=rf.check("radius", Value(0.0002)).asDouble();
         nnThreshold=rf.check("nn-threshold", Value(40)).asInt();
+        radius_color=rf.check("radius", Value(0.0003)).asDouble();
+        nnThreshold_color=rf.check("nn-threshold", Value(10)).asInt();
+        diff_color=rf.check("diff_color", Value(25)).asInt();
 
         if (online)
         {
@@ -75,7 +83,7 @@ public:
         }
         else
         {
-            fileInName=rf.check("fileInName", Value("cloud.off"), "Default cloud name").asString();
+            fileInName=rf.check("fileInName", Value("cloud2.off"), "Default cloud name").asString();
             cout<<"fileInName "<<fileInName<<endl;
             return readPointCloud();
         }
@@ -86,12 +94,24 @@ public:
     /*******************************************************************************/
     bool interruptModule()
     {
+        if (online)
+        {
+            portPointsIn.close();
+            portPointsOut.close();
+        }
+
         return true;
     }
 
     /*******************************************************************************/
     bool close()
     {
+        if (online)
+        {
+            portPointsIn.close();
+            portPointsOut.close();
+        }
+
         return true;
     }
 
@@ -107,8 +127,14 @@ public:
         if (online)
             waitForCloud();
 
-        if (spatial_filter)
+        if (gray_filter)
+            grayColorFilter(radius_color,nnThreshold_color,diff_color, pointsIn);
+
+        if (spatial_filter && gray_filter)
+            spatialDensityFilter(radius,nnThreshold+1, pointsOut);
+        else if (spatial_filter)
             spatialDensityFilter(radius,nnThreshold+1, pointsIn);
+
 
         Vector colors(3,0.0);
         colors[1]=255;
@@ -176,7 +202,7 @@ public:
                         for( size_t i=0; i<points_tmp.size();i=i+down)
                         {
                             point_tmp=points_tmp[i];
-                            cout<<"point "<<point_tmp.toString(3,3).c_str()<<endl;
+                            //cout<<"point "<<point_tmp.toString(3,3).c_str()<<endl;
                             pointsIn.push_back(point_tmp);
                         }
                         return true;
@@ -198,10 +224,13 @@ public:
     {
         numVertices=pointsIn.size();
 
+        vector<Vector> pointsTmp=pointsIn;
+        pointsOut.clear();
+
         cv:: Mat data(numVertices,3,CV_32F);
         for (int i=0; i<numVertices; i++)
         {
-            Vector point=pointsIn[i];
+            Vector point=pointsTmp[i];
             data.at<float>(i,0)=(float)point[0];
             data.at<float>(i,1)=(float)point[1];
             data.at<float>(i,2)=(float)point[2];
@@ -234,6 +263,76 @@ public:
 
         return res;
     }
+
+    /*******************************************************************************/
+    vector<int>  grayColorFilter(const double radius, const int maxResults, const int diff_colors, vector<Vector> &pointsIn)
+    {
+        numVertices=pointsIn.size();
+
+        cv:: Mat data(numVertices,3,CV_32F);
+        cv:: Mat datacolor(numVertices,3,CV_32F);
+        for (int i=0; i<numVertices; i++)
+        {
+            Vector point=pointsIn[i];
+            data.at<float>(i,0)=(float)point[0];
+            data.at<float>(i,1)=(float)point[1];
+            data.at<float>(i,2)=(float)point[2];
+
+            datacolor.at<float>(i,0)=(float)point[3];
+            datacolor.at<float>(i,1)=(float)point[4];
+            datacolor.at<float>(i,2)=(float)point[5];
+        }
+
+        cv::flann::KDTreeIndexParams indexParams;
+        cv::flann::Index kdtree(data,indexParams);
+
+        cv::Mat query(1,data.cols,CV_32F);
+        cv::Mat indices,dists;
+
+        vector<int> res(data.rows);
+        double average_diff, diff1, diff2, diff3;
+        int count =0;
+        average_diff=0;
+
+        for (size_t i=0; i<res.size(); i++)
+        {
+            for (int c=0; c<query.cols; c++)
+                query.at<float>(0,c)=data.at<float>(i,c);
+
+            res[i]=kdtree.radiusSearch(query,indices,dists,radius,maxResults,cv::flann::SearchParams(128));
+
+            int count_index=0;
+            for (int j=0; j<indices.cols; j++)
+            {
+                //cout<<"indices test "<<indices.at<int>(0,j)<<endl;
+                if (abs(indices.at<int>(0,j)) <=datacolor.rows)
+                {
+                    count_index++;
+                    diff1 = abs(datacolor.at<float>(indices.at<int>(0,j),0) - datacolor.at<float>(indices.at<int>(0,j),1));
+                    diff2 = abs(datacolor.at<float>(indices.at<int>(0,j),2) - datacolor.at<float>(indices.at<int>(0,j),1));
+                    diff3 = abs(datacolor.at<float>(indices.at<int>(0,j),0) - datacolor.at<float>(indices.at<int>(0,j),2));
+                    average_diff += (diff1+diff2+diff3)/3;
+                }
+            }
+            average_diff/=count_index;
+            //cout<<"average_diff "<<average_diff<<endl;
+
+            Vector point(3,0.0);
+            if (res[i]>=maxResults && average_diff>=diff_colors)
+            {
+                point[0]=data.at<float>(i,0);
+                point[1]=data.at<float>(i,1);
+                point[2]=data.at<float>(i,2);
+                pointsOut.push_back(point);
+                count++;
+                //cout<<"n points "<<count<<endl;
+                average_diff=0.0;
+            }
+        }
+
+        return res;
+    }
+
 
     /*******************************************************************************/
     bool saveNewCloud(const Vector &colors)

@@ -111,17 +111,6 @@ install/local/fast: install/local
 
 .PHONY : install/local/fast
 
-# Special rule for the target install/strip
-install/strip: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/local/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip
-
-# Special rule for the target install/strip
-install/strip/fast: install/strip
-
-.PHONY : install/strip/fast
-
 # The main all target
 all: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build/CMakeFiles /home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build/CMakeFiles/progress.marks
@@ -155,17 +144,22 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named cloud-filtering
+# Target rules for targets named cloudFiltering
 
 # Build rule for target.
-cloud-filtering: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 cloud-filtering
-.PHONY : cloud-filtering
+cloudFiltering: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 cloudFiltering
+.PHONY : cloudFiltering
 
 # fast build rule for target.
-cloud-filtering/fast:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/build
-.PHONY : cloud-filtering/fast
+cloudFiltering/fast:
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/build
+.PHONY : cloudFiltering/fast
+
+# Manual pre-install relink rule for target.
+cloudFiltering/preinstall:
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/preinstall
+.PHONY : cloudFiltering/preinstall
 
 filter.o: filter.cpp.o
 
@@ -173,7 +167,7 @@ filter.o: filter.cpp.o
 
 # target to build an object file
 filter.cpp.o:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/filter.cpp.o
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/filter.cpp.o
 .PHONY : filter.cpp.o
 
 filter.i: filter.cpp.i
@@ -182,7 +176,7 @@ filter.i: filter.cpp.i
 
 # target to preprocess a source file
 filter.cpp.i:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/filter.cpp.i
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/filter.cpp.i
 .PHONY : filter.cpp.i
 
 filter.s: filter.cpp.s
@@ -191,7 +185,7 @@ filter.s: filter.cpp.s
 
 # target to generate assembly for a file
 filter.cpp.s:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/filter.cpp.s
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/filter.cpp.s
 .PHONY : filter.cpp.s
 
 main.o: main.cpp.o
@@ -200,7 +194,7 @@ main.o: main.cpp.o
 
 # target to build an object file
 main.cpp.o:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/main.cpp.o
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/main.cpp.o
 .PHONY : main.cpp.o
 
 main.i: main.cpp.i
@@ -209,7 +203,7 @@ main.i: main.cpp.i
 
 # target to preprocess a source file
 main.cpp.i:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/main.cpp.i
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/main.cpp.i
 .PHONY : main.cpp.i
 
 main.s: main.cpp.s
@@ -218,7 +212,7 @@ main.s: main.cpp.s
 
 # target to generate assembly for a file
 main.cpp.s:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/main.cpp.s
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/main.cpp.s
 .PHONY : main.cpp.s
 
 src/pointCloudExtraction_IDL.o: src/pointCloudExtraction_IDL.cpp.o
@@ -227,7 +221,7 @@ src/pointCloudExtraction_IDL.o: src/pointCloudExtraction_IDL.cpp.o
 
 # target to build an object file
 src/pointCloudExtraction_IDL.cpp.o:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/src/pointCloudExtraction_IDL.cpp.o
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/src/pointCloudExtraction_IDL.cpp.o
 .PHONY : src/pointCloudExtraction_IDL.cpp.o
 
 src/pointCloudExtraction_IDL.i: src/pointCloudExtraction_IDL.cpp.i
@@ -236,7 +230,7 @@ src/pointCloudExtraction_IDL.i: src/pointCloudExtraction_IDL.cpp.i
 
 # target to preprocess a source file
 src/pointCloudExtraction_IDL.cpp.i:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/src/pointCloudExtraction_IDL.cpp.i
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/src/pointCloudExtraction_IDL.cpp.i
 .PHONY : src/pointCloudExtraction_IDL.cpp.i
 
 src/pointCloudExtraction_IDL.s: src/pointCloudExtraction_IDL.cpp.s
@@ -245,7 +239,7 @@ src/pointCloudExtraction_IDL.s: src/pointCloudExtraction_IDL.cpp.s
 
 # target to generate assembly for a file
 src/pointCloudExtraction_IDL.cpp.s:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/src/pointCloudExtraction_IDL.cpp.s
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/src/pointCloudExtraction_IDL.cpp.s
 .PHONY : src/pointCloudExtraction_IDL.cpp.s
 
 # Help Target
@@ -259,8 +253,7 @@ help:
 	@echo "... list_install_components"
 	@echo "... install"
 	@echo "... install/local"
-	@echo "... install/strip"
-	@echo "... cloud-filtering"
+	@echo "... cloudFiltering"
 	@echo "... filter.o"
 	@echo "... filter.i"
 	@echo "... filter.s"

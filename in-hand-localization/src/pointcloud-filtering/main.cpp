@@ -37,7 +37,7 @@ int main(int argc,char *argv[])
 
     filteringModule mod;
     ResourceFinder rf;
-    rf.setDefaultContext("seg2cloud");
+    rf.setDefaultContext("cloudFiltering");
     rf.configure(argc,argv);
     return mod.runModule(rf);
 }

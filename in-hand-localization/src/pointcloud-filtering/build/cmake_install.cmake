@@ -45,23 +45,11 @@ file(INSTALL DESTINATION "/usr/local/share/yarp/config/path.d" TYPE FILE RENAME 
 endif()
 
 if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-  if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/cloud-filtering" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/cloud-filtering")
-    file(RPATH_CHECK
-         FILE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/cloud-filtering"
-         RPATH "/usr/local/lib")
-  endif()
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build/bin/cloud-filtering")
-  if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/cloud-filtering" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/cloud-filtering")
-    file(RPATH_CHANGE
-         FILE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/cloud-filtering"
-         OLD_RPATH "/usr/local/lib:"
-         NEW_RPATH "/usr/local/lib")
-    if(CMAKE_INSTALL_DO_STRIP)
-      execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/cloud-filtering")
-    endif()
-  endif()
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build/CMakeFiles/CMakeRelink.dir/cloudFiltering")
+endif()
+
+if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/ICUBcontrib/contexts/cloudFiltering" TYPE FILE FILES "/home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/app/conf/config.ini")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)

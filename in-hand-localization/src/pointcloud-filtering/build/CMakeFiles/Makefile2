@@ -60,39 +60,49 @@ CMAKE_SOURCE_DIR = /home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in
 CMAKE_BINARY_DIR = /home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build
 
 #=============================================================================
-# Target rules for target CMakeFiles/cloud-filtering.dir
+# Target rules for target CMakeFiles/cloudFiltering.dir
 
 # All Build rule for target.
-CMakeFiles/cloud-filtering.dir/all:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/depend
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build/CMakeFiles --progress-num=1,2,3,4,5 "Built target cloud-filtering"
-.PHONY : CMakeFiles/cloud-filtering.dir/all
+CMakeFiles/cloudFiltering.dir/all:
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/depend
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build/CMakeFiles --progress-num=1,2,3,4,5,6 "Built target cloudFiltering"
+.PHONY : CMakeFiles/cloudFiltering.dir/all
 
 # Include target in all.
-all: CMakeFiles/cloud-filtering.dir/all
+all: CMakeFiles/cloudFiltering.dir/all
 
 .PHONY : all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/cloud-filtering.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build/CMakeFiles 5
-	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/cloud-filtering.dir/all
+CMakeFiles/cloudFiltering.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build/CMakeFiles 6
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/cloudFiltering.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/gvezzani/Desktop/PhD/Anno_2/handover_tacman/handover/in-hand-localization/src/pointcloud-filtering/build/CMakeFiles 0
-.PHONY : CMakeFiles/cloud-filtering.dir/rule
+.PHONY : CMakeFiles/cloudFiltering.dir/rule
 
 # Convenience name for target.
-cloud-filtering: CMakeFiles/cloud-filtering.dir/rule
+cloudFiltering: CMakeFiles/cloudFiltering.dir/rule
 
-.PHONY : cloud-filtering
+.PHONY : cloudFiltering
+
+# Pre-install relink rule for target.
+CMakeFiles/cloudFiltering.dir/preinstall:
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/preinstall
+.PHONY : CMakeFiles/cloudFiltering.dir/preinstall
+
+# Prepare target for install.
+preinstall: CMakeFiles/cloudFiltering.dir/preinstall
+
+.PHONY : preinstall
 
 # clean rule for target.
-CMakeFiles/cloud-filtering.dir/clean:
-	$(MAKE) -f CMakeFiles/cloud-filtering.dir/build.make CMakeFiles/cloud-filtering.dir/clean
-.PHONY : CMakeFiles/cloud-filtering.dir/clean
+CMakeFiles/cloudFiltering.dir/clean:
+	$(MAKE) -f CMakeFiles/cloudFiltering.dir/build.make CMakeFiles/cloudFiltering.dir/clean
+.PHONY : CMakeFiles/cloudFiltering.dir/clean
 
 # clean rule for target.
-clean: CMakeFiles/cloud-filtering.dir/clean
+clean: CMakeFiles/cloudFiltering.dir/clean
 
 .PHONY : clean
 
