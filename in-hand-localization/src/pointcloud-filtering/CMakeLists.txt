@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(in-hand-segmentation)
+project(cloud-filtering)
 
 find_package(YARP REQUIRED)
 find_package(ICUBcontrib REQUIRED)
@@ -16,7 +16,7 @@ include(ICUBcontribHelpers)
 include(ICUBcontribOptions)
 icubcontrib_set_default_prefix()
 
-set(sources main.cpp pointCloudExtractor.cpp)
+set(sources main.cpp filter.cpp)
 yarp_add_idl(IDL_GEN_FILES idl.thrift)
 source_group("IDL Files" FILES idl.thrift)
 source_group("Source Files" FILES ${sources})

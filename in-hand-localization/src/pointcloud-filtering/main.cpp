@@ -24,7 +24,7 @@ using namespace yarp::os;
 using namespace yarp::sig;
 using namespace yarp::math;
 
-#include "pointCloudExtractor.cpp"
+#include "filter.cpp"
 
 int main(int argc,char *argv[])
 {
@@ -35,7 +35,7 @@ int main(int argc,char *argv[])
         return 1;
     }
 
-    pointCloudExtraction mod;
+    filteringModule mod;
     ResourceFinder rf;
     rf.setDefaultContext("seg2cloud");
     rf.configure(argc,argv);
