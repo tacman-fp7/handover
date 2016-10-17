@@ -44,10 +44,12 @@ class filteringModule : public RFModule
     int numVertices;
     double radius_color;
     int nnThreshold_color;
-    int diff_color;
+    int diff_rgb;
+    int diff_ycbcr;
 
     bool spatial_filter;
     bool gray_filter;
+    string color_space;
 
 public:
 
@@ -70,11 +72,13 @@ public:
 
         spatial_filter=(rf.check("spatial_filter", Value("no")).asString()=="yes");
         gray_filter=(rf.check("gray_filter", Value("yes")).asString()=="yes");
+        color_space=rf.check("color_code", Value("rgb")).asString();
         radius=rf.check("radius", Value(0.0002)).asDouble();
         nnThreshold=rf.check("nn-threshold", Value(40)).asInt();
-        radius_color=rf.check("radius", Value(0.0003)).asDouble();
-        nnThreshold_color=rf.check("nn-threshold", Value(10)).asInt();
-        diff_color=rf.check("diff_color", Value(25)).asInt();
+        radius_color=rf.check("radius_color", Value(0.0003)).asDouble();
+        nnThreshold_color=rf.check("nn-threshold_color", Value(10)).asInt();
+        diff_rgb=rf.check("diff_rgb", Value(25)).asInt();
+        diff_ycbcr=rf.check("diff_ycbcr", Value(2)).asInt();
 
         if (online)
         {
@@ -126,8 +130,10 @@ public:
         if (online)
             waitForCloud();
 
-        if (gray_filter)
-            grayColorFilter(radius_color,nnThreshold_color,diff_color, pointsIn);
+        if (gray_filter && color_space == "rgb")
+            grayColorFilter(radius_color,nnThreshold_color,diff_rgb, pointsIn);
+        else if (gray_filter && color_space == "ycbcr")
+            grayColorFilter(radius_color,nnThreshold_color,diff_ycbcr, pointsIn);
 
         if (spatial_filter && gray_filter)
             spatialDensityFilter(radius,nnThreshold+1, pointsOut);
@@ -270,6 +276,10 @@ public:
 
         cv:: Mat data(numVertices,3,CV_32F);
         cv:: Mat datacolor(numVertices,3,CV_32F);
+
+        if (color_space == "ycbcr")
+            fromRGBtoYCbCr();
+
         for (int i=0; i<numVertices; i++)
         {
             Vector point=pointsIn[i];
@@ -306,10 +316,19 @@ public:
                 if (abs(indices.at<int>(0,j)) <=datacolor.rows)
                 {
                     count_index++;
-                    diff1 = abs(datacolor.at<float>(indices.at<int>(0,j),0) - datacolor.at<float>(indices.at<int>(0,j),1));
-                    diff2 = abs(datacolor.at<float>(indices.at<int>(0,j),2) - datacolor.at<float>(indices.at<int>(0,j),1));
-                    diff3 = abs(datacolor.at<float>(indices.at<int>(0,j),0) - datacolor.at<float>(indices.at<int>(0,j),2));
-                    average_diff += (diff1+diff2+diff3)/3;
+                    if (color_space == "rgb")
+                    {
+                        diff1 = abs(datacolor.at<float>(indices.at<int>(0,j),0) - datacolor.at<float>(indices.at<int>(0,j),1));
+                        diff2 = abs(datacolor.at<float>(indices.at<int>(0,j),2) - datacolor.at<float>(indices.at<int>(0,j),1));
+                        diff3 = abs(datacolor.at<float>(indices.at<int>(0,j),0) - datacolor.at<float>(indices.at<int>(0,j),2));
+                        average_diff += (diff1+diff2+diff3)/3;
+                    }
+                    else
+                    {
+                        diff1 = abs(datacolor.at<float>(indices.at<int>(0,j),1) - 128);
+                        diff2 = abs(datacolor.at<float>(indices.at<int>(0,j),2) - 128);
+                        average_diff += (diff1+diff2)/2;
+                    }
                 }
             }
             average_diff/=count_index;
@@ -393,6 +412,37 @@ public:
         else if (fileOutFormat == "none")
         {
             cout << "Points not saved" << endl;
+        }
+    }
+
+    /*******************************************************************************/
+    void fromRGBtoYCbCr()
+    {
+        Vector *point;
+
+        Matrix M_rgb2ycbcr(3,3);
+        M_rgb2ycbcr(0,0)=0.299;
+        M_rgb2ycbcr(0,1)=0.587;
+        M_rgb2ycbcr(0,2)=0.144;
+        M_rgb2ycbcr(1,0)=-0.168736;
+        M_rgb2ycbcr(1,1)=-0.331264;
+        M_rgb2ycbcr(1,2)=0.5;
+        M_rgb2ycbcr(2,0)=0.5;
+        M_rgb2ycbcr(2,1)=-0.418688;
+        M_rgb2ycbcr(2,2)=-0.081312;
+
+        Vector ycbcr(3,0.0);
+        ycbcr[1]=128;
+        ycbcr[2]=128;
+
+
+        for (size_t i=0; i<pointsIn.size(); i++)
+        {
+            point=&pointsIn[i];
+            cout<<"point "<<point->subVector(3,5).toString()<<endl;
+            point->setSubvector(3,M_rgb2ycbcr*point->subVector(3,5) + ycbcr);
+
+            cout<<"point computed "<<point->subVector(3,5).toString()<<endl;
         }
     }
 };
