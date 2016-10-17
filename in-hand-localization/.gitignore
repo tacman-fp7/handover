@@ -6,6 +6,7 @@
 #Build folder
 /build*/
 /src/in-hand-segmentation/build*/
+/src/pointcloud-filtering/build*/
 
 # Linux temp files
 *~

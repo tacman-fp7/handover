@@ -69,7 +69,7 @@ public:
         fileCount=0;
 
         spatial_filter=(rf.check("spatial_filter", Value("no")).asString()=="yes");
-        gray_filter=(rf.check("spatial_filter", Value("yes")).asString()=="yes");
+        gray_filter=(rf.check("gray_filter", Value("yes")).asString()=="yes");
         radius=rf.check("radius", Value(0.0002)).asDouble();
         nnThreshold=rf.check("nn-threshold", Value(40)).asInt();
         radius_color=rf.check("radius", Value(0.0003)).asDouble();
@@ -83,8 +83,7 @@ public:
         }
         else
         {
-            fileInName=rf.check("fileInName", Value("cloud2.off"), "Default cloud name").asString();
-            cout<<"fileInName "<<fileInName<<endl;
+            fileInName=rf.check("fileInName", Value("cloud.off"), "Default cloud name").asString();
             return readPointCloud();
         }
 
@@ -304,7 +303,6 @@ public:
             int count_index=0;
             for (int j=0; j<indices.cols; j++)
             {
-                //cout<<"indices test "<<indices.at<int>(0,j)<<endl;
                 if (abs(indices.at<int>(0,j)) <=datacolor.rows)
                 {
                     count_index++;
@@ -315,7 +313,6 @@ public:
                 }
             }
             average_diff/=count_index;
-            //cout<<"average_diff "<<average_diff<<endl;
 
             Vector point(3,0.0);
             if (res[i]>=maxResults && average_diff>=diff_colors)
@@ -325,14 +322,11 @@ public:
                 point[2]=data.at<float>(i,2);
                 pointsOut.push_back(point);
                 count++;
-                //cout<<"n points "<<count<<endl;
                 average_diff=0.0;
             }
         }
-
         return res;
     }
-
 
     /*******************************************************************************/
     bool saveNewCloud(const Vector &colors)
@@ -401,5 +395,4 @@ public:
             cout << "Points not saved" << endl;
         }
     }
-
 };
