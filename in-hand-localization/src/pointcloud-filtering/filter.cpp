@@ -225,11 +225,11 @@ public:
     }
 
     /*******************************************************************************/
-    vector<int>  spatialDensityFilter(const double radius, const int maxResults, vector<Vector> &pointsIn)
+    vector<int>  spatialDensityFilter(const double radius, const int maxResults, vector<Vector> &points)
     {
-        numVertices=pointsIn.size();
+        numVertices=points.size();
 
-        vector<Vector> pointsTmp=pointsIn;
+        vector<Vector> pointsTmp=points;
         pointsOut.clear();
 
         cv:: Mat data(numVertices,3,CV_32F);
