@@ -1,0 +1,2 @@
+kinematicsTactileInfo_IDL.h
+kinematicsTactileInfo_IDL.cpp
