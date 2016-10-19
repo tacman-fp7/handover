@@ -1,0 +1,46 @@
+<application>
+    <name>pointCloudExtractor</name>
+    
+    <module>
+       <name>cloud-extractor</name>
+       <node>icub21</node>
+    </module>
+    <module>
+       <name>yarpview</name>
+       <parameters>--name /dispCloud --out /dispBlobs/out --x 1600 --y 370 --w 600 --h 600 --p 200</parameters>
+       <node>icub22</node>
+    </module>
+
+    <connection>
+        <from>/cloud-extractor/SFM:rpc</from>
+        <to>/SFM/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/cloud-extractor/disp:o</from>
+        <to>/dispSuperq</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/icub/camcalib/left/out</from>
+        <to>/cloud-extractor/img:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/SFM/disp:o</from>
+        <to>/cloud-extractor/disp:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/dispBlobber/opt:o</from>
+        <to>/cloud-extractor/blob:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+
+
+</application>
