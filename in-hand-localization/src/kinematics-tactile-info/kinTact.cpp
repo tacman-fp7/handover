@@ -116,6 +116,9 @@ protected:
         Bottle &orientationInfo=poseInfo.addList();
         orientationInfo.addString("orientation");
         orientationInfo.addDouble(o[0]); orientationInfo.addDouble(o[1]); orientationInfo.addDouble(o[2]); orientationInfo.addDouble(o[3]);
+        Bottle &handb=poseInfo.addList();
+        handb.addString("hand");
+        handb.addString(left_or_right);
 
         return poseInfo;
     }
@@ -126,16 +129,18 @@ protected:
         icart_arm->getPose(x,o);
 
         ofstream fout;
-        string fileName;
-        fileName=homeContextPath + "/" + poseOutFileName.c_str()+".off" + fileCount;
-        fout.open(fileName.c_str());
+        stringstream fileName;
+        fileName<<homeContextPath + "/" + poseOutFileName<<"_"<<fileCount;
+        string fileNameFormat;
+        fileNameFormat=fileName.str()+".txt";
+        fout.open(fileNameFormat.c_str());
         if (fout.is_open())
         {
             fout<<left_or_right+" hand pose"<<endl<<endl;
             fout<<x.toString()<<endl;
             fout<<o.toString()<<endl;
 
-            cout<<"Pose saved in "<<fileName<<endl;
+            cout<<"Pose saved in "<<fileNameFormat<<endl;
             return true;
         }
         else
@@ -152,17 +157,6 @@ protected:
         giveContactPoint(contactPoint_index, "index");
         giveContactPoint(contactPoint_middle, "middle");
 
-        Bottle tactileData;
-        Bottle &thumbData=tactileData.addList();
-        thumbData.addString("thumb");
-        thumbData.addDouble(contactPoint_thumb[0]); thumbData.addDouble(contactPoint_thumb[1]); thumbData.addDouble(contactPoint_thumb[2]);
-        Bottle &indexData=tactileData.addList();
-        indexData.addString("index");
-        indexData.addDouble(contactPoint_index[0]); indexData.addDouble(contactPoint_index[1]); indexData.addDouble(contactPoint_index[2]);
-        Bottle &middleData=tactileData.addList();
-        middleData.addString("middle");
-        middleData.addDouble(contactPoint_middle[0]); middleData.addDouble(contactPoint_middle[1]); middleData.addDouble(contactPoint_middle[2]);
-
         if (frame == "hand")
         {
             Vector aux(4,1.0);
@@ -176,6 +170,24 @@ protected:
             aux=H*aux;
             contactPoint_middle=aux.subVector(0,2);
         }
+
+        Bottle tactileData;
+        Bottle &thumbData=tactileData.addList();
+        thumbData.addString("thumb");
+        thumbData.addDouble(contactPoint_thumb[0]); thumbData.addDouble(contactPoint_thumb[1]); thumbData.addDouble(contactPoint_thumb[2]);
+        Bottle &indexData=tactileData.addList();
+        indexData.addString("index");
+        indexData.addDouble(contactPoint_index[0]); indexData.addDouble(contactPoint_index[1]); indexData.addDouble(contactPoint_index[2]);
+        Bottle &middleData=tactileData.addList();
+        middleData.addString("middle");
+        middleData.addDouble(contactPoint_middle[0]); middleData.addDouble(contactPoint_middle[1]); middleData.addDouble(contactPoint_middle[2]);
+        Bottle &frameb=tactileData.addList();
+        frameb.addString("frame");
+        frameb.addString(frame);
+        Bottle &handb=tactileData.addList();
+        handb.addString("hand");
+        handb.addString(left_or_right);
+
 
         return tactileData;
     }
@@ -203,9 +215,11 @@ protected:
         }
 
         ofstream fout;
-        string fileName;
-        fileName=homeContextPath + "/" + tactOutFileName.c_str()+".off" + fileCount;
-        fout.open(fileName.c_str());
+        stringstream fileName;
+        string fileNameFormat;
+        fileName<<homeContextPath + "/" + tactOutFileName.c_str() << "_"+frame<<"_"<<fileCount;
+        fileNameFormat= fileName.str()+".off";
+        fout.open(fileNameFormat.c_str());
         if (fout.is_open())
         {
             fout<<"OFF"<<endl;
@@ -214,7 +228,7 @@ protected:
             fout<<contactPoint_index.toString()<<endl;
             fout<<contactPoint_middle.toString()<<endl;
 
-            cout<<"Tactile data saved in "<<fileName<<endl;
+            cout<<"Tactile data saved in "<<fileNameFormat<<endl;
 
             return true;
         }
@@ -278,6 +292,9 @@ protected:
         icart_arm->storeContext(&startup_context_id);
         icart_arm->getTipFrame(tip_x_init, tip_o_init);
 
+        cout<<"tip_x_init "<<tip_x_init.toString()<<endl;
+        cout<<"tip_o_init "<<tip_o_init.toString()<<endl;
+
         icart_arm->getPose(x,o);
 
         H.resize(4,0.0);
@@ -322,7 +339,6 @@ protected:
         contactPoint.resize(3,0.0);
         Vector joints;
         string finger_str=left_or_right+"_"+finger_string;
-        cout<<"finger_str "<< finger_str<<endl;
 
         iCubFinger finger(finger_str);
 
@@ -333,16 +349,11 @@ protected:
         Vector tip_x=tipFrame.getCol(3);
         Vector tip_o=dcm2axis(tipFrame);
 
-        cout<<"tip x "<<tip_x.toString()<<endl;
-        cout<<"tip o "<<tip_o.toString()<<endl;
-
-        cout<<"attach "<<icart_arm->attachTipFrame(tip_x.subVector(0,2),tip_o)<<endl;
+        icart_arm->attachTipFrame(tip_x.subVector(0,2),tip_o);
 
         Time::delay(0.1);
         icart_arm->getPose(contactPoint, o);
-        cout<<"contact point "<<contactPoint.toString()<<endl;
-
-        cout<<"remove "<<icart_arm->removeTipFrame()<<endl;
-        Time::delay(0.);
+        icart_arm->removeTipFrame();
+        Time::delay(0.1);
     }
 };

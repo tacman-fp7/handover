@@ -7,6 +7,7 @@
 /build*/
 /src/in-hand-segmentation/build*/
 /src/pointcloud-filtering/build*/
+/src/kinematics-tactile-info/build*/
 
 # Linux temp files
 *~

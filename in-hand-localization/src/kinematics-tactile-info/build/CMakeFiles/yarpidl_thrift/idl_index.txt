@@ -1,2 +1,0 @@
-Bottle.h
-kinematicsTactileInfo_IDL.h
