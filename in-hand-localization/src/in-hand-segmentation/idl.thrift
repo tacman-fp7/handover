@@ -8,11 +8,11 @@
 *
 * IDL structure to set/show advanced parameters.
 */
-struct Property
+struct Bottle
 {
 } (
-   yarp.name = "yarp::os::Property"
-   yarp.includefile="yarp/os/Property.h"
+   yarp.name = "yarp::os::Bottle"
+   yarp.includefile="yarp/os/Bottle.h"
   )
 
 /**
@@ -56,5 +56,18 @@ service pointCloudExtraction_IDL
     * @return true/false on success/failure.
     */
     bool acquiring(1: string entry);
+
+    /**
+    * Get the 2D pixels of the nearest blob
+    * @return a bottle with the 2D points
+    */
+    Bottle get_2D_blob_points();
+
+    /**
+    * Get the 3D points of the nearest blob
+    * @return a bottle with the 3D points
+    */
+    Bottle get_3D_blob_points();
+
 
 }

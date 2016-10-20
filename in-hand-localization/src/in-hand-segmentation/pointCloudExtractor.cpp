@@ -41,8 +41,6 @@ protected:
     BufferedPort<ImageOf<PixelRgb> > portImgIn;
     BufferedPort<Bottle> portPointIn;
 
-
-    BufferedPort<Bottle> portPointsOut;
     BufferedPort<ImageOf<PixelRgb> > portDispOut;
 
     RpcClient portSFM;
@@ -107,6 +105,40 @@ protected:
         return true;
     }
 
+    /*******************************************************************************/
+    Bottle get_2D_blob_points()
+    {
+        Bottle bblobs;
+
+        if (blobPoints.size()>0)
+        {
+            for (size_t i=0; i<blobPoints.size(); i++)
+            {
+                Bottle &bblob=bblobs.addList();
+                bblob.addInt(blobPoints[i].x); bblob.addInt(blobPoints[i].y);
+            }
+        }
+
+        return bblobs;
+    }
+
+    /*******************************************************************************/
+    Bottle get_3D_blob_points()
+    {
+        Bottle bpoints;
+        if (points.size()>0)
+        {
+            for (size_t i=0; i<points.size(); i++)
+            {
+                Vector point=points[i];
+                Bottle &bpoint=bpoints.addList();
+                bpoint.addDouble(point[0]); bpoint.addDouble(point[1]);bpoint.addDouble(point[2]);
+            }
+        }
+
+        return bpoints;
+    }
+
 public:
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
@@ -127,7 +159,6 @@ public:
         portImgIn.open("/" + module_name + "/img:i");
         portBlobIn.open("/" + module_name + "/blob:i");
 
-        portPointsOut.open("/"+module_name+"/pnt:o");
         portDispOut.open("/"+module_name+"/disp:o");
 
         portSFM.open("/"+module_name+"/SFM:rpc");
@@ -148,7 +179,6 @@ public:
         portBlobIn.interrupt();
         portPointIn.interrupt();
 
-        portPointsOut.interrupt();
         portDispOut.interrupt();
 
         portSFM.interrupt();
@@ -165,7 +195,6 @@ public:
         portBlobIn.close();
         portPointIn.close();
 
-        portPointsOut.close();
         portDispOut.close();
 
         portSFM.close();
@@ -275,8 +304,6 @@ public:
                 yError()<<"No blob received!";
         }
 
-        Bottle &points_to_send=portPointsOut.prepare();
-
         if (points.size()>0)
         {
             if (saving)
@@ -284,20 +311,6 @@ public:
                 saveCloud(points);
                 acquire=false;
             }
-
-            for (size_t i=0; i<points.size(); i++)
-            {
-                Vector point=points[i];
-                Bottle &pointb=points_to_send.addList();
-                pointb.addDouble(point[0]);
-                pointb.addDouble(point[1]);
-                pointb.addDouble(point[2]);
-            }
-            portPointsOut.write();
-        }
-        else
-        {
-            portPointsOut.unprepare();
         }
 
         if (blobPoints.size()>0)
@@ -308,8 +321,6 @@ public:
                 if ((blobPoints[i].x<320) && (blobPoints[i].y<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
                     imgDispOut.pixel(blobPoints[i].x,blobPoints[i].y)=color;
              }
-
-            portDispOut.write();
         }
 
         return true;
