@@ -30,13 +30,6 @@ service pointCloudExtraction_IDL
     bool clear_points();
 
     /**
-    * Set or unset autoseed variable equal to true
-    * @param entry is yes or no
-    * @return true/false on success/failure.
-    */
-    bool set_auto_seed(1: string entry);
-
-    /**
     * save or not
     * @param entry is yes or no
     * @return true/false on success/failure.
@@ -56,5 +49,12 @@ service pointCloudExtraction_IDL
     * @return true/false on success/failure.
     */
     bool set_filename(1: string entry);
+
+    /**
+    * acquire or not point cloud
+    * @param entry is "yes" or "no"
+    * @return true/false on success/failure.
+    */
+    bool acquiring(1: string entry);
 
 }

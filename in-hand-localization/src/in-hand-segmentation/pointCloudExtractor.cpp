@@ -17,7 +17,10 @@ using namespace yarp::os;
 using namespace yarp::sig;
 using namespace yarp::math;
 
-class pointCloudExtraction : public RFModule
+#include "pointCloudExtraction_IDL.h"
+
+class pointCloudExtraction : public RFModule,
+                             public pointCloudExtraction_IDL
 {
 protected:
     vector<cv::Point> blobPoints;
@@ -31,6 +34,7 @@ protected:
     string fileFormat;
     int fileCount;
     bool saving;
+    bool acquire;
 
     BufferedPort<ImageOf<PixelMono> > portDispIn;
     BufferedPort<ImageOf<PixelMono> > portBlobIn;
@@ -44,6 +48,12 @@ protected:
     RpcClient portSFM;
     RpcServer portRpc;
 
+    /************************************************************************/
+    bool attach(RpcServer &source)
+    {
+        return this->yarp().attachAsServer(source);
+    }
+
     /*******************************************************************************/
     bool clear_points()
     {
@@ -52,7 +62,7 @@ protected:
     }
 
     /*******************************************************************************/
-    bool set_saving(string &entry)
+    bool set_saving(const string &entry)
     {
         if (entry == "yes")
             saving=true;
@@ -65,7 +75,7 @@ protected:
     }
 
     /*******************************************************************************/
-    bool set_format(string &entry)
+    bool set_format(const string &entry)
     {
         if (entry == "off" || entry == "ply")
         {
@@ -80,9 +90,20 @@ protected:
     }
 
     /*******************************************************************************/
-    bool set_filename(string &entry)
+    bool set_filename(const string &entry)
     {
         savename=entry;
+        return true;
+    }
+
+    /*******************************************************************************/
+    bool acquiring(const string &entry)
+    {
+        if (entry=="yes")
+            acquire=true;
+        else
+            acquire=false;
+
         return true;
     }
 
@@ -115,7 +136,7 @@ public:
 
         cout<<"Ports opened"<<endl;
 
-        attach(portRpc);
+        cout<<"attach "<< attach(portRpc)<<endl;
 
         return true;
     }
@@ -184,59 +205,64 @@ public:
 
         cv::Mat imgBlobInMat=cv::cvarrToMat((IplImage*)imgBlobIn->getIplImage());
 
-        for (int i=0; i<imgBlobInMat.rows; i++)
+        if (acquire)
         {
-            for (int j=0; j<imgBlobInMat.cols; j++)
+            points.clear();
+
+            for (int i=0; i<imgBlobInMat.rows; i++)
             {
-                if (imgBlobInMat.at<int>(i,j)==1)
+                for (int j=0; j<imgBlobInMat.cols; j++)
                 {
-                    blobPoints.push_back(cv::Point(i,j));
-                }
-            }
-        }
-
-        LockGuard lg(mutex);
-
-        // Use the seed point to get points from SFM with the Flood3D command, and spatial_distance given
-        Bottle cmdSFM,replySFM;
-        cmdSFM.addString("Points");
-        int count=0;
-
-        for (size_t i=0; i<blobPoints.size(); i++)
-        {
-            cv::Point single_point=blobPoints[i];
-            cmdSFM.addInt(single_point.x);
-            cmdSFM.addInt(single_point.y);
-        }
-
-        if (portSFM.write(cmdSFM,replySFM))
-        {
-            for (int i=0; i<replySFM.size(); i+=3)
-            {
-                Vector point(6,0.0);
-                point[0]=replySFM.get(i+0).asDouble();
-                point[1]=replySFM.get(i+1).asDouble();
-                point[2]=replySFM.get(i+2).asDouble();
-
-                PixelRgb px=imgIn->pixel(blobPoints[count].x,blobPoints[count].y);
-                point[3]=px.r;
-                point[4]=px.g;
-                point[5]=px.b;
-
-                count++;
-
-                if ((norm(point)>0))
-                {
-                    points.push_back(point);
+                    if (imgBlobInMat.at<int>(i,j)==1)
+                    {
+                        blobPoints.push_back(cv::Point(i,j));
+                    }
                 }
             }
 
-           cout << "Retrieved " << points.size() << " 3D points" <<endl;
-        }
-        else
-        {
-            cout << " SFM didn't reply!" << endl;
-            return true;
+            LockGuard lg(mutex);
+
+            // Use the seed point to get points from SFM with the Flood3D command, and spatial_distance given
+            Bottle cmdSFM,replySFM;
+            cmdSFM.addString("Points");
+            int count=0;
+
+            for (size_t i=0; i<blobPoints.size(); i++)
+            {
+                cv::Point single_point=blobPoints[i];
+                cmdSFM.addInt(single_point.x);
+                cmdSFM.addInt(single_point.y);
+            }
+
+            if (portSFM.write(cmdSFM,replySFM))
+            {
+                for (int i=0; i<replySFM.size(); i+=3)
+                {
+                    Vector point(6,0.0);
+                    point[0]=replySFM.get(i+0).asDouble();
+                    point[1]=replySFM.get(i+1).asDouble();
+                    point[2]=replySFM.get(i+2).asDouble();
+
+                    PixelRgb px=imgIn->pixel(blobPoints[count].x,blobPoints[count].y);
+                    point[3]=px.r;
+                    point[4]=px.g;
+                    point[5]=px.b;
+
+                    count++;
+
+                    if ((norm(point)>0))
+                    {
+                        points.push_back(point);
+                    }
+                }
+
+               cout << "Retrieved " << points.size() << " 3D points" <<endl;
+            }
+            else
+            {
+                cout << " SFM didn't reply!" << endl;
+                return true;
+            }
         }
 
         if (points.size()>0)
