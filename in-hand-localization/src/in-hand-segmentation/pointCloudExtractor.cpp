@@ -108,7 +108,6 @@ protected:
     }
 
 public:
-
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -203,27 +202,26 @@ public:
         cv::Mat imgDispOutMat=cv::cvarrToMat((IplImage*)imgDispOut.getIplImage());
         cv::cvtColor(imgDispInMat,imgDispOutMat,CV_GRAY2RGB);
 
-        cv::Mat imgBlobInMat=cv::cvarrToMat((IplImage*)imgBlobIn->getIplImage());       
+        cv::Mat imgBlobInMat=cv::cvarrToMat((IplImage*)imgBlobIn->getIplImage());
 
         if (acquire)
         {
             blobPoints.clear();
             points.clear();
             
-            for (int i=0; i<imgBlobInMat.rows; i++)
+            for (int j=0; j<imgBlobInMat.rows; j++)
             {
-                for (int j=0; j<imgBlobInMat.cols; j++)
+                for (int i=0; i<imgBlobInMat.cols; i++)
                 {
-                    //cout<<"value "<<static_cast<int>(imgBlobInMat.at<unsigned char>(i,j))<<endl;
                     if (static_cast<int>(imgBlobInMat.at<unsigned char>(i,j))==255)
                     {   
-                        blobPoints.push_back(cv::Point(i,j));
-                        
+                        blobPoints.push_back(cv::Point(i,j));                       
                     }
                 }
             }
 
-            cout<<"blob size "<<blobPoints.size()<<endl;
+            cout<<"Number of points belonging to the blob: "<<blobPoints.size()<<endl;
+
             LockGuard lg(mutex);
 
             // Use the seed point to get points from SFM with the Flood3D command, and spatial_distance given
@@ -235,12 +233,11 @@ public:
             {              
                 for (size_t i=0; i<blobPoints.size(); i++)
                 {
-                    if ((blobPoints[i].x<240) && (blobPoints[i].y<320) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
+                    if ((blobPoints[i].x<320) && (blobPoints[i].y<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
                     {
-                        //cout<<"blobPoints "<<blobPoints[i].x<< " "<<blobPoints[i].y<<endl;
                         cv::Point single_point=blobPoints[i];
-                        cmdSFM.addInt(single_point.y);
                         cmdSFM.addInt(single_point.x);
+                        cmdSFM.addInt(single_point.y);
                     }
                 }
 
@@ -257,8 +254,6 @@ public:
                         point[3]=px.r;
                         point[4]=px.g;
                         point[5]=px.b;
-
-                        //cout<<"point "<<point.toString()<<endl;
 
                         count++;
 
@@ -280,6 +275,8 @@ public:
                 yError()<<"No blob received!";
         }
 
+        Bottle &points_to_send=portPointsOut.prepare();
+
         if (points.size()>0)
         {
             if (saving)
@@ -288,11 +285,19 @@ public:
                 acquire=false;
             }
 
-            //portPointsOut.write();
+            for (size_t i=0; i<points.size(); i++)
+            {
+                Vector point=points[i];
+                Bottle &pointb=points_to_send.addList();
+                pointb.addDouble(point[0]);
+                pointb.addDouble(point[1]);
+                pointb.addDouble(point[2]);
+            }
+            portPointsOut.write();
         }
         else
         {
-            //portPointsOut.unprepare();
+            portPointsOut.unprepare();
         }
 
         if (blobPoints.size()>0)
@@ -300,9 +305,8 @@ public:
             PixelRgb color(255,255,0);
             for (size_t i=0; i<blobPoints.size(); i++)
             {
-                //cout<<"size "<<imgDispOut.width()<<" "<<imgDispOut.height()<<endl;
-                if ((blobPoints[i].y<320) && (blobPoints[i].x<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
-                    imgDispOut.pixel(blobPoints[i].y,blobPoints[i].x)=color;
+                if ((blobPoints[i].x<320) && (blobPoints[i].y<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
+                    imgDispOut.pixel(blobPoints[i].x,blobPoints[i].y)=color;
              }
 
             portDispOut.write();
