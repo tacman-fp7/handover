@@ -304,7 +304,7 @@ public:
                 yError()<<"No blob received!";
         }
 
-        if (points.size()>0)
+        if (points.size()>0 && acquire==true)
         {
             if (saving)
             {
@@ -321,6 +321,8 @@ public:
                 if ((blobPoints[i].x<320) && (blobPoints[i].y<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
                     imgDispOut.pixel(blobPoints[i].x,blobPoints[i].y)=color;
              }
+
+             portDispOut.write();
         }
 
         return true;
