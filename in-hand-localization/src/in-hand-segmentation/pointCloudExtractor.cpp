@@ -112,7 +112,7 @@ public:
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
-        module_name=rf.check("module_name", Value("cloud-extraction"), "Getting module name").asString();
+        module_name=rf.check("module_name", Value("cloud-extractor"), "Getting module name").asString();
 
         homeContextPath=rf.getHomeContextPath().c_str();
         savename=rf.check("savename", Value("cloud3D"), "Default file savename").asString();
@@ -203,23 +203,27 @@ public:
         cv::Mat imgDispOutMat=cv::cvarrToMat((IplImage*)imgDispOut.getIplImage());
         cv::cvtColor(imgDispInMat,imgDispOutMat,CV_GRAY2RGB);
 
-        cv::Mat imgBlobInMat=cv::cvarrToMat((IplImage*)imgBlobIn->getIplImage());
+        cv::Mat imgBlobInMat=cv::cvarrToMat((IplImage*)imgBlobIn->getIplImage());       
 
         if (acquire)
         {
+            blobPoints.clear();
             points.clear();
-
+            
             for (int i=0; i<imgBlobInMat.rows; i++)
             {
                 for (int j=0; j<imgBlobInMat.cols; j++)
                 {
-                    if (imgBlobInMat.at<int>(i,j)==1)
-                    {
+                    //cout<<"value "<<static_cast<int>(imgBlobInMat.at<unsigned char>(i,j))<<endl;
+                    if (static_cast<int>(imgBlobInMat.at<unsigned char>(i,j))==255)
+                    {   
                         blobPoints.push_back(cv::Point(i,j));
+                        
                     }
                 }
             }
 
+            cout<<"blob size "<<blobPoints.size()<<endl;
             LockGuard lg(mutex);
 
             // Use the seed point to get points from SFM with the Flood3D command, and spatial_distance given
@@ -227,42 +231,53 @@ public:
             cmdSFM.addString("Points");
             int count=0;
 
-            for (size_t i=0; i<blobPoints.size(); i++)
-            {
-                cv::Point single_point=blobPoints[i];
-                cmdSFM.addInt(single_point.x);
-                cmdSFM.addInt(single_point.y);
-            }
-
-            if (portSFM.write(cmdSFM,replySFM))
-            {
-                for (int i=0; i<replySFM.size(); i+=3)
+            if (blobPoints.size()>0)
+            {              
+                for (size_t i=0; i<blobPoints.size(); i++)
                 {
-                    Vector point(6,0.0);
-                    point[0]=replySFM.get(i+0).asDouble();
-                    point[1]=replySFM.get(i+1).asDouble();
-                    point[2]=replySFM.get(i+2).asDouble();
-
-                    PixelRgb px=imgIn->pixel(blobPoints[count].x,blobPoints[count].y);
-                    point[3]=px.r;
-                    point[4]=px.g;
-                    point[5]=px.b;
-
-                    count++;
-
-                    if ((norm(point)>0))
+                    if ((blobPoints[i].x<240) && (blobPoints[i].y<320) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
                     {
-                        points.push_back(point);
+                        //cout<<"blobPoints "<<blobPoints[i].x<< " "<<blobPoints[i].y<<endl;
+                        cv::Point single_point=blobPoints[i];
+                        cmdSFM.addInt(single_point.y);
+                        cmdSFM.addInt(single_point.x);
                     }
                 }
 
-               cout << "Retrieved " << points.size() << " 3D points" <<endl;
+                if (portSFM.write(cmdSFM,replySFM))
+                {
+                    for (int i=0; i<replySFM.size(); i+=3)
+                    {
+                        Vector point(6,0.0);
+                        point[0]=replySFM.get(i+0).asDouble();
+                        point[1]=replySFM.get(i+1).asDouble();
+                        point[2]=replySFM.get(i+2).asDouble();
+
+                        PixelRgb px=imgIn->pixel(blobPoints[count].x,blobPoints[count].y);
+                        point[3]=px.r;
+                        point[4]=px.g;
+                        point[5]=px.b;
+
+                        //cout<<"point "<<point.toString()<<endl;
+
+                        count++;
+
+                        if ((norm(point)>0))
+                        {
+                            points.push_back(point);
+                        }
+                        }
+
+                    cout << "Retrieved " << points.size() << " 3D points" <<endl;
+                }
+                else
+                {
+                    cout << " SFM didn't reply!" << endl;
+                    return true;
+                }
             }
             else
-            {
-                cout << " SFM didn't reply!" << endl;
-                return true;
-            }
+                yError()<<"No blob received!";
         }
 
         if (points.size()>0)
@@ -270,20 +285,28 @@ public:
             if (saving)
             {
                 saveCloud(points);
+                acquire=false;
             }
 
-            portPointsOut.write();
+            //portPointsOut.write();
         }
         else
         {
-            portPointsOut.unprepare();
+            //portPointsOut.unprepare();
         }
 
-        PixelRgb color(255,255,0);
-        for (size_t i=0; i<blobPoints.size(); i++)
-            imgDispOut.pixel(blobPoints[i].x,blobPoints[i].y)=color;
+        if (blobPoints.size()>0)
+        {                
+            PixelRgb color(255,255,0);
+            for (size_t i=0; i<blobPoints.size(); i++)
+            {
+                //cout<<"size "<<imgDispOut.width()<<" "<<imgDispOut.height()<<endl;
+                if ((blobPoints[i].y<320) && (blobPoints[i].x<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
+                    imgDispOut.pixel(blobPoints[i].y,blobPoints[i].x)=color;
+             }
 
-        portDispOut.write();
+            portDispOut.write();
+        }
 
         return true;
     }
@@ -354,5 +377,6 @@ public:
         {
             cout << "Points not saved" << endl;
         }
+        return true;
     }
 };

@@ -19,7 +19,7 @@
 
     <connection>
         <from>/cloud-extractor/disp:o</from>
-        <to>/dispSuperq</to>
+        <to>/dispCloud</to>
         <protocol>tcp</protocol>
     </connection>
 
