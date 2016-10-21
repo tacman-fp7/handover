@@ -237,14 +237,14 @@ public:
         {
             blobPoints.clear();
             points.clear();
-            
+      
             for (int j=0; j<imgBlobInMat.rows; j++)
             {
                 for (int i=0; i<imgBlobInMat.cols; i++)
                 {
-                    if (static_cast<int>(imgBlobInMat.at<unsigned char>(i,j))==255)
+                    if (static_cast<int>(imgBlobInMat.at<unsigned char>(j,i))!=0)
                     {   
-                        blobPoints.push_back(cv::Point(i,j));                       
+                        blobPoints.push_back(cv::Point(j,i));                       
                     }
                 }
             }
@@ -262,12 +262,12 @@ public:
             {              
                 for (size_t i=0; i<blobPoints.size(); i++)
                 {
-                    if ((blobPoints[i].x<320) && (blobPoints[i].y<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
-                    {
+                    //if ((blobPoints[i].y<320) && (blobPoints[i].x<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
+                    //{
                         cv::Point single_point=blobPoints[i];
-                        cmdSFM.addInt(single_point.x);
                         cmdSFM.addInt(single_point.y);
-                    }
+                        cmdSFM.addInt(single_point.x);
+                    //}
                 }
 
                 if (portSFM.write(cmdSFM,replySFM))
@@ -279,7 +279,7 @@ public:
                         point[1]=replySFM.get(i+1).asDouble();
                         point[2]=replySFM.get(i+2).asDouble();
 
-                        PixelRgb px=imgIn->pixel(blobPoints[count].x,blobPoints[count].y);
+                        PixelRgb px=imgIn->pixel(blobPoints[count].y,blobPoints[count].x);
                         point[3]=px.r;
                         point[4]=px.g;
                         point[5]=px.b;
@@ -314,12 +314,12 @@ public:
         }
 
         if (blobPoints.size()>0)
-        {                
+        {            
             PixelRgb color(255,255,0);
             for (size_t i=0; i<blobPoints.size(); i++)
             {
-                if ((blobPoints[i].x<320) && (blobPoints[i].y<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
-                    imgDispOut.pixel(blobPoints[i].x,blobPoints[i].y)=color;
+                if ((blobPoints[i].y<320) && (blobPoints[i].x<240) && (blobPoints[i].x>0) && (blobPoints[i].y>0))
+                    imgDispOut.pixel(blobPoints[i].y,blobPoints[i].x)=color;
             }
         }
 

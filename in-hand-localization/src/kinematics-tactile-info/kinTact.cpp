@@ -69,6 +69,7 @@ protected:
     string tactOutFileName;
     string robot;
     string frame;
+    string savename;
     string left_or_right;
     Vector x,o;
     Vector tip_x_init, tip_o_init;
@@ -130,7 +131,7 @@ protected:
 
         ofstream fout;
         stringstream fileName;
-        fileName<<homeContextPath + "/" + poseOutFileName<<"_"<<fileCount;
+        fileName<<homeContextPath + "/" + poseOutFileName<<"_"+savename<<"_"<<fileCount;
         string fileNameFormat;
         fileNameFormat=fileName.str()+".txt";
         fout.open(fileNameFormat.c_str());
@@ -217,7 +218,7 @@ protected:
         ofstream fout;
         stringstream fileName;
         string fileNameFormat;
-        fileName<<homeContextPath + "/" + tactOutFileName.c_str() << "_"+frame<<"_"<<fileCount;
+        fileName<<homeContextPath + "/" + tactOutFileName.c_str() <<"_"+savename<< "_"+frame<<"_"<<fileCount;
         fileNameFormat= fileName.str()+".off";
         fout.open(fileNameFormat.c_str());
         if (fout.is_open())
@@ -239,6 +240,14 @@ protected:
         }
     }
 
+    /*******************************************************************************/
+    bool set_filename(const string &entry)
+    {
+        savename=entry;
+        return true;
+    }
+
+
     /***********************************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -247,6 +256,7 @@ protected:
         poseOutFileName=rf.check("pose_file_name", Value("hand_pose"), "Getting pose file name").asString();
         tactOutFileName=rf.check("tact_file_name", Value("tactile_data"), "Getting tactile file name").asString();
         frame=rf.check("frame", Value("robot"), "Getting reference frame").asString();
+        savename=rf.check("savename", Value("test"), "Default file savename").asString();
 
         cout<<"Files will be saved in "<<homeContextPath<<" folder, as "<<poseOutFileName<<"N."<<" and "<<tactOutFileName<<"N"<<", with increasing numeration N"<< endl;
         fileCount=0;

@@ -23,9 +23,9 @@ yarp_add_idl(IDL_GEN_FILES idl.thrift)
 source_group("IDL Files" FILES idl.thrift)
 source_group("Source Files" FILES ${sources})
 
-include_directories(${YARP_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+include_directories(${YARP_INCLUDE_DIRS} ${ICUB_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME} ${sources} idl.thrift ${IDL_GEN_FILES})
-target_link_libraries(${PROJECT_NAME} ${YARP_LIBRARIES} ${ICUB_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${YARP_LIBRARIES} iKin ctrlLib perceptiveModels ${OpenCV_LIBRARIES})
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
 #file(GLOB conf ${CMAKE_CURRENT_SOURCE_DIR}/app/conf/*.ini)

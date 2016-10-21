@@ -59,6 +59,13 @@ service kinematicsTactileInfo_IDL
     * @return true/false on success/failure
     */
     bool save_tactile_data();
+
+    /**
+    * set filename for saving
+    * @param entry is the name of file
+    * @return true/false on success/failure.
+    */
+    bool set_filename(1: string entry);
 }
 
 
