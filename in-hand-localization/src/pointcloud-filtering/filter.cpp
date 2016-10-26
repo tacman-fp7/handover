@@ -27,6 +27,8 @@ class filteringModule : public RFModule
     string fileOutFormat;
     string fileInFormat;
     string fileInName;
+    string tactPoseFileName;
+    string fingersFileName;
 
     bool saving;
     int fileCount;
@@ -36,8 +38,13 @@ class filteringModule : public RFModule
     BufferedPort<Bottle> portPointsOut;
     RpcServer portRpc;
 
+    RpcClient portCloudRpc;
+    RpcServer portTactRpc;
+
     vector<Vector> pointsIn;
     vector<Vector> pointsOut;
+    vector<Vector> fingers;
+    Matrix H_hand;
 
     double radius;
     int nnThreshold;
@@ -49,10 +56,18 @@ class filteringModule : public RFModule
 
     bool spatial_filter;
     bool gray_filter;
+    bool change_frame;
+    bool hand_filter;
+    bool volume_filter;
     string color_space;
+    double x_lim, y_lim, z_lim;
+
+    Vector center_volume;
+    double radius_volume;
+    double radius_volume_offset;
+    Vector position, orientation;
 
 public:
-
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -80,15 +95,42 @@ public:
         diff_rgb=rf.check("diff_rgb", Value(25)).asInt();
         diff_ycbcr=rf.check("diff_ycbcr", Value(2)).asInt();
 
+        change_frame=(rf.check("change_frame", Value("no")).asString()=="yes");
+        hand_filter=(rf.check("hand_filter", Value("no")).asString()=="yes");
+        volume_filter=(rf.check("volume_filter", Value("no")).asString()=="yes");
+        x_lim=rf.check("x_lim", Value(0.05)).asDouble();
+        y_lim=rf.check("y_lim", Value(0.05)).asDouble();
+        z_lim=rf.check("z_lim", Value(0.15)).asDouble();
+        radius_volume_offset=rf.check("radius_volume_offset", Value(0.03)).asDouble();
+
+        center_volume.resize(2,0.0);
+        position.resize(3,0.0);
+        orientation.resize(4,0.0);
+
         if (online)
         {
             portPointsIn.open("/" + module_name + "pnt:i");
             portPointsOut.open("/" + module_name + "pnt:o");
+            portCloudRpc.open("/" + module_name + "cld:i");
+            portTactRpc.open("/" + module_name + "tct:i");
         }
         else
         {
             fileInName=rf.check("fileInName", Value("cloud.off"), "Default cloud name").asString();
-            return readPointCloud();
+            if (change_frame)
+            {
+                tactPoseFileName=rf.check("tactPoseFileName", Value("hand_pose.off"), "Default cloud name").asString();
+                H_hand=readPose();
+            }
+
+            if (volume_filter)
+            {
+                fingersFileName=rf.check("fingersFileName", Value("tactile_hand_pose.off"), "Default cloud name").asString();
+                readPointCloud(fingersFileName, "fingers");
+                graspableVolume(fingers);
+            }
+
+            return readPointCloud(fileInName, "points");
         }
 
         return true;
@@ -101,6 +143,9 @@ public:
         {
             portPointsIn.close();
             portPointsOut.close();
+
+            portCloudRpc.interrupt();
+            portTactRpc.interrupt();
         }
 
         return true;
@@ -113,6 +158,9 @@ public:
         {
             portPointsIn.close();
             portPointsOut.close();
+
+            portCloudRpc.close();
+            portTactRpc.close();
         }
 
         return true;
@@ -127,30 +175,80 @@ public:
     /*******************************************************************************/
     bool updateModule()
     {
+        Vector colors(3,0.0);
+         string info;
+
         if (online)
-            waitForCloud();
+        {
+            askForCloud();
+            askForFingers();
+            askForPose();
+        }
+
+        if (change_frame)
+            fromRobotTohandFrame(pointsIn);
+
+        if (hand_filter)
+        {
+            colors[1]=255;
+            handFilter(pointsIn, x_lim, y_lim, z_lim);
+            info="_HF";
+            saveNewCloud(colors, pointsIn, info);
+        }
 
         if (gray_filter && color_space == "rgb")
+        {
+            colors[2]=255;
+            colors[1]=0;
             grayColorFilter(radius_color,nnThreshold_color,diff_rgb, pointsIn);
+            info+="_GF_rgb";
+            saveNewCloud(colors, pointsOut, info);
+        }
         else if (gray_filter && color_space == "ycbcr")
+        {
+            colors[2]=255;
+            colors[1]=0;
             grayColorFilter(radius_color,nnThreshold_color,diff_ycbcr, pointsIn);
+            info+="_GF_ycbcr";
+            saveNewCloud(colors, pointsOut, info);
+        }
 
-        if (spatial_filter && gray_filter)
-            spatialDensityFilter(radius,nnThreshold+1, pointsOut);
-        else if (spatial_filter)
-            spatialDensityFilter(radius,nnThreshold+1, pointsIn);
+        if (spatial_filter)
+        {
+            colors[0]=255;
+            colors[2]=0;
+            if (gray_filter)
+                spatialDensityFilter(radius,nnThreshold+1, pointsOut);
+            else
+                spatialDensityFilter(radius,nnThreshold+1, pointsIn);
+            info+="_SF";
+            saveNewCloud(colors, pointsOut, info);
+        }
+
+        if (volume_filter)
+        {
+            colors[1]=255;
+            if ((spatial_filter==true || gray_filter==true)==true)
+                volumeFilter(pointsOut);
+            else
+                volumeFilter(pointsIn);
+            info+="_VF";
+        }
 
 
-        Vector colors(3,0.0);
-        colors[1]=255;
 
-        saveNewCloud(colors);
+        if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF")
+        {
+            info="all_filters";
+        }
+
+        saveNewCloud(colors, pointsOut,info);
 
         return false;
     }
 
     /*******************************************************************************/
-    bool readPointCloud()
+    bool readPointCloud(string &filename, string what)
     {
         int state=0;
         int nPoints;
@@ -159,9 +257,9 @@ public:
         Vector point_tmp;
         point_tmp.resize(6,0.0);
 
-        cout<< "In cloud file "<<homeContextPath+"/"+fileInName<<endl;
+        cout<< "In cloud file "<<homeContextPath+"/"+filename<<endl;
 
-        ifstream cloudFile((homeContextPath+"/"+fileInName).c_str());
+        ifstream cloudFile((homeContextPath+"/"+filename).c_str());
         if (!cloudFile.is_open())
         {
             yError()<<"problem opening cloud file!";
@@ -179,7 +277,7 @@ public:
             {
                 string tmp=firstItem.asString().c_str();
                 std::transform(tmp.begin(),tmp.end(),tmp.begin(),::toupper);
-                if (tmp=="COFF")
+                if (tmp=="COFF" || tmp=="OFF")
                     state++;
             }
             else if (state==1)
@@ -208,7 +306,12 @@ public:
                         {
                             point_tmp=points_tmp[i];
                             //cout<<"point "<<point_tmp.toString(3,3).c_str()<<endl;
-                            pointsIn.push_back(point_tmp);
+                            if (what=="fingers")
+                            {
+                                fingers.push_back(point_tmp);
+                            }
+                            else
+                                pointsIn.push_back(point_tmp);
                         }
                         return true;
                     }
@@ -219,10 +322,122 @@ public:
     }
 
     /*******************************************************************************/
-    bool waitForCloud()
+    bool askForCloud()
     {
+        Bottle cmd,reply;
+        cmd.addString("get_3D_blob_points");
+        pointsIn.clear();
+
+        if (portCloudRpc.write(cmd,reply))
+        {
+            for (int i=0; i<reply.size(); i++)
+            {
+                Bottle *bcloud=reply.get(i).asList();
+                Vector aux(3,0.0);
+                aux[0]=bcloud->get(0).asDouble();
+                aux[1]=bcloud->get(1).asDouble();
+                aux[2]=bcloud->get(2).asDouble();
+
+                pointsIn.push_back(aux);
+
+            }
+
+            if (pointsIn.size()<0)
+            {
+                yError()<<"No blob points retrieved!";
+                return false;
+            }
+        }
+        else
+        {
+            yError()<<"cloud Extractor didn't reply!";
+            return false;
+        }
+
         return true;
     }
+
+    /*******************************************************************************/
+    bool askForFingers()
+    {
+        Bottle cmd,reply;
+        cmd.addString("get_tactile_data");
+        pointsIn.clear();
+
+        if (portTactRpc.write(cmd,reply))
+        {
+            for (int i=0; i<reply.size(); i++)
+            {
+                Bottle *bcloud=reply.get(i).asList();
+                Vector aux(3,0.0);
+                if (bcloud->get(0).asString()=="thumb" ||bcloud->get(0).asString()=="index" ||bcloud->get(0).asString()=="middle")
+                {
+                    aux[0]=bcloud->get(0).asDouble();
+                    aux[1]=bcloud->get(1).asDouble();
+                    aux[2]=bcloud->get(2).asDouble();
+                    fingers.push_back(aux);
+                }
+            }
+
+            if (fingers.size()<0)
+            {
+                yError()<<"No finger positions retrieved!";
+                return false;
+            }
+        }
+        else
+        {
+            yError()<<"kinematics didn't reply!";
+            return false;
+        }
+
+        return true;
+    }
+
+    /*******************************************************************************/
+    Matrix askForPose()
+    {
+        Matrix H;
+        Bottle cmd,reply;
+        cmd.addString("get_pose");
+        pointsIn.clear();
+
+        if (portTactRpc.write(cmd,reply))
+        {
+            for (int i=0; i<reply.size(); i++)
+            {
+                Bottle *bcloud=reply.get(i).asList();
+                if (bcloud->get(0).asString()=="position")
+                {
+                    position[0]=(bcloud->get(0).asDouble());
+                    position[1]=(bcloud->get(1).asDouble());
+                    position[2]=(bcloud->get(2).asDouble());
+                }
+                if (bcloud->get(0).asString()=="orientation")
+                {
+                    orientation[0]=(bcloud->get(0).asDouble());
+                    orientation[1]=(bcloud->get(1).asDouble());
+                    orientation[2]=(bcloud->get(2).asDouble());
+                    orientation[3]=(bcloud->get(3).asDouble());
+                }
+            }
+
+            H.resize(4,0.0);
+
+            H=axis2dcm(orientation);
+            Vector x_aux(4,1.0);
+            x_aux.setSubvector(0,position);
+            H.setCol(3,x_aux);
+            H=SE3inv(H);
+        }
+        else
+        {
+            yError()<<"kinematics didn't reply!";
+        }
+
+        return H;
+    }
+
 
     /*******************************************************************************/
     vector<int>  spatialDensityFilter(const double radius, const int maxResults, vector<Vector> &points)
@@ -254,7 +469,7 @@ public:
             for (int c=0; c<query.cols; c++)
                 query.at<float>(0,c)=data.at<float>(i,c);
 
-            res[i]=kdtree.radiusSearch(query,indices,dists,radius,maxResults,cv::flann::SearchParams(128));
+            res[i]=kdtree.radiusSearch(query,indices,dists,radius,maxResults,cv::flann::SearchParams(250));
 
             Vector point(3,0.0);
             if (res[i]>=maxResults)
@@ -348,13 +563,28 @@ public:
     }
 
     /*******************************************************************************/
-    bool saveNewCloud(const Vector &colors)
+    void handFilter(vector<Vector> &points, double &x_lim , double &y_lim, double &z_lim)
+    {
+        vector<Vector> pointsTmp=points;
+        pointsIn.clear();
+
+        for (size_t i=0; i<pointsTmp.size(); i++)
+        {
+            Vector point=pointsTmp[i];
+
+            if ((abs(point[0])<= x_lim) && (abs(point[1])<= y_lim) && (abs(point[2])<= z_lim) )
+                pointsIn.push_back(point);
+        }
+    }
+
+    /*******************************************************************************/
+    bool saveNewCloud(const Vector &colors, vector<Vector> &pointsToBeSaved, string &info)
     {
         ofstream fout;
         stringstream fileName;
         string fileNameFormat;
         fileName.str("");
-        fileName << homeContextPath + "/" + savename.c_str() << fileCount;
+        fileName << homeContextPath + "/" + savename.c_str() << fileCount<<info;
 
         if (fileOutFormat == "ply")
         {
@@ -365,7 +595,7 @@ public:
             {
                 fout << "ply\n";
                 fout << "format ascii 1.0\n";
-                fout << "element vertex " << pointsOut.size() <<"\n";
+                fout << "element vertex " << pointsToBeSaved.size() <<"\n";
                 fout << "property float x\n";
                 fout << "property float y\n";
                 fout << "property float z\n";
@@ -374,9 +604,9 @@ public:
                 fout << "property uchar diffuse_blue\n";
                 fout << "end_header\n";
 
-                for (unsigned int i=0; i<pointsOut.size(); i++)
+                for (unsigned int i=0; i<pointsToBeSaved.size(); i++)
                 {
-                    fout << pointsOut[i][0] << " " <<      pointsOut[i][1] << " " <<      pointsOut[i][2] << " " << (int)pointsOut[i][3] << " " << (int)pointsOut[i][4] << " " << (int)pointsOut[i][5] << "\n";
+                    fout << pointsToBeSaved[i][0] << " " <<      pointsToBeSaved[i][1] << " " <<      pointsToBeSaved[i][2] << " " << (int)pointsToBeSaved[i][3] << " " << (int)pointsToBeSaved[i][4] << " " << (int)pointsToBeSaved[i][5] << "\n";
                     //plyfile << cloud->at(i).x << " " << cloud->at(i).y << " " << cloud->at(i).z << " " << (int)cloud->at(i).r << " " << (int)cloud->at(i).g << " " << (int)cloud->at(i).b << "\n";
                 }
 
@@ -395,12 +625,17 @@ public:
             {
 
                 fout<<"COFF"<<endl;
-                fout<<pointsOut.size()<<" 0 0"<<endl;
+                fout<<pointsToBeSaved.size()<<" 0 0"<<endl;
                 fout<<endl;
-                for (size_t i=0; i<pointsOut.size(); i++)
+                for (size_t i=0; i<pointsToBeSaved.size(); i++)
                 {
-                    fout<<pointsOut[i].subVector(0,2).toString(3,4).c_str()<<" "<<
-                          colors[0]<<" "<<colors[1]<<" "<<colors[2]<<endl;
+                    if (info!="_HF")
+                    {
+                        fout<<pointsToBeSaved[i].subVector(0,2).toString(3,4).c_str()<<" "<<
+                              colors[0]<<" "<<colors[1]<<" "<<colors[2]<<endl;
+                    }
+                    else
+                        fout<<pointsToBeSaved[i].subVector(0,2).toString(3,4).c_str()<<" "<<pointsToBeSaved[i].subVector(3,5).toString(0,4).c_str()<<endl;
                 }
                 fout<<endl;
             }
@@ -443,6 +678,111 @@ public:
             point->setSubvector(3,M_rgb2ycbcr*point->subVector(3,5) + ycbcr);
 
             cout<<"point computed "<<point->subVector(3,5).toString()<<endl;
+        }
+    }
+
+    /*******************************************************************************/
+    void fromRobotTohandFrame(vector<Vector> &pointstmp)
+    {
+        if (online)
+        {
+            H_hand=askForPose();
+        }
+
+        for (size_t i=0; i<pointstmp.size(); i++)
+        {
+            Vector aux(4,1.0);
+            aux.setSubvector(0,pointstmp[i].subVector(0,2));
+            aux=H_hand*(aux);
+            pointstmp[i].setSubvector(0,aux.subVector(0,2));
+        }
+    }
+
+    /*******************************************************************************/
+    Matrix readPose()
+    {
+        Matrix H;
+        int state=0;
+        char line[255];
+
+        cout<< "In pose file "<<homeContextPath+"/"+tactPoseFileName<<endl;
+
+        ifstream poseFile((homeContextPath+"/"+tactPoseFileName).c_str());
+        if (!poseFile.is_open())
+        {
+            yError()<<"problem opening pose file!";
+        }
+
+        while (!poseFile.eof())
+        {
+            poseFile.getline(line,sizeof(line),'\n');
+            Bottle b(line);
+            Value firstItem=b.get(0);
+            bool isNumber=firstItem.isInt() || firstItem.isDouble();
+
+            if (state==0)
+            {
+                string tmp=firstItem.asString().c_str();
+                std::transform(tmp.begin(),tmp.end(),tmp.begin(),::toupper);
+                if (tmp=="RIGHT" || tmp=="LEFT")
+                    state++;
+            }
+            else if (state==1)
+            {
+                if (isNumber && (b.size()==3))
+                {
+                    position[0]=b.get(0).asDouble();
+                    position[1]=b.get(1).asDouble();
+                    position[2]=b.get(2).asDouble();
+                }
+                else if (isNumber && (b.size()==4))
+                {
+                    orientation[0]=b.get(0).asDouble();
+                    orientation[1]=b.get(1).asDouble();
+                    orientation[2]=b.get(2).asDouble();
+                    orientation[3]=b.get(3).asDouble();
+                }
+            }
+        }
+
+        H.resize(4,0.0);
+
+        H=axis2dcm(orientation);
+        Vector x_aux(4,1.0);
+        x_aux.setSubvector(0,position);
+        H.setCol(3,x_aux);
+        H=SE3inv(H);
+
+        return H;
+    }
+
+    /*******************************************************************************/
+    void graspableVolume(vector<Vector> &fingerPoses)
+    {
+        Vector thumb, index, middle;
+        thumb=fingerPoses[0];
+        index=fingerPoses[1];
+        middle=fingerPoses[2];
+        double ma, mb;
+        ma=(index[2]-thumb[2])/(index[0]-thumb[0]);
+        mb=(middle[2]-index[2])/(middle[0]-index[0]);
+        center_volume[0]=(ma*mb * (thumb[2]-middle[2]) + mb * (index[0]+thumb[0]) - ma * (index[0]+middle[0]))/(2*(mb-ma));
+        center_volume[1]=-1/ma * (center_volume[0] - (thumb[0]+index[0])/2) +(thumb[2]+index[2])/2;
+        radius_volume=sqrt((center_volume[0]-thumb[0])*(center_volume[0]-thumb[0]) + (center_volume[1]-thumb[2])*(center_volume[1]-thumb[2]));
+    }
+
+    /*******************************************************************************/
+    void volumeFilter(vector<Vector> &points)
+    {
+        vector<Vector> pointsTmp=points;
+        pointsOut.clear();
+
+        for (size_t i=0;i<pointsTmp.size(); i++)
+        {
+            Vector point=pointsTmp[i];
+            //cout<<(point[0]-center_volume[0])*(point[0]-center_volume[0]) + (point[1]-center_volume[1])*(point[1]-center_volume[1]) - radius_volume*radius_volume<<endl;
+            if ((point[0]-center_volume[0])*(point[0]-center_volume[0]) + (point[2]-center_volume[1])*(point[2]-center_volume[1]) - (radius_volume+radius_volume_offset)*(radius_volume+radius_volume_offset )<0 )
+                pointsOut.push_back(point);
         }
     }
 };
