@@ -33,9 +33,9 @@
 #include <yarp/dev/Drivers.h>
 #include <iCub/iKin/iKinFwd.h>
 
-#include <yarp/dev/Drivers.h>
 #include <yarp/dev/CartesianControl.h>
 #include <yarp/dev/PolyDriver.h>
+#include <yarp/dev/IAnalogSensor.h>
 
 #include "kinematicsTactileInfo_IDL.h"
 
@@ -55,10 +55,12 @@ protected:
 
     PolyDriver robotDevice;
     PolyDriver robotDevice2;
+    PolyDriver analogDevice;
 
     ICartesianControl *icart_arm;
     ICartesianControl *icart_arm2;
     IEncoders *enc;
+    IAnalogSensor *analog;
     Vector encoders;
 
     ResourceFinder *rf;
@@ -315,6 +317,19 @@ protected:
         H.setCol(3,x_aux);
         H=SE3inv(H);
 
+        Property option_analog("(device analogsensorclient)");
+        option_analog.put("remote","/"+robot+"/"+left_or_right+"_hand"+"/analog:o");
+        option_analog.put("local","/"+module_name+"/analogsensorclient/"+left_or_right+"_hand");
+
+        analogDevice.open(option_analog);
+        if (!analogDevice.isValid())
+        {
+            yError("Device index not available!");
+            return false;
+        }
+
+        analogDevice.view(analog);
+
         x.resize(3,0.0);
         o.resize(4,0.0);
         contactPoint_index.resize(3,0.0);
@@ -347,13 +362,37 @@ protected:
     void giveContactPoint(Vector &contactPoint, const string &finger_string)
     {
         contactPoint.resize(3,0.0);
-        Vector joints;
+        Vector joints, enc_from_port;
+        enc_from_port.resize(3,0.0);
         string finger_str=left_or_right+"_"+finger_string;
 
         iCubFinger finger(finger_str);
 
         enc->getEncoders(encoders.data());
-        finger.getChainJoints(encoders,joints);
+        //finger.getChainJoints(encoders,joints);
+
+        analog->read(enc_from_port);
+
+        if (finger_string=="thumb")
+        {
+            joints[0]=encoders[8];
+            joints[1]=enc_from_port[0];
+            joints[2]=enc_from_port[1];
+            joints[3]=enc_from_port[2];
+        }
+        else if (finger_string=="index")
+        {
+            joints[0]=encoders[7];
+            joints[1]=enc_from_port[3];
+            joints[2]=enc_from_port[4];
+            joints[3]=enc_from_port[5];
+        }
+        else if (finger_string=="middle")
+        {
+            joints[0]=enc_from_port[6];
+            joints[1]=enc_from_port[7];
+            joints[2]=enc_from_port[8];
+        }
 
         Matrix tipFrame=finger.getH((M_PI/180.0)*joints);
         Vector tip_x=tipFrame.getCol(3);
