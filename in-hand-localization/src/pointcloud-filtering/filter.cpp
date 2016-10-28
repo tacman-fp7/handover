@@ -12,13 +12,16 @@
 #include <yarp/sig/all.h>
 #include <yarp/math/Math.h>
 
+#include "pointCloudFiltering_IDL.h"
+
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 using namespace yarp::math;
 
 
-class filteringModule : public RFModule
+class filteringModule : public RFModule,
+                        public pointCloudFiltering_IDL
 {
     bool online;
     string module_name;
@@ -29,13 +32,12 @@ class filteringModule : public RFModule
     string fileInName;
     string tactPoseFileName;
     string fingersFileName;
+    string info;
 
     bool saving;
     int fileCount;
     int down;
 
-    BufferedPort<Bottle> portPointsIn;
-    BufferedPort<Bottle> portPointsOut;
     RpcServer portRpc;
 
     RpcClient portCloudRpc;
@@ -68,6 +70,139 @@ class filteringModule : public RFModule
     Vector position, orientation;
 
 public:
+    /************************************************************************/
+    bool attach(RpcServer &source)
+    {
+        return this->yarp().attachAsServer(source);
+    }
+
+    /***********************************************************************/
+    bool set_saving(const string &entry)
+    {
+        if (entry=="yes" || entry=="no")
+        {
+            saving=(entry=="yes");
+            return true;
+        }
+        else
+            return false;
+    }
+
+    /***********************************************************************/
+    bool set_filename(const string &entry)
+    {
+        savename=entry;
+        return true;
+    }
+
+    /***********************************************************************/
+    Bottle get_filtered_points()
+    {
+        Bottle bpoints;
+
+        vector<Vector> pointsTobeSent;
+
+        if ((spatial_filter==true || gray_filter==true || volume_filter==true)==true)
+            pointsTobeSent=pointsOut;
+        else
+            pointsTobeSent=pointsOut;
+
+        if (pointsTobeSent.size()>0)
+        {
+            for (size_t i=0; i<pointsTobeSent.size(); i++)
+            {
+                Vector point=pointsTobeSent[i];
+                Bottle &bpoint=bpoints.addList();
+                bpoint.addDouble(point[0]); bpoint.addDouble(point[1]);bpoint.addDouble(point[2]);
+            }
+        }
+        else
+            yError()<<"No pointd available!";
+
+        return bpoints;
+    }
+
+    /***********************************************************************/
+    string get_filters()
+    {
+        string filters;
+
+        if (hand_filter)
+            filters="HF";
+        if (gray_filter)
+            filters+=" GF";
+        if (spatial_filter)
+            filters+=" SF";
+        if (volume_filter)
+            filters+=" VF";
+
+        return filters;
+    }
+
+    /***********************************************************************/
+    bool set_hand_filter(const string &entry)
+    {
+        if (entry=="yes" || entry=="no")
+        {
+            hand_filter=(entry=="yes");
+            return true;
+        }
+        else
+            return false;
+    }
+
+    /***********************************************************************/
+    bool set_gray_filter(const string &entry)
+    {
+        if (entry=="yes" || entry=="no")
+        {
+            gray_filter=(entry=="yes");
+            return true;
+        }
+        else
+            return false;
+    }
+
+    /***********************************************************************/
+    bool set_spatial_filter(const string &entry)
+    {
+        if (entry=="yes" || entry=="no")
+        {
+            spatial_filter=(entry=="yes");
+            return true;
+        }
+        else
+            return false;
+    }
+
+    /***********************************************************************/
+    bool set_volume_filter(const string &entry)
+    {
+        if (entry=="yes" || entry=="no")
+        {
+            volume_filter=(entry=="yes");
+            return true;
+        }
+        else
+            return false;
+    }
+
+    /***********************************************************************/
+    bool set_all_filters(const string &entry)
+    {
+        if (entry=="yes")
+        {
+            hand_filter=true;
+            gray_filter=true;
+            spatial_filter=true;
+            volume_filter=true;
+            return true;
+        }
+        else
+            return false;
+    }
+
+
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -109,10 +244,8 @@ public:
 
         if (online)
         {
-            portPointsIn.open("/" + module_name + "pnt:i");
-            portPointsOut.open("/" + module_name + "pnt:o");
-            portCloudRpc.open("/" + module_name + "cld:i");
-            portTactRpc.open("/" + module_name + "tct:i");
+            portCloudRpc.open("/" + module_name + "/cld:i");
+            portTactRpc.open("/" + module_name + "/tct:i");
         }
         else
         {
@@ -133,6 +266,9 @@ public:
             return readPointCloud(fileInName, "points");
         }
 
+        portRpc.open("/"+module_name+"/rpc");
+        attach(portRpc);
+
         return true;
     }
 
@@ -141,12 +277,11 @@ public:
     {
         if (online)
         {
-            portPointsIn.close();
-            portPointsOut.close();
-
             portCloudRpc.interrupt();
             portTactRpc.interrupt();
         }
+
+        portRpc.close();
 
         return true;
     }
@@ -156,12 +291,11 @@ public:
     {
         if (online)
         {
-            portPointsIn.close();
-            portPointsOut.close();
-
             portCloudRpc.close();
             portTactRpc.close();
         }
+
+        portRpc.interrupt();
 
         return true;
     }
@@ -169,14 +303,13 @@ public:
     /*******************************************************************************/
     double getPeriod()
     {
-        return 0.0;
+        return 0.1;
     }
 
     /*******************************************************************************/
     bool updateModule()
     {
         Vector colors(3,0.0);
-         string info;
 
         if (online)
         {
@@ -185,66 +318,76 @@ public:
             askForPose();
         }
 
-        if (change_frame)
-            fromRobotTohandFrame(pointsIn);
+        if (pointsIn.size()>0)
+        {
+            if (change_frame)
+                fromRobotTohandFrame(pointsIn);
 
-        if (hand_filter)
-        {
-            colors[1]=255;
-            handFilter(pointsIn, x_lim, y_lim, z_lim);
-            info="_HF";
-            saveNewCloud(colors, pointsIn, info);
-        }
+            if (hand_filter)
+            {
+                colors[1]=255;
+                handFilter(pointsIn, x_lim, y_lim, z_lim);
+                info="_HF";
+                saveNewCloud(colors, pointsIn, info);
+            }
 
-        if (gray_filter && color_space == "rgb")
-        {
-            colors[2]=255;
-            colors[1]=0;
-            grayColorFilter(radius_color,nnThreshold_color,diff_rgb, pointsIn);
-            info+="_GF_rgb";
-            saveNewCloud(colors, pointsOut, info);
-        }
-        else if (gray_filter && color_space == "ycbcr")
-        {
-            colors[2]=255;
-            colors[1]=0;
-            grayColorFilter(radius_color,nnThreshold_color,diff_ycbcr, pointsIn);
-            info+="_GF_ycbcr";
-            saveNewCloud(colors, pointsOut, info);
-        }
+            if (gray_filter && color_space == "rgb")
+            {
+                colors[2]=255;
+                colors[1]=0;
+                grayColorFilter(radius_color,nnThreshold_color,diff_rgb, pointsIn);
+                info+="_GF_rgb";
+                saveNewCloud(colors, pointsOut, info);
+            }
+            else if (gray_filter && color_space == "ycbcr")
+            {
+                colors[2]=255;
+                colors[1]=0;
+                grayColorFilter(radius_color,nnThreshold_color,diff_ycbcr, pointsIn);
+                info+="_GF_ycbcr";
+                saveNewCloud(colors, pointsOut, info);
+            }
 
-        if (spatial_filter)
+            if (spatial_filter)
+            {
+                colors[0]=255;
+                colors[2]=0;
+                if (gray_filter)
+                    spatialDensityFilter(radius,nnThreshold+1, pointsOut);
+                else
+                    spatialDensityFilter(radius,nnThreshold+1, pointsIn);
+                info+="_SF";
+                saveNewCloud(colors, pointsOut, info);
+            }
+
+            if (volume_filter)
+            {
+                colors[1]=255;
+                if ((spatial_filter==true || gray_filter==true)==true)
+                    volumeFilter(pointsOut);
+                else
+                    volumeFilter(pointsIn);
+                info+="_VF";
+            }
+
+
+
+            if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF")
+            {
+                info="all_filters";
+            }
+
+            saveNewCloud(colors, pointsOut,info);
+
+            pointsIn.clear();
+        }
+        else
         {
-            colors[0]=255;
-            colors[2]=0;
-            if (gray_filter)
-                spatialDensityFilter(radius,nnThreshold+1, pointsOut);
+            if (online)
+                return true;
             else
-                spatialDensityFilter(radius,nnThreshold+1, pointsIn);
-            info+="_SF";
-            saveNewCloud(colors, pointsOut, info);
+                return false;
         }
-
-        if (volume_filter)
-        {
-            colors[1]=255;
-            if ((spatial_filter==true || gray_filter==true)==true)
-                volumeFilter(pointsOut);
-            else
-                volumeFilter(pointsIn);
-            info+="_VF";
-        }
-
-
-
-        if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF")
-        {
-            info="all_filters";
-        }
-
-        saveNewCloud(colors, pointsOut,info);
-
-        return false;
     }
 
     /*******************************************************************************/
@@ -330,7 +473,7 @@ public:
 
         if (portCloudRpc.write(cmd,reply))
         {
-            for (int i=0; i<reply.size(); i++)
+            for (int i=0; i<reply.size(); i+=down)
             {
                 Bottle *bcloud=reply.get(i).asList();
                 Vector aux(3,0.0);
