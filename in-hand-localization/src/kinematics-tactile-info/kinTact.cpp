@@ -77,12 +77,16 @@ protected:
     Vector tip_x_init, tip_o_init;
     Matrix H;
 
+    Bottle limits;
+
     Vector contactPoint_index;
     Vector contactPoint_middle;
     Vector contactPoint_thumb;
 
     int startup_context_id;
     int fileCount;
+
+    double minDistal, maxDistal, minMiddle, maxMiddle;
 
     /************************************************************************/
     bool attach(RpcServer &source)
@@ -260,6 +264,35 @@ protected:
         frame=rf.check("frame", Value("robot"), "Getting reference frame").asString();
         savename=rf.check("savename", Value("test"), "Default file savename").asString();
 
+        Bottle &bthumb=limits.addList();
+        bthumb.addString("thumb");
+        Bottle &blimitp_thumb=bthumb.addList();
+        blimitp_thumb.addString("proximal"); blimitp_thumb.addDouble(rf.check("thumb_middle_min", Value(14)).asDouble()); blimitp_thumb.addDouble(rf.check("thumb_middle_max", Value(235)).asDouble());
+        Bottle &blimitm_thumb=bthumb.addList();
+        blimitm_thumb.addString("middle"); blimitm_thumb.addDouble(rf.check("thumb_middle_min", Value(20)).asDouble()); blimitm_thumb.addDouble(rf.check("thumb_middle_max", Value(215)).asDouble());
+        Bottle &blimitd_thumb=bthumb.addList();
+        blimitd_thumb.addString("distal"); blimitd_thumb.addDouble(rf.check("thumb_distal_min", Value(24)).asDouble()); blimitd_thumb.addDouble(rf.check("thumb_distal_max", Value(250)).asDouble());
+
+        Bottle &bindex=limits.addList();
+        bindex.addString("index");
+        Bottle &blimitp_index=bindex.addList();
+        blimitp_index.addString("proximal"); blimitp_index.addDouble(rf.check("index_proximal_min", Value(15)).asDouble()); blimitp_index.addDouble(rf.check("index_proximal_max", Value(240)).asDouble());
+        Bottle &blimitm_index=bindex.addList();
+        blimitm_index.addString("middle"); blimitm_index.addDouble(rf.check("index_middle_min", Value(50)).asDouble()); blimitm_index.addDouble(rf.check("index_middle_max", Value(225)).asDouble());
+        Bottle &blimitd_index=bindex.addList();
+        blimitd_index.addString("distal"); blimitd_index.addDouble(rf.check("index_distal_min", Value(0)).asDouble()); blimitd_index.addDouble(rf.check("index_distal_max", Value(239)).asDouble());
+
+        Bottle &bmiddle=limits.addList();
+        bmiddle.addString("middle");
+        Bottle &blimitp_middle=bmiddle.addList();
+        blimitp_middle.addString("proximal"); blimitp_middle.addDouble(rf.check("middle_proximal_min", Value(0)).asDouble()); blimitp_middle.addDouble(rf.check("middle_proximal_max", Value(236)).asDouble());
+        Bottle &blimitm_middle=bmiddle.addList();
+        blimitm_middle.addString("middle"); blimitm_middle.addDouble(rf.check("middle_middle_min", Value(3)).asDouble()); blimitm_middle.addDouble(rf.check("middle_middle_max", Value(234)).asDouble());
+        Bottle &blimitd_middle=bmiddle.addList();
+        blimitd_middle.addString("distal"); blimitd_middle.addDouble(rf.check("middle_distal_min", Value(19)).asDouble()); blimitd_middle.addDouble(rf.check("middle_distal_max", Value(255)).asDouble());
+
+        cout<<"Bottle limits "<<limits.toString()<<endl;
+
         cout<<"Files will be saved in "<<homeContextPath<<" folder, as "<<poseOutFileName<<"N."<<" and "<<tactOutFileName<<"N"<<", with increasing numeration N"<< endl;
         fileCount=0;
 
@@ -369,29 +402,26 @@ protected:
         iCubFinger finger(finger_str);
 
         enc->getEncoders(encoders.data());
-        //finger.getChainJoints(encoders,joints);
+        finger.getChainJoints(encoders,joints);
 
         analog->read(enc_from_port);
 
+        getLimits(finger_str);
+
         if (finger_string=="thumb")
-        {
-            joints[0]=encoders[8];
-            joints[1]=enc_from_port[0];
-            joints[2]=enc_from_port[1];
-            joints[3]=enc_from_port[2];
+        {            
+            joints[2]=90 * (1- (enc_from_port[1] - minMiddle)/(maxMiddle - minMiddle));
+            joints[3]=90 * (1- (enc_from_port[2] - minDistal)/(maxDistal - minDistal));
         }
         else if (finger_string=="index")
         {
-            joints[0]=encoders[7];
-            joints[1]=enc_from_port[3];
-            joints[2]=enc_from_port[4];
-            joints[3]=enc_from_port[5];
+            joints[2]=90 * (1- (enc_from_port[4] - minMiddle)/(maxMiddle - minMiddle));
+            joints[3]=90 * (1- (enc_from_port[5] - minDistal)/(maxDistal - minDistal));
         }
         else if (finger_string=="middle")
         {
-            joints[0]=enc_from_port[6];
-            joints[1]=enc_from_port[7];
-            joints[2]=enc_from_port[8];
+            joints[1]=90 * (1- (enc_from_port[7] - minMiddle)/(maxMiddle - minMiddle));
+            joints[2]=90 * (1- (enc_from_port[8] - minDistal)/(maxDistal - minDistal));
         }
 
         Matrix tipFrame=finger.getH((M_PI/180.0)*joints);
@@ -404,5 +434,27 @@ protected:
         icart_arm->getPose(contactPoint, o);
         icart_arm->removeTipFrame();
         Time::delay(0.1);
+    }
+
+    /***********************************************************************/
+    void getLimits(string finger)
+    {
+        for (size_t i=0; i<3; i++)
+        {
+            Bottle *fing=limits.get(i).asList();
+
+            if (fing->get(0).asString()==finger)
+            {
+                Bottle *middle=fing->get(2).asList();
+                minMiddle=middle->get(1).asDouble();
+                maxMiddle=middle->get(2).asDouble();
+
+                Bottle *distal=fing->get(3).asList();
+                minDistal=distal->get(1).asDouble();
+                maxDistal=distal->get(2).asDouble();
+
+                cout<<"finger "<<finger << endl<<"min - max middle "<<minMiddle<<" "<<maxMiddle<<endl<<" min - max distal "<<minDistal<<" "<<maxDistal<<endl;
+           }
+        }
     }
 };
