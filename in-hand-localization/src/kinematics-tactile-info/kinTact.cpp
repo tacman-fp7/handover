@@ -88,7 +88,7 @@ protected:
 
     IControlLimits* lim;
 
-//    double minDistal, maxDistal, minMiddle, maxMiddle;
+    iCubfinger finger_thumb, finger_index, finger_middle;
 
     /************************************************************************/
     bool attach(RpcServer &source)
@@ -263,7 +263,7 @@ protected:
         module_name=rf.check("module_name", Value("kin-tact"), "Getting module name").asString();
         poseOutFileName=rf.check("pose_file_name", Value("hand_pose"), "Getting pose file name").asString();
         tactOutFileName=rf.check("tact_file_name", Value("tactile_data"), "Getting tactile file name").asString();
-        frame=rf.check("frame", Value("robot"), "Getting reference frame").asString();
+        frame=rf.check("frame", Value("hand"), "Getting reference frame").asString();
         savename=rf.check("savename", Value("test"), "Default file savename").asString();
 
         cout<<"Files will be saved in "<<homeContextPath<<" folder, as "<<poseOutFileName<<"N."<<" and "<<tactOutFileName<<"N"<<", with increasing numeration N"<< endl;
@@ -307,14 +307,14 @@ protected:
         deque<IControlLimits*> lim_deque;
         lim_deque.push_back(lim);
 
-        iCubFinger finger1("thumb");
-        finger1.alignJointsBounds(lim_deque);
+        finger_thumb("thumb");
+        finger_thumb.alignJointsBounds(lim_deque);
 
-        iCubFinger finger2("index");
-        finger2.alignJointsBounds(lim_deque);
+        finger_index("index");
+        finger_index.alignJointsBounds(lim_deque);
 
-        iCubFinger finger3("middle");
-        finger3.alignJointsBounds(lim_deque);
+        finger_middle("middle");
+        finger_middle.alignJointsBounds(lim_deque);
 
         int jnts;
         enc->getAxes(&jnts);
@@ -383,13 +383,19 @@ protected:
         contactPoint.resize(3,0.0);
         Vector joints, enc_from_port;
         enc_from_port.resize(3,0.0);
-        string finger_str=left_or_right+"_"+finger_string;
+        //string finger_str=left_or_right+"_"+finger_string;
 
-        iCubFinger finger(finger_str);
+        iCubfinger finger;
+        if (finger_string=="thumb")
+            finger=finger_thumb;
+        if (finger_string=="index")
+            finger=finger_index;
+        if (finger_string=="middle")
+            finger=finger_middle;
 
         enc->getEncoders(encoders.data());
         analog->read(enc_from_port);
-        finger.getChainJoints(enc_from_port, encoders,joints);
+        finger.getChainJoints(encoders,enc_from_port,joints);
 
         Matrix tipFrame=finger.getH((M_PI/180.0)*joints);
         Vector tip_x=tipFrame.getCol(3);
@@ -402,26 +408,4 @@ protected:
         icart_arm->removeTipFrame();
         Time::delay(0.1);
     }
-
-//    /***********************************************************************/
-//    void getLimits(string finger)
-//    {
-//        for (size_t i=0; i<3; i++)
-//        {
-//            Bottle *fing=limits.get(i).asList();
-
-//            if (fing->get(0).asString()==finger)
-//            {
-//                Bottle *middle=fing->get(2).asList();
-//                minMiddle=middle->get(1).asDouble();
-//                maxMiddle=middle->get(2).asDouble();
-
-//                Bottle *distal=fing->get(3).asList();
-//                minDistal=distal->get(1).asDouble();
-//                maxDistal=distal->get(2).asDouble();
-
-//                cout<<"finger "<<finger << endl<<"min - max middle "<<minMiddle<<" "<<maxMiddle<<endl<<" min - max distal "<<minDistal<<" "<<maxDistal<<endl;
-//           }
-//        }
-//    }
 };
