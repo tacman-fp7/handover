@@ -298,7 +298,7 @@ protected:
 
         robot=rf.find("robot").asString().c_str();
         if(rf.find("robot").isNull())
-            robot="icubSim";
+            robot="icub";
 
         left_or_right=rf.find("which_hand").asString().c_str();
         if(rf.find("which_hand").isNull())
