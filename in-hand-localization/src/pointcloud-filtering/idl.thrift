@@ -85,4 +85,10 @@ service pointCloudFiltering_IDL
 `   */
     bool set_all_filters(1: string entry);
 
+    /**
+    * Let start the filtering process
+    * @return return true/false on success/failure
+`   */
+    bool go();
+
 }

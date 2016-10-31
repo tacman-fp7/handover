@@ -41,7 +41,7 @@ class filteringModule : public RFModule,
     RpcServer portRpc;
 
     RpcClient portCloudRpc;
-    RpcServer portTactRpc;
+    RpcClient portTactRpc;
 
     vector<Vector> pointsIn;
     vector<Vector> pointsOut;
@@ -61,6 +61,7 @@ class filteringModule : public RFModule,
     bool change_frame;
     bool hand_filter;
     bool volume_filter;
+    bool go_on;
     string color_space;
     double x_lim, y_lim, z_lim;
 
@@ -102,10 +103,10 @@ public:
 
         vector<Vector> pointsTobeSent;
 
-        if ((spatial_filter==true || gray_filter==true || volume_filter==true)==true)
+        if ((spatial_filter==true || gray_filter==true || volume_filter==true)==true && pointsOut.size()>0)
             pointsTobeSent=pointsOut;
         else
-            pointsTobeSent=pointsOut;
+            pointsTobeSent=pointsIn;
 
         if (pointsTobeSent.size()>0)
         {
@@ -117,7 +118,7 @@ public:
             }
         }
         else
-            yError()<<"No pointd available!";
+            yError()<<"No points available!";
 
         return bpoints;
     }
@@ -202,11 +203,18 @@ public:
             return false;
     }
 
+    /***********************************************************************/
+    bool go()
+    {
+        go_on=true;
+        return true;
+    }   
+
 
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
-        module_name=rf.check("module_name", Value("cloudFiltering"), "Getting module name").asString();
+        module_name=rf.check("module_name", Value("cloud-filtering"), "Getting module name").asString();
 
         online=(rf.check("online", Value("no")).asString()=="yes");
 
@@ -216,6 +224,8 @@ public:
         fileOutFormat=rf.check("format", Value("off"), "Default file format").asString();
         down= rf.check("downsampling", Value(1)).asInt();
         fileInFormat="off"; // to be extended
+        if (online)
+            go_on=false;
 
         cout<<"Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl;
         fileCount=0;
@@ -311,14 +321,14 @@ public:
     {
         Vector colors(3,0.0);
 
-        if (online)
+        if (online && pointsIn.size()==0)
         {
             askForCloud();
             askForFingers();
             askForPose();
         }
 
-        if (pointsIn.size()>0)
+        if (pointsIn.size()>0 && go_on)
         {
             if (change_frame)
                 fromRobotTohandFrame(pointsIn);
@@ -331,7 +341,7 @@ public:
                 saveNewCloud(colors, pointsIn, info);
             }
 
-            if (gray_filter && color_space == "rgb")
+            if (gray_filter && color_space == "rgb" && pointsIn.size()>0)
             {
                 colors[2]=255;
                 colors[1]=0;
@@ -339,7 +349,7 @@ public:
                 info+="_GF_rgb";
                 saveNewCloud(colors, pointsOut, info);
             }
-            else if (gray_filter && color_space == "ycbcr")
+            else if (gray_filter && color_space == "ycbcr" && pointsIn.size()>0)
             {
                 colors[2]=255;
                 colors[1]=0;
@@ -348,7 +358,7 @@ public:
                 saveNewCloud(colors, pointsOut, info);
             }
 
-            if (spatial_filter)
+            if (spatial_filter && pointsIn.size()>0)
             {
                 colors[0]=255;
                 colors[2]=0;
@@ -360,7 +370,7 @@ public:
                 saveNewCloud(colors, pointsOut, info);
             }
 
-            if (volume_filter)
+            if (volume_filter && pointsIn.size()>0 )
             {
                 colors[1]=255;
                 if ((spatial_filter==true || gray_filter==true)==true)
@@ -370,8 +380,6 @@ public:
                 info+="_VF";
             }
 
-
-
             if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF")
             {
                 info="all_filters";
@@ -380,6 +388,7 @@ public:
             saveNewCloud(colors, pointsOut,info);
 
             pointsIn.clear();
+            go_on=false;
         }
         else
         {
@@ -471,11 +480,12 @@ public:
         cmd.addString("get_3D_blob_points");
         pointsIn.clear();
 
-        if (portCloudRpc.write(cmd,reply))
+        if(portCloudRpc.write(cmd,reply))
         {
-            for (int i=0; i<reply.size(); i+=down)
+            Bottle *bbottle=reply.get(0).asList();
+            for (int i=0; i<bbottle->size(); i+=down)
             {
-                Bottle *bcloud=reply.get(i).asList();
+                Bottle *bcloud=bbottle->get(i).asList();
                 Vector aux(3,0.0);
                 aux[0]=bcloud->get(0).asDouble();
                 aux[1]=bcloud->get(1).asDouble();
@@ -505,13 +515,13 @@ public:
     {
         Bottle cmd,reply;
         cmd.addString("get_tactile_data");
-        pointsIn.clear();
 
         if (portTactRpc.write(cmd,reply))
         {
-            for (int i=0; i<reply.size(); i++)
+            Bottle *bbottle=reply.get(0).asList();
+            for (int i=0; i<bbottle->size(); i++)
             {
-                Bottle *bcloud=reply.get(i).asList();
+                Bottle *bcloud=bbottle->get(i).asList();
                 Vector aux(3,0.0);
                 if (bcloud->get(0).asString()=="thumb" ||bcloud->get(0).asString()=="index" ||bcloud->get(0).asString()=="middle")
                 {
@@ -543,7 +553,6 @@ public:
         Matrix H;
         Bottle cmd,reply;
         cmd.addString("get_pose");
-        pointsIn.clear();
 
         if (portTactRpc.write(cmd,reply))
         {
