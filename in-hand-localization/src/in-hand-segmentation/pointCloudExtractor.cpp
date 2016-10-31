@@ -132,7 +132,7 @@ protected:
             {
                 Vector point=points[i];
                 Bottle &bpoint=bpoints.addList();
-                bpoint.addDouble(point[0]); bpoint.addDouble(point[1]);bpoint.addDouble(point[2]);
+                bpoint.addDouble(point[0]); bpoint.addDouble(point[1]); bpoint.addDouble(point[2]); bpoint.addInt(point[3]); bpoint.addInt(point[4]);bpoint.addInt(point[5]);
             }
         }
 

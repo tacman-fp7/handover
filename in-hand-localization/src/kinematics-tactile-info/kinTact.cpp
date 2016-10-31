@@ -86,6 +86,8 @@ protected:
     int startup_context_id;
     int fileCount;
 
+    IControlLimits* lim;
+
 //    double minDistal, maxDistal, minMiddle, maxMiddle;
 
     /************************************************************************/
@@ -224,16 +226,16 @@ protected:
         ofstream fout;
         stringstream fileName;
         string fileNameFormat;
-        fileName<<homeContextPath + "/" + tactOutFileName.c_str() <<"_"+savename<< "_"+frame<<"_"<<fileCount;
+        fileName<<homeContextPath + "/" + tactOutFileName.c_str() <<"_"+savename<< "_"+frame<<"_"+left_or_right+"_hand_"<<fileCount;
         fileNameFormat= fileName.str()+".off";
         fout.open(fileNameFormat.c_str());
         if (fout.is_open())
         {
-            fout<<"OFF"<<endl;
+            fout<<"COFF"<<endl;
             fout<<"3 0 0 "<<endl;
-            fout<<contactPoint_thumb.toString()<<endl;
-            fout<<contactPoint_index.toString()<<endl;
-            fout<<contactPoint_middle.toString()<<endl;
+            fout<<contactPoint_thumb.toString()<<" 255 0 0 "<<endl;
+            fout<<contactPoint_index.toString()<<" 255 0 0 "<<endl;
+            fout<<contactPoint_middle.toString()<<" 255 0 0 "<<endl;
 
             cout<<"Tactile data saved in "<<fileNameFormat<<endl;
 
@@ -263,35 +265,6 @@ protected:
         tactOutFileName=rf.check("tact_file_name", Value("tactile_data"), "Getting tactile file name").asString();
         frame=rf.check("frame", Value("robot"), "Getting reference frame").asString();
         savename=rf.check("savename", Value("test"), "Default file savename").asString();
-
-//        Bottle &bthumb=limits.addList();
-//        bthumb.addString("thumb");
-//        Bottle &blimitp_thumb=bthumb.addList();
-//        blimitp_thumb.addString("proximal"); blimitp_thumb.addDouble(rf.check("thumb_middle_min", Value(14)).asDouble()); blimitp_thumb.addDouble(rf.check("thumb_middle_max", Value(235)).asDouble());
-//        Bottle &blimitm_thumb=bthumb.addList();
-//        blimitm_thumb.addString("middle"); blimitm_thumb.addDouble(rf.check("thumb_middle_min", Value(20)).asDouble()); blimitm_thumb.addDouble(rf.check("thumb_middle_max", Value(215)).asDouble());
-//        Bottle &blimitd_thumb=bthumb.addList();
-//        blimitd_thumb.addString("distal"); blimitd_thumb.addDouble(rf.check("thumb_distal_min", Value(24)).asDouble()); blimitd_thumb.addDouble(rf.check("thumb_distal_max", Value(250)).asDouble());
-
-//        Bottle &bindex=limits.addList();
-//        bindex.addString("index");
-//        Bottle &blimitp_index=bindex.addList();
-//        blimitp_index.addString("proximal"); blimitp_index.addDouble(rf.check("index_proximal_min", Value(15)).asDouble()); blimitp_index.addDouble(rf.check("index_proximal_max", Value(240)).asDouble());
-//        Bottle &blimitm_index=bindex.addList();
-//        blimitm_index.addString("middle"); blimitm_index.addDouble(rf.check("index_middle_min", Value(50)).asDouble()); blimitm_index.addDouble(rf.check("index_middle_max", Value(225)).asDouble());
-//        Bottle &blimitd_index=bindex.addList();
-//        blimitd_index.addString("distal"); blimitd_index.addDouble(rf.check("index_distal_min", Value(0)).asDouble()); blimitd_index.addDouble(rf.check("index_distal_max", Value(239)).asDouble());
-
-//        Bottle &bmiddle=limits.addList();
-//        bmiddle.addString("middle");
-//        Bottle &blimitp_middle=bmiddle.addList();
-//        blimitp_middle.addString("proximal"); blimitp_middle.addDouble(rf.check("middle_proximal_min", Value(0)).asDouble()); blimitp_middle.addDouble(rf.check("middle_proximal_max", Value(236)).asDouble());
-//        Bottle &blimitm_middle=bmiddle.addList();
-//        blimitm_middle.addString("middle"); blimitm_middle.addDouble(rf.check("middle_middle_min", Value(3)).asDouble()); blimitm_middle.addDouble(rf.check("middle_middle_max", Value(234)).asDouble());
-//        Bottle &blimitd_middle=bmiddle.addList();
-//        blimitd_middle.addString("distal"); blimitd_middle.addDouble(rf.check("middle_distal_min", Value(19)).asDouble()); blimitd_middle.addDouble(rf.check("middle_distal_max", Value(255)).asDouble());
-
-//        cout<<"Bottle limits "<<limits.toString()<<endl;
 
         cout<<"Files will be saved in "<<homeContextPath<<" folder, as "<<poseOutFileName<<"N."<<" and "<<tactOutFileName<<"N"<<", with increasing numeration N"<< endl;
         fileCount=0;
@@ -329,6 +302,19 @@ protected:
         }
 
         robotDevice2.view(enc);
+
+        robotDevice2.view(lim);
+        deque<IControlLimits*> lim_deque;
+        lim_deque.push_back(lim);
+
+        iCubFinger finger1("thumb");
+        finger1.alignJointsBounds(lim_deque);
+
+        iCubFinger finger2("index");
+        finger2.alignJointsBounds(lim_deque);
+
+        iCubFinger finger3("middle");
+        finger3.alignJointsBounds(lim_deque);
 
         int jnts;
         enc->getAxes(&jnts);
@@ -403,25 +389,7 @@ protected:
 
         enc->getEncoders(encoders.data());
         analog->read(enc_from_port);
-        finger.getChainJoints(encoders,joints);
-
-//        getLimits(finger_str);
-
-//        if (finger_string=="thumb")
-//        {
-//            joints[2]=90 * (1- (enc_from_port[1] - minMiddle)/(maxMiddle - minMiddle));
-//            joints[3]=90 * (1- (enc_from_port[2] - minDistal)/(maxDistal - minDistal));
-//        }
-//        else if (finger_string=="index")
-//        {
-//            joints[2]=90 * (1- (enc_from_port[4] - minMiddle)/(maxMiddle - minMiddle));
-//            joints[3]=90 * (1- (enc_from_port[5] - minDistal)/(maxDistal - minDistal));
-//        }
-//        else if (finger_string=="middle")
-//        {
-//            joints[1]=90 * (1- (enc_from_port[7] - minMiddle)/(maxMiddle - minMiddle));
-//            joints[2]=90 * (1- (enc_from_port[8] - minDistal)/(maxDistal - minDistal));
-//        }
+        finger.getChainJoints(enc_from_port, encoders,joints);
 
         Matrix tipFrame=finger.getH((M_PI/180.0)*joints);
         Vector tip_x=tipFrame.getCol(3);

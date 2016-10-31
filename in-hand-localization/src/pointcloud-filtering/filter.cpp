@@ -240,12 +240,13 @@ public:
         diff_rgb=rf.check("diff_rgb", Value(25)).asInt();
         diff_ycbcr=rf.check("diff_ycbcr", Value(2)).asInt();
 
-        change_frame=(rf.check("change_frame", Value("no")).asString()=="yes");
+        change_frame=(rf.check("change_frame", Value("yes")).asString()=="yes");
         hand_filter=(rf.check("hand_filter", Value("no")).asString()=="yes");
         volume_filter=(rf.check("volume_filter", Value("no")).asString()=="yes");
         x_lim=rf.check("x_lim", Value(0.05)).asDouble();
         y_lim=rf.check("y_lim", Value(0.05)).asDouble();
         z_lim=rf.check("z_lim", Value(0.15)).asDouble();
+ 
         radius_volume_offset=rf.check("radius_volume_offset", Value(0.03)).asDouble();
 
         center_volume.resize(2,0.0);
@@ -324,12 +325,13 @@ public:
         if (online && pointsIn.size()==0)
         {
             askForCloud();
-            askForFingers();
-            askForPose();
         }
 
         if (pointsIn.size()>0 && go_on)
         {
+            askForFingers();
+            askForPose();
+
             if (change_frame)
                 fromRobotTohandFrame(pointsIn);
 
@@ -378,17 +380,19 @@ public:
                 else
                     volumeFilter(pointsIn);
                 info+="_VF";
+
+                saveNewCloud(colors, pointsOut,info);
             }
 
             if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF")
             {
                 info="all_filters";
-            }
-
-            saveNewCloud(colors, pointsOut,info);
+                saveNewCloud(colors, pointsOut,info);
+            }            
 
             pointsIn.clear();
             go_on=false;
+            fileCount++;
         }
         else
         {
@@ -486,10 +490,13 @@ public:
             for (int i=0; i<bbottle->size(); i+=down)
             {
                 Bottle *bcloud=bbottle->get(i).asList();
-                Vector aux(3,0.0);
+                Vector aux(6,0.0);
                 aux[0]=bcloud->get(0).asDouble();
                 aux[1]=bcloud->get(1).asDouble();
                 aux[2]=bcloud->get(2).asDouble();
+                aux[3]=bcloud->get(3).asInt();
+                aux[4]=bcloud->get(4).asInt();
+                aux[5]=bcloud->get(5).asInt();
 
                 pointsIn.push_back(aux);
 
@@ -523,11 +530,11 @@ public:
             {
                 Bottle *bcloud=bbottle->get(i).asList();
                 Vector aux(3,0.0);
-                if (bcloud->get(0).asString()=="thumb" ||bcloud->get(0).asString()=="index" ||bcloud->get(0).asString()=="middle")
+                if (bcloud->get(0).asString()=="thumb" || bcloud->get(0).asString()=="index" ||bcloud->get(0).asString()=="middle")
                 {
-                    aux[0]=bcloud->get(0).asDouble();
-                    aux[1]=bcloud->get(1).asDouble();
-                    aux[2]=bcloud->get(2).asDouble();
+                    aux[0]=bcloud->get(1).asDouble();
+                    aux[1]=bcloud->get(2).asDouble();
+                    aux[2]=bcloud->get(3).asDouble();
                     fingers.push_back(aux);
                 }
             }
@@ -556,21 +563,22 @@ public:
 
         if (portTactRpc.write(cmd,reply))
         {
-            for (int i=0; i<reply.size(); i++)
+            Bottle *bbottle=reply.get(0).asList();
+            for (int i=0; i<bbottle->size(); i++)
             {
-                Bottle *bcloud=reply.get(i).asList();
+                Bottle *bcloud=bbottle->get(i).asList();
                 if (bcloud->get(0).asString()=="position")
                 {
-                    position[0]=(bcloud->get(0).asDouble());
-                    position[1]=(bcloud->get(1).asDouble());
-                    position[2]=(bcloud->get(2).asDouble());
+                    position[0]=(bcloud->get(1).asDouble());
+                    position[1]=(bcloud->get(2).asDouble());
+                    position[2]=(bcloud->get(3).asDouble());
                 }
                 if (bcloud->get(0).asString()=="orientation")
                 {
-                    orientation[0]=(bcloud->get(0).asDouble());
-                    orientation[1]=(bcloud->get(1).asDouble());
-                    orientation[2]=(bcloud->get(2).asDouble());
-                    orientation[3]=(bcloud->get(3).asDouble());
+                    orientation[0]=(bcloud->get(1).asDouble());
+                    orientation[1]=(bcloud->get(2).asDouble());
+                    orientation[2]=(bcloud->get(3).asDouble());
+                    orientation[3]=(bcloud->get(4).asDouble());
                 }
             }
 
@@ -763,8 +771,7 @@ public:
                 }
 
                 fout.close();
-                cout << "Points saved as " << fileNameFormat << endl;
-                fileCount++;
+                cout << "Points saved as " << fileNameFormat << endl;                
             }
 
         }
@@ -794,7 +801,6 @@ public:
 
             fout.close();
             cout << "Points saved as " << fileNameFormat << endl;
-            fileCount++;
         }
         else if (fileOutFormat == "none")
         {
