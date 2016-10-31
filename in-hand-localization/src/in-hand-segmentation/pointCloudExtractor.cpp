@@ -162,7 +162,7 @@ public:
         portDispOut.open("/"+module_name+"/disp:o");
 
         portSFM.open("/"+module_name+"/SFM:rpc");
-        portRpc.open("/"+module_name+"/rpc:i");
+        portRpc.open("/"+module_name+"/rpc");
 
         cout<<"Ports opened"<<endl;
 
