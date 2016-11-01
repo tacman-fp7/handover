@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2016 iCub Facility - Istituto Italiano di Tecnologia
  * Author: Giulia Vezzani
@@ -87,8 +86,7 @@ protected:
     int fileCount;
 
     IControlLimits* lim;
-
-    iCubfinger finger_thumb, finger_index, finger_middle;
+    deque<IControlLimits*> lim_deque;
 
     /************************************************************************/
     bool attach(RpcServer &source)
@@ -201,7 +199,6 @@ protected:
         return tactileData;
     }
 
-
     /***********************************************************************/
     bool save_tactile_data()
     {
@@ -255,7 +252,6 @@ protected:
         return true;
     }
 
-
     /***********************************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -302,19 +298,9 @@ protected:
         }
 
         robotDevice2.view(enc);
-
         robotDevice2.view(lim);
-        deque<IControlLimits*> lim_deque;
+
         lim_deque.push_back(lim);
-
-        finger_thumb("thumb");
-        finger_thumb.alignJointsBounds(lim_deque);
-
-        finger_index("index");
-        finger_index.alignJointsBounds(lim_deque);
-
-        finger_middle("middle");
-        finger_middle.alignJointsBounds(lim_deque);
 
         int jnts;
         enc->getAxes(&jnts);
@@ -382,22 +368,23 @@ protected:
     {
         contactPoint.resize(3,0.0);
         Vector joints, enc_from_port;
-        enc_from_port.resize(3,0.0);
-        //string finger_str=left_or_right+"_"+finger_string;
-
-        iCubfinger finger;
-        if (finger_string=="thumb")
-            finger=finger_thumb;
-        if (finger_string=="index")
-            finger=finger_index;
-        if (finger_string=="middle")
-            finger=finger_middle;
+        enc_from_port.resize(16,0.0);
 
         enc->getEncoders(encoders.data());
         analog->read(enc_from_port);
-        finger.getChainJoints(encoders,enc_from_port,joints);
+
+        cout<<"enc "<<encoders.toString()<<endl;
+        cout<<"analog "<<enc_from_port.toString()<<endl;
+
+        iCubFinger finger(left_or_right+"_"+finger_string);
+        finger.alignJointsBounds(lim_deque);
+
+        finger.getChainJoints(encoders,enc_from_port, joints);
+
+        cout<<"joints "<<joints.toString()<<endl;
 
         Matrix tipFrame=finger.getH((M_PI/180.0)*joints);
+
         Vector tip_x=tipFrame.getCol(3);
         Vector tip_o=dcm2axis(tipFrame);
 
@@ -409,3 +396,6 @@ protected:
         Time::delay(0.1);
     }
 };
+
+
+
