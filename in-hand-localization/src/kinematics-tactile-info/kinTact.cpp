@@ -88,6 +88,8 @@ protected:
     IControlLimits* lim;
     deque<IControlLimits*> lim_deque;
 
+    iCubFinger finger_thumb, finger_index, finger_middle;
+
     /************************************************************************/
     bool attach(RpcServer &source)
     {
@@ -205,7 +207,6 @@ protected:
         giveContactPoint(contactPoint_thumb, "thumb");
         giveContactPoint(contactPoint_index, "index");
         giveContactPoint(contactPoint_middle, "middle");
-
         if (frame == "hand")
         {
             Vector aux(4,1.0);
@@ -302,6 +303,17 @@ protected:
 
         lim_deque.push_back(lim);
 
+        finger_thumb=iCubFinger(left_or_right+"_thumb");
+        finger_index=iCubFinger(left_or_right+"_index");
+        finger_middle=iCubFinger(left_or_right+"_middle");
+
+        if (!finger_thumb.alignJointsBounds(lim_deque))
+            cout<<"problem in alignJoints!Bounds"<<endl;
+        if (!finger_index.alignJointsBounds(lim_deque))
+            cout<<"problem in alignJoints!Bounds"<<endl;
+        if (!finger_middle.alignJointsBounds(lim_deque))
+            cout<<"problem in alignJoints!Bounds"<<endl;
+
         int jnts;
         enc->getAxes(&jnts);
         encoders.resize(jnts);
@@ -364,11 +376,12 @@ protected:
     }
 
     /***********************************************************************/
-    void giveContactPoint(Vector &contactPoint, const string &finger_string)
+    void giveContactPoint(Vector &contactPoint, const string finger_str)
     {
         contactPoint.resize(3,0.0);
         Vector joints, enc_from_port;
         enc_from_port.resize(16,0.0);
+        Matrix tipFrame;
 
         enc->getEncoders(encoders.data());
         analog->read(enc_from_port);
@@ -376,14 +389,23 @@ protected:
         cout<<"enc "<<encoders.toString()<<endl;
         cout<<"analog "<<enc_from_port.toString()<<endl;
 
-        iCubFinger finger(left_or_right+"_"+finger_string);
-        finger.alignJointsBounds(lim_deque);
-
-        finger.getChainJoints(encoders,enc_from_port, joints);
+        if (finger_str == "thumb")
+        {
+            finger_thumb.getChainJoints(encoders,enc_from_port, joints);
+            tipFrame=finger_thumb.getH((M_PI/180.0)*joints);
+        }
+        if (finger_str == "index")
+        {
+            finger_index.getChainJoints(encoders,enc_from_port, joints);
+            tipFrame=finger_index.getH((M_PI/180.0)*joints);
+        }
+        if (finger_str == "middle")
+        {
+            finger_middle.getChainJoints(encoders,enc_from_port, joints);
+            tipFrame=finger_middle.getH((M_PI/180.0)*joints);
+        }
 
         cout<<"joints "<<joints.toString()<<endl;
-
-        Matrix tipFrame=finger.getH((M_PI/180.0)*joints);
 
         Vector tip_x=tipFrame.getCol(3);
         Vector tip_o=dcm2axis(tipFrame);
