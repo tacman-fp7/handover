@@ -13,7 +13,6 @@
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
-using namespace yarp::math;
 
 class localizingModule : public RFModule
 {
@@ -36,10 +35,20 @@ class localizingModule : public RFModule
     bool online;
     bool saving;
     bool localize;
+    bool enabled_touch;
 
     int down;
     int fileCount;
-    int num_objs, num_m_values, num_particles, num_Q, num_trials;
+    int num_objs;
+    int num_m_values;
+    int num_particles;
+    int num_Q, num_trials;
+
+    ResourceFinder rf;
+
+    Matrix solutions;
+    Vector error_indices;
+    deque<Vector> measurements;
 
 public:
     /*******************************************************************************/
@@ -48,6 +57,7 @@ public:
         module_name=rf.check("module_name", Value("inHandLocalizer"), "Getting module name").asString();
         object_name=rf.check("module_name", Value("object"), "Getting module name").asString();
         online=(rf.check("online", Value("no")).asString()=="yes");
+        enabled_touch=(rf.check("touch", Value("no")).asString()=="yes");
 
         homeContextPath=rf.getHomeContextPath().c_str();
         savename=rf.check("savename", Value(object_name+"_pose"), "Default file savename").asString();
@@ -62,6 +72,11 @@ public:
         num_Q=rf.check("num_Q", Value(1)).asInt();
         num_trials=rf.check("num_trials", Value(1)).asInt();
 
+        if (online)
+            localize=false;
+        else
+            localize=true;
+
         cout<<"Poses will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl;
         fileCount=0;
 
@@ -70,17 +85,11 @@ public:
             portPointsRpc.open("/" + module_name + "/pnt:i");
             portPoseRpc.open("/" + module_name + "/ps:o");
         }
-//        else
-//        {
-//            //????
-//            fileInName=rf.check("fileInName", Value("measurements.off"), "Default cloud name").asString();
-//            localize=readPoints();
-//        }
 
         portRpc.open("/" + module_name + "/rpc");
         attach(portRpc);
 
-        this->rf=&rf;
+        this->rf=rf;
 
         return true;
     }
@@ -129,80 +138,53 @@ public:
 
         if (localize)
         {
-            if(!strcmp(argv[6],"mupf"))
+            for (size_t j=0; j<num_objs;j++)
             {
-                for (size_t j=0; j<num_objs;j++)
+                for (size_t k=0; k<num_m_values; k++)
                 {
-                    for (size_t k=0; k<num_m_values; k++)
+                    for (size_t l=0; l<num_particles; l++)
                     {
-                        for (size_t l=0; l<num_particles; l++)
+                        for (size_t m=0; m<num_Q; m++)
                         {
-                            for (size_t m=0; m<num_Q; m++)
+                            solutions.resize(num_trials,4);
+                            for(size_t i=0; i<num_trials; i++)
                             {
-                                solutions.resize(num_trials,4);
-                                for(size_t i=0; i<num_trials; i++)
-                                {
-                                    Localizer *loc5=new UnscentedParticleFilter();
-                                    loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m);
-                                    error_indices=loc5->localization();
-                                    loc5->saveData(error_indices,i,k,l,m);
-                                    solutions(i,0)=error_indices[6];
-                                    solutions(i,1)=error_indices[7];
-                                    solutions(i,2)=error_indices[8];
-                                    solutions(i,3)=error_indices[9];
-                                    probs(j,i)=error_indices[6];
-
-                                    delete loc5;
-                                }
-
                                 Localizer *loc5=new UnscentedParticleFilter();
-                                loc5->configure(this->rf,j, k, n_m, l, n_N,m);
-                                loc5->saveStatisticsData( solutions,j,k,l,m);
+                                loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch);
+                                error_indices=loc5->localization();
+                                loc5->saveData(error_indices,i,k,l,m);
+                                solutions(i,0)=error_indices[6];
+                                solutions(i,1)=error_indices[7];
+                                solutions(i,2)=error_indices[8];
+                                solutions(i,3)=error_indices[9];
 
                                 delete loc5;
                             }
+
+                            Localizer *loc5=new UnscentedParticleFilter();
+                            loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, measurements, enabled_touch);
+                            loc5->saveStatisticsData(solutions,j,k,l,m);
+
+                            delete loc5;
                         }
                     }
-
                 }
-            }
-            else
-           {
-                error_indices.resize(0.0,8);
-                solutions.resize(numTrials,2);
+            }           
+        }
 
-                for (size_t j=0; j<num_objs;j++)
-                {
-                    for(size_t i=0; i<num_trials-1; i++)
-                    {
-                        Localizer *loc4=new ScalingSeries();
-                        loc4->configure(this->rf,j);
-                        error_indices=loc4->localization();
-                        loc4->saveData(error_indices,i);
-                        solutions(i,0)=error_indices[6];
-                        solutions(i,1)=error_indices[7];
-                        delete loc4;
-                    }
-
-
-                    Localizer *loc4=new ScalingSeries();
-                    loc4->configure(this->rf,j);
-                    error_indices=loc4->localization();
-                    loc4->saveData(error_indices,numTrials-1);
-                    solutions(numTrials-1,0)=error_indices[6];
-                    solutions(numTrials-1,1)=error_indices[7];
-                    loc4->saveStatisticsData(solutions,j);
-                    delete loc4;
-                }
-           }
+        if (online)
+        {
+            localize=false;
+            return true;
         }
         else
-        {
-            if (online)
-                return true;
-            else
-                return false;
-        }
+            return false;
+    }
+
+    /*******************************************************************************/
+    bool askForPoints()
+    {
+        return true;
     }
 };
 

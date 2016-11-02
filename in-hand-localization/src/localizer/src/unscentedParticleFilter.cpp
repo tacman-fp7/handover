@@ -32,7 +32,6 @@ using namespace yarp::sig;
 using namespace yarp::math;
 using namespace iCub::ctrl;
 
-
 /*******************************************************************************/
 UnscentedParticleFilter::UnscentedParticleFilter() : GeometryCGAL()
 {   
@@ -82,12 +81,11 @@ void UnscentedParticleFilter::init()
 /*******************************************************************************/
 bool UnscentedParticleFilter::step()
 {   
-    t++;
-    cout<<"t "<<t<<"\n";
-    
+    t++;    
     ParametersUPF &params=get_parameters();
-    cout<<"num tot meas "<<params.numMeas<<endl;
     
+    cout<<"t "<<t <<"/"<<params.numMeas<<"\n";
+
     if( t>params.numMeas)
     {	
         return true;
@@ -105,19 +103,16 @@ bool UnscentedParticleFilter::step()
 
     RandnScalar prova;
 
-    //initialize Matrix for UKF
     for(size_t i=0; i<x.size(); i++ )
     {
         initializeUKFMatrix(i);
     }
 
-    //compute sigmaPoints
     for(size_t i=0; i<x.size(); i++ )
     {
         computeSigmaPoints(i);
     }
 
-    //propagate particle in the future
     for(size_t i=0; i<x.size(); i++ )
     {
         for(size_t j=0; j<2*n+1; j++)
@@ -127,30 +122,24 @@ bool UnscentedParticleFilter::step()
                 random[l]=prova.RandnScalar::get(0.0, 1.0);
             }
 
-        cholQ=params.Q;
+            cholQ=params.Q;
 
-        //since Q is diagonal, chol(Q) is sqrt of its member on diagonal
-
-        for(size_t k=0; k<6; k++)
-        {
-            for( size_t l=0; l<n; l++)
+            for(size_t k=0; k<6; k++)
             {
-                cholQ(k,l)=sqrt(cholQ(k,l));
+                for( size_t l=0; l<n; l++)
+                {
+                    cholQ(k,l)=sqrt(cholQ(k,l));
+                }
             }
-        }
 
+            x[i].XsigmaPoints_pred.setCol(j,x[i].XsigmaPoints_corr.getCol(j)+cholQ*random);
 
-        x[i].XsigmaPoints_pred.setCol(j,x[i].XsigmaPoints_corr.getCol(j)+cholQ*random);
-
-        x[i].XsigmaPoints_pred(3,j)=fmod(x[i].XsigmaPoints_pred(3,j),2*M_PI);
-        x[i].XsigmaPoints_pred(4,j)=fmod(x[i].XsigmaPoints_pred(4,j),2*M_PI);
-        x[i].XsigmaPoints_pred(5,j)=fmod(x[i].XsigmaPoints_pred(5,j),2*M_PI);
-
-        x[i].YsigmaPoints_pred.setCol(j,compute_y(t,i,j));
-
+            x[i].XsigmaPoints_pred(3,j)=fmod(x[i].XsigmaPoints_pred(3,j),2*M_PI);
+            x[i].XsigmaPoints_pred(4,j)=fmod(x[i].XsigmaPoints_pred(4,j),2*M_PI);
+            x[i].XsigmaPoints_pred(5,j)=fmod(x[i].XsigmaPoints_pred(5,j),2*M_PI);
+            x[i].YsigmaPoints_pred.setCol(j,compute_y(t,i,j));
         }
     }
-
      
     for(size_t i=0; i<x.size(); i++ )
     {
@@ -162,7 +151,6 @@ bool UnscentedParticleFilter::step()
         computePpred(i);
     }
 
-    //correction
     for(size_t i=0; i<x.size(); i++ )
     {
         computeCorrectionMatrix(i);
@@ -178,7 +166,6 @@ bool UnscentedParticleFilter::step()
         correctionStep(i);
     }
 
-    //computer weights
     for(size_t i=0; i<x.size(); i++ )
     {
         computeWeights(i, sum);
@@ -191,19 +178,16 @@ bool UnscentedParticleFilter::step()
 
     if(t==params.numMeas)
     {
-        //yDebug()<<"t num meas deb";
         dt_gauss2=Time::now()-t0;
         result4=particleDensity3();
         dt_gauss=Time::now()-t0;
         DT=dt_gauss-dt_gauss2;
-        //yDebug()<<"t num meas deb 2";
     }
     else
     {
         findMostSignificantParticle();
         selectionStep(Neff,sum_squared);
     }
-
 
     return false;    
 }
@@ -214,13 +198,9 @@ Vector UnscentedParticleFilter::finalize()
     Vector error_indices;
     error_indices.resize(4,0.0);
     result.resize(10,0.0);
-    cout<<"RESULT WITH GAUSSIANS "<<result4.toString().c_str()<<endl;
 
-    //save all the result wwith highest density in ms_particle2
     ms_particle4.pos=result4;
     performanceIndex(ms_particle4);
-    cout<<"error_index "<<ms_particle4.error_index<<endl;
-    //yDebug()<<"deb 1";
    
     Matrix H=rpr(ms_particle4.pos.subVector(3,5));
     Affine affine(H(0,0),H(0,1),H(0,2),ms_particle4.pos[0],
@@ -240,50 +220,6 @@ Vector UnscentedParticleFilter::finalize()
     result[8]=max_prob;
     result[9]=max_likelihood;
     return result;
-}
- 
-/*******************************************************************************/
-Vector UnscentedParticleFilter::particleDensity()
-{	
-    ParametersUPF &params=get_parameters();
-    deque<double> Mahalanobis_distance;
-
-    for(size_t i=0; i<x.size(); i++)
-    {
-        Mahalanobis_distance.push_back(0);
-        for(size_t j=0; j<x.size(); j++)
-        {
-            Matrix diff(6,1);
-
-            diff(0,0)=x[i].x_corr(0)-x[j].x_corr(0);
-            diff(1,0)=x[i].x_corr(1)-x[j].x_corr(1);
-            diff(2,0)=x[i].x_corr(2)-x[j].x_corr(2);
-            diff(3,0)=fmod(x[i].x_corr(3)-x[j].x_corr(3),2*M_PI);
-            diff(4,0)=fmod(x[i].x_corr(4)-x[j].x_corr(4),2*M_PI);
-            diff(5,0)=fmod(x[i].x_corr(5)-x[j].x_corr(5),2*M_PI);
-
-
-            Matrix temp(1,1);
-            temp=diff.transposed()*luinv(params.Q)*diff;
-            Mahalanobis_distance[i]=Mahalanobis_distance[i]+sqrt(temp(0,0));
-        }
-    }
-	
-    double Mahalanobis_minimum_distance;
-    int i_min_dist;
-    Mahalanobis_minimum_distance=10000000000;
-    for(size_t i=0; i<x.size(); i++)
-    {
-        if( Mahalanobis_minimum_distance> Mahalanobis_distance[i])
-        {
-            Mahalanobis_minimum_distance=Mahalanobis_distance[i];
-            i_min_dist=i;
-        }
-    }
-
-    cout<<"i_min_dist "<<i_min_dist<<endl;
-    return x[i_min_dist].x_corr;
-
 }
 
 /******************************************************************************/
@@ -310,21 +246,23 @@ double UnscentedParticleFilter::finaleLikelihood(const int &best_part)
         double x=H(0,0)*m[0]+H(0,1)*m[1]+H(0,2)*m[2]+H(0,3);
         double y=H(1,0)*m[0]+H(1,1)*m[1]+H(1,2)*m[2]+H(1,3);
         double z=H(2,0)*m[0]+H(2,1)*m[1]+H(2,2)*m[2]+H(2,3);
-        likelihood=likelihood*exp(-0.5*tree.squared_distance(Point(x,y,z))/(params.R(0,0)));
-    }
 
-    return likelihood/(sqrt(2*M_PI)*params.R(0,0));
+        if (i<measurements.size() && i>measurements.size()-3)
+            likelihood=likelihood*exp(-0.5*tree.squared_distance(Point(x,y,z))/(params.Rtouch(0,0)));
+        else
+            likelihood=likelihood*exp(-0.5*tree.squared_distance(Point(x,y,z))/(params.Rvision(0,0)));
+
+    }
+    return likelihood/(sqrt(2*M_PI)*params.Rvision(0,0));
 }
 
 /******************************************************************************/
 double UnscentedParticleFilter::likelihood(const int &t, const int &k)
 {
-    double sum=0.0;
     ParametersUPF &params=get_parameters();
+    ParticleUPF &particle=x[k];
     double likelihood=1.0;
     int initial_meas;
-
-    ParticleUPF &particle=x[k];
 
     Matrix H=rpr(particle.x_corr.subVector(3,5));
     H.transposed();
@@ -358,146 +296,32 @@ double UnscentedParticleFilter::likelihood(const int &t, const int &k)
 
         count++;
 
-        if(t==params.numMeas)
+        if (i<measurements.size() && i>measurements.size()-3)
         {
-            likelihood=likelihood*exp(-0.5*tree.squared_distance(Point(x,y,z))/(params.R(0,0))*(count));
+            if(t==params.numMeas)
+            {
+                likelihood=likelihood*exp(-0.5*tree.squared_distance(Point(x,y,z))/(params.Rtouch(0,0))*(count));
+            }
+            else
+            {
+                likelihood=likelihood*exp(-0.5*tree.squared_distance(Point(x,y,z))/(params.Rtouch(0,0)));
+            }
         }
         else
         {
-            likelihood=likelihood*exp(-0.5*tree.squared_distance(Point(x,y,z))/(params.R(0,0)));
+            if(t==params.numMeas)
+            {
+                likelihood=likelihood*exp(-0.5*tree.squared_distance(Point(x,y,z))/(params.Rvision(0,0))*(count));
+            }
+            else
+            {
+                likelihood=likelihood*exp(-0.5*tree.squared_distance(Point(x,y,z))/(params.Rvision(0,0)));
+            }
         }
     }
 
     return likelihood;
 }	
-
-/*******************************************************************************/
-Vector UnscentedParticleFilter::particleDensity2()
-{	
-    ParametersUPF &params=get_parameters();
-    //compute number of particles in each neighrboard
-    deque<int> number_per_neigh;
-    deque<Vector> particle_per_particle;
-    deque<double> Mahalanobis_distance;
-    Vector neigh=params.neigh;
-    double percentage=params.percent;
-    for(size_t i=0; i<x.size(); i++)
-    {
-        Vector index_of_particle;
-
-        Vector check_on_dimensions;
-        check_on_dimensions.resize(6,0.0);
-        int count=0;
-
-        for(size_t j=0; j<x.size(); j++)
-        {
-            check_on_dimensions.resize(6,0.0);
-            int sum=0;
-
-            if((x[j].x_corr[0]<=x[i].x_corr[0]+neigh[0]) && (x[j].x_corr[0]>=x[i].x_corr[0]-neigh[0]))
-            {
-                check_on_dimensions[0]=1;
-            }
-            if((x[j].x_corr[1]<=x[i].x_corr[1]+neigh[1]) && (x[j].x_corr[1]>=x[i].x_corr[1]-neigh[1]))
-            {
-                 check_on_dimensions[1]=1;
-            }
-            if((x[j].x_corr[2]<=x[i].x_corr[2]+neigh[2]) && (x[j].x_corr[2]>=x[i].x_corr[2]-neigh[2]))
-            {
-                check_on_dimensions[2]=1;
-            }
-
-            if((x[j].x_corr[4]<=fmod(x[i].x_corr[4]+neigh[4],2*M_PI)) && (x[j].x_corr[4]>=fmod(x[i].x_corr[4]-neigh[4],2*M_PI)))
-            {
-                check_on_dimensions[4]=1;
-            }
-            if((x[j].x_corr[5]<=fmod(x[i].x_corr[5]+neigh[5],2*M_PI)) && (x[j].x_corr[5]>=fmod(x[i].x_corr[5]-neigh[5],2*M_PI)))
-            {
-                check_on_dimensions[5]=1;
-            }
-            if((x[j].x_corr[3]<=fmod(x[i].x_corr[3]+neigh[3],2*M_PI)) && (x[j].x_corr[3]>=fmod(x[i].x_corr[3]-neigh[3],2*M_PI)))
-            {
-                check_on_dimensions[3]=1;
-            }
-
-            sum=check_on_dimensions[0]+check_on_dimensions[1]+check_on_dimensions[2]+check_on_dimensions[3]+check_on_dimensions[4]+check_on_dimensions[5];
-            if(sum==6)
-            {
-                count++;
-                index_of_particle.push_back(j);
-            }
-
-        }
-
-        particle_per_particle.push_back(index_of_particle);
-        number_per_neigh.push_back(count);
-
-    }
-    int max_numer_per_part;
-    max_numer_per_part=0;
-
-    for(size_t i=0; i<number_per_neigh.size();i++)
-    {
-        if(max_numer_per_part<number_per_neigh[i])
-        {
-            max_numer_per_part=number_per_neigh[i];
-        }
-    }
-    cout<<"max num per part "<<max_numer_per_part<<endl;
-    int l;
-    Vector index_of_particle2;
-    for(size_t i=0; i<x.size(); i++)
-    {
-        if(number_per_neigh[i]>=percentage*max_numer_per_part)
-        {
-            index_of_particle2.push_back(i);
-            double mahalanobis_dist;
-            mahalanobis_dist=0;
-
-            for(size_t j=0; j<particle_per_particle[i].size(); j++)
-            {
-                Vector temp2;
-                temp2=particle_per_particle[i];
-                l=temp2[j];
-
-                Matrix diff(6,1);
-
-                diff(0,0)=x[i].x_corr(0)-x[l].x_corr(0);
-                diff(1,0)=x[i].x_corr(1)-x[l].x_corr(1);
-                diff(2,0)=x[i].x_corr(2)-x[l].x_corr(2);
-                diff(3,0)=fmod(x[i].x_corr(3)-x[l].x_corr(3),2*M_PI);
-                diff(4,0)=fmod(x[i].x_corr(4)-x[l].x_corr(4),2*M_PI);
-                diff(5,0)=fmod(x[i].x_corr(5)-x[l].x_corr(5),2*M_PI);
-
-
-                Matrix temp(1,1);
-                temp=diff.transposed()*luinv(params.Q)*diff;
-                mahalanobis_dist=mahalanobis_dist+sqrt(temp(0,0));
-
-            }
-            Mahalanobis_distance.push_back(mahalanobis_dist/particle_per_particle[i].size());
-        }
-    }
-	
-    double Mahalanobis_minimum_distance;
-    int i_min_dist;
-    Mahalanobis_minimum_distance=10000000000;
-
-    //cout<<"maha size "<<Mahalanobis_distance.size()<<endl;
-   // cout<<"index size "<<index_of_particle2.size()<<endl;
-
-    for(size_t i=0; i<Mahalanobis_distance.size(); i++)
-    {
-        if( Mahalanobis_minimum_distance> Mahalanobis_distance[i])
-        {
-            //cout<<"Mhaln "<<Mahalanobis_distance[i]<<endl;
-            Mahalanobis_minimum_distance=Mahalanobis_distance[i];
-            i_min_dist=index_of_particle2[i];
-        }
-    }
-    //cout<<"i_min_dist "<<i_min_dist<<endl;
-    return x[i_min_dist].x_corr;
-}
 
 /*******************************************************************************/
 Vector UnscentedParticleFilter::particleDensity3()
@@ -507,7 +331,6 @@ Vector UnscentedParticleFilter::particleDensity3()
     double probability;
     Matrix diff(6,1);
 
-    //yDebug()<<"t num meas deb 2 ";
     for(size_t i=0; i<x.size(); i++)
     {
         probability=0;
@@ -528,11 +351,8 @@ Vector UnscentedParticleFilter::particleDensity3()
             probability=probability+x[i].weights*exp(-0.5*(temp(0,0)));
         }
 
-        //cout<<"proba "<<probability;
-        //probability/=(pow(2*M_PI,3)*sqrt(det(x[i].P_corr)));
         probability_per_particle.push_back(probability);
     }
-
 
     max_prob=0.0;
     int i_max_prob=0;
@@ -545,7 +365,6 @@ Vector UnscentedParticleFilter::particleDensity3()
             i_max_prob=i;
         }
     }
-    yDebug()<<"i max prob"<<i_max_prob;
 
     max_likelihood=0.0; double lik=0.0; double tmp;
 
@@ -555,11 +374,6 @@ Vector UnscentedParticleFilter::particleDensity3()
         lik+=tmp;
     }
 
-    //max_likelihood=finaleLikelihood(i_max_prob)/lik;
-
-    cout<<"i max prob "<<i_max_prob<<endl;
-    cout<<" max prob "<<max_prob<<endl;
-   // cout<<" max likelihood "<<max_likelihood<<endl;
     return x[i_max_prob].x_corr;
 }
 
@@ -570,7 +384,6 @@ void UnscentedParticleFilter::resampling()
     Vector c,u, new_index;
     ParametersUPF &params=get_parameters();
 
-    //Initialization
     c.resize(params.N, 0.0);
     u.resize(params.N, 0.0);
     new_index.resize(params.N, 0);
@@ -594,7 +407,7 @@ void UnscentedParticleFilter::resampling()
             i++;
         }
 
-        //new_x[j]=x[i];
+        new_x[j]=x[i];
         Vector tmp(6,0.0);
 
         tmp[0] = Rand::scalar(x[i].x_corr[0] - x[i].P_corr(0,0), +x[i].x_corr[0] + x[i].P_corr(0,0));
@@ -633,7 +446,7 @@ void UnscentedParticleFilter::performanceIndex( MsParticleUPF &ms_particle)
         ms_particle.error_index+=sqrt(tree.squared_distance(Point(x,y,z)));
     }
 
-    ms_particle.error_index=ms_particle.error_index/measurements.size();
+    ms_particle.error_index=ms_particle.error_index/(measurements.size());
 }
 
 /*******************************************************************************/
@@ -684,7 +497,6 @@ void UnscentedParticleFilter::computeSigmaPoints(const int &i)
     for(size_t j=1; j<n+1; j++)
     {
         x[i].XsigmaPoints_corr.setCol(j,x[i].x_corr+G.getCol(j-1));
-
         x[i].XsigmaPoints_corr(3,j)=fmod(x[i].XsigmaPoints_corr(3,j),2*M_PI);
         x[i].XsigmaPoints_corr(4,j)=fmod(x[i].XsigmaPoints_corr(4,j),2*M_PI);
         x[i].XsigmaPoints_corr(5,j)=fmod(x[i].XsigmaPoints_corr(5,j),2*M_PI);
@@ -693,7 +505,6 @@ void UnscentedParticleFilter::computeSigmaPoints(const int &i)
     for(size_t j=n+1; j<2*n+1; j++)
     {
         x[i].XsigmaPoints_corr.setCol(j,x[i].x_corr-G.getCol(j-1-n));
-
         x[i].XsigmaPoints_corr(3,j)=fmod(x[i].XsigmaPoints_corr(3,j),2*M_PI);
         x[i].XsigmaPoints_corr(4,j)=fmod(x[i].XsigmaPoints_corr(4,j),2*M_PI);
         x[i].XsigmaPoints_corr(5,j)=fmod(x[i].XsigmaPoints_corr(5,j),2*M_PI);
@@ -735,11 +546,7 @@ yarp::sig::Vector UnscentedParticleFilter::compute_y(const int &t, const int &k,
     double y=Hm(1,0)*m[0]+Hm(1,1)*m[1]+Hm(1,2)*m[2]+Hm(1,3);
     double z=Hm(2,0)*m[0]+Hm(2,1)*m[1]+Hm(2,2)*m[2]+Hm(2,3);
 
-
     y_pred=tree.closest_point(Point(x,y,z));
-
-    //cout<<"y_pred "<<y_pred[0]<<" "<<y_pred[1]<<" "<<y_pred[2]<<endl;
-
 
     Hm=SE3inv(Hm);
 
@@ -776,10 +583,9 @@ void UnscentedParticleFilter::computePpred(const int &i)
     for(size_t j=0; j<2*n+1; j++)
     {
         x[i].x_tilde.setCol(0,x[i].XsigmaPoints_pred.getCol(j)-x[i].x_pred);
-
         x[i].P_pred_aux=x[i].P_pred_aux+x[i].WsigmaPoints_covariance[j]*x[i].x_tilde*x[i].x_tilde.transposed();
-
     }
+
     x[i].P_pred=x[i].P_pred_aux;
 
     for(size_t j=3; j<6; j++)
@@ -797,15 +603,11 @@ void UnscentedParticleFilter:: computeCorrectionMatrix(const int &i)
     for(size_t j=0; j<2*n+1; j++)
     {
         x[i].A.setCol(0,x[i].YsigmaPoints_pred.getCol(j)-x[i].y_pred);
-
         x[i].Pyy=x[i].Pyy+x[i].WsigmaPoints_covariance[j]*x[i].A*x[i].A.transposed();
-
         x[i].x_tilde.setCol(0,x[i].XsigmaPoints_pred.getCol(j)-x[i].x_pred);
-
         x[i].x_tilde(3,0)=fmod(x[i].x_tilde(3,0),2*M_PI);
         x[i].x_tilde(4,0)=fmod(x[i].x_tilde(4,0),2*M_PI);
         x[i].x_tilde(5,0)=fmod(x[i].x_tilde(5,0),2*M_PI);
-
         x[i].Pxy=x[i].Pxy+x[i].WsigmaPoints_covariance[j]*x[i].x_tilde*x[i].A.transposed();
     }
 }
@@ -839,7 +641,6 @@ void UnscentedParticleFilter::correctionStep(const int &i)
 void UnscentedParticleFilter::computeWeights(const int &i, double& sum)
 {
     x[i].weights=x[i].weights*likelihood(t,i);
-
     sum+=x[i].weights;
 }
 
@@ -856,7 +657,6 @@ void UnscentedParticleFilter::findMostSignificantParticle()
     double larger_weights=0.0;
     int index_most=0;
 
-    //find most significant particle
     for(size_t i=0; i< x.size(); i++)
     {
         if(larger_weights<=x[i].weights|| i==0)
@@ -866,7 +666,6 @@ void UnscentedParticleFilter::findMostSignificantParticle()
         }
     }
 
-    //cout<<"index_most "<<index_most<<endl;
     x_most.push_back(x[index_most].x_corr);
 }
 
@@ -897,20 +696,19 @@ void UnscentedParticleFilter::selectionStep(double &Neff,const double &sum_squar
 /*******************************************************************************/
 void UnscentedParticleFilter::initializationUPF()
 {
-     ParametersUPF &params=get_parameters();
-     for(size_t i=0; i<x.size(); i++ )
-     {
-            x[i].weights=1.0/params.N;
-            x[i].P_corr=params.P0;
-            x[i].P_hat.zero();
-            x[i].P_pred.zero();
-            x[i].XsigmaPoints_corr.resize(n,2*n+1);
-            x[i].XsigmaPoints_pred.resize(n,2*n+1);
-            x[i].YsigmaPoints_pred.resize(p,2*n+1);
-            x[i].WsigmaPoints_average.resize(2*n+1,0.0);
-            x[i].WsigmaPoints_covariance.resize(2*n+1,0.0);
-     }
-	
+    ParametersUPF &params=get_parameters();
+    for(size_t i=0; i<x.size(); i++ )
+    {
+        x[i].weights=1.0/params.N;
+        x[i].P_corr=params.P0;
+        x[i].P_hat.zero();
+        x[i].P_pred.zero();
+        x[i].XsigmaPoints_corr.resize(n,2*n+1);
+        x[i].XsigmaPoints_pred.resize(n,2*n+1);
+        x[i].YsigmaPoints_pred.resize(p,2*n+1);
+        x[i].WsigmaPoints_average.resize(2*n+1,0.0);
+        x[i].WsigmaPoints_covariance.resize(2*n+1,0.0);
+    }
 }
 
 /*******************************************************************************/
@@ -943,7 +741,7 @@ bool UnscentedParticleFilter::readMeasurements(ifstream &fin, const int &downsam
         {
             string tmp=firstItem.asString().c_str();
             std::transform(tmp.begin(),tmp.end(),tmp.begin(),::toupper);
-            if (tmp=="OFF")
+            if (tmp=="OFF" || tmp=="COFF")
                 state++;
             }
             else if (state==1)
@@ -961,8 +759,8 @@ bool UnscentedParticleFilter::readMeasurements(ifstream &fin, const int &downsam
                     get_measurements().push_back(Point(b.get(0).asDouble(),
                                                        b.get(1).asDouble(),
                                                        b.get(2).asDouble()));
-					params.numMeas++;
-                    nPoints-=downsampling;
+                    params.numMeas++;
+                    nPoints-=1;
                     if (nPoints<=0)
                         return true;
                 }
@@ -972,9 +770,58 @@ bool UnscentedParticleFilter::readMeasurements(ifstream &fin, const int &downsam
     return false;
 }
 
+/*******************************************************************************/
+bool UnscentedParticleFilter::readFingers(ifstream &fin)
+{
+    ParametersUPF &params=get_parameters();
+    int state=0;
+    int nPoints;
+    char line[255];
+        params.numMeas=0;
+
+    while (!fin.eof())
+    {
+        fin.getline(line,sizeof(line),'\n');
+        Bottle b(line);
+        Value firstItem=b.get(0);
+        bool isNumber=firstItem.isInt() || firstItem.isDouble();
+
+        if (state==0)
+        {
+            string tmp=firstItem.asString().c_str();
+            std::transform(tmp.begin(),tmp.end(),tmp.begin(),::toupper);
+            if (tmp=="OFF" || tmp=="COFF")
+                state++;
+            }
+            else if (state==1)
+            {
+                if (isNumber)
+                {
+                    nPoints=firstItem.asInt();
+                    state++;
+                }
+            }
+            else if (state==2)
+            {
+                if (isNumber && (b.size()>=3))
+                {
+                    fingers.push_back(Point(b.get(0).asDouble(),
+                                                       b.get(1).asDouble(),
+                                                       b.get(2).asDouble()));
+                    params.numMeas++;
+                    nPoints-=1;
+                    if (nPoints<=0)
+                        return true;
+                }
+            }
+        }
+
+    return false;
+}
+
 /*******************************************************************************/    
 
-bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, const int &k, const int &n_m, const int &l, const int &n_N, const int &m)
+bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, const int &k, const int &n_m, const int &l, const int &n_N, const int &m, bool online, deque<Vector> &points, bool enabled_touch)
 {
     stringstream ss2;
     ss2 << n_obj;
@@ -987,27 +834,107 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         return false;
     }
 
-    if (!rf.check("measurementsFile"))
+    string modelFileName=rf.find("modelFile"+str_obj).asString().c_str();
+    downsampling=rf.check("downsampling", Value(1)).asInt();
+
+    ifstream modelFile(modelFileName.c_str());
+    if (!modelFile.is_open())
     {
-        yError()<<"measurements file not provided!";
+        yError()<<"problem opening model file!";
         return false;
     }
 
-    downsampling=rf.check("downsampling", Value(1)).asInt();
-    string modelFileName=rf.find("modelFile"+str_obj).asString().c_str();
+    modelFile>>get_model();
 
-    string measurementsFileName=rf.find("measurementsFile"). asString().c_str();
+    if (modelFile.bad())
+    {
+        yError()<<"problem reading model file!";
+        modelFile.close();
+        return false;
+    }
+    modelFile.close();
 
-    if(rf.find("measurementsFile").isNull())
-        measurementsFileName="../measurements.off";
+    if (online==false)
+    {
+        if (!rf.check("measurementsFile"))
+        {
+            yError()<<"measurements file not provided!";
+            return false;
+        }
+
+        string measurementsFileName=rf.find("measurementsFile"). asString().c_str();
+
+        if(rf.find("measurementsFile").isNull())
+            measurementsFileName="../measurements.off";
+
+        ifstream measurementsFile(measurementsFileName.c_str());
+        if (!measurementsFile.is_open())
+        {
+            yError()<<"problem opening measurements file!";
+            modelFile.close();
+            return false;
+        }
+        if (!readMeasurements(measurementsFile, downsampling))
+        {
+            yError()<<"problem reading measurements file!";
+            modelFile.close();
+            measurementsFile.close();
+            return false;
+        }
+        measurementsFile.close();
+
+        if (downsampling>1)
+        {
+            deque<Point> aux;
+            aux=measurements;
+            measurements.clear();
+            for (size_t i=0; i<aux.size(); i=i+downsampling)
+            {
+                measurements.push_back(aux[i]);
+            }
+        }
+    }
+    else
+    {
+        for (size_t i=0; i<points.size(); i=i+downsampling)
+        {
+            Vector point=points[i];
+            measurements.push_back(Point(point[0], point[1], point[2]));
+        }
+
+    }    
+
+    for (size_t i=0; i<measurements.size(); i++)
+        cout<<measurements[i]<<endl;
+
+    if (enabled_touch==true)
+    {
+        string fingersFileName=rf.find("fingersFile"). asString().c_str();
+
+        if(rf.find("fingersFile").isNull())
+           fingersFileName="../fingerss.off";
+
+        ifstream fingersFile(fingersFileName.c_str());
+        if (!fingersFile.is_open())
+        {
+            yError()<<"problem opening fingers file!";
+            modelFile.close();
+            return false;
+        }
+        if (!readFingers(fingersFile))
+        {
+            yError()<<"problem reading fingers file!";
+            modelFile.close();
+            fingersFile.close();
+            return false;
+        }
+        fingersFile.close();
+    }
 
     ParametersUPF &parameters=get_parameters();
-    //parameters.N=rf.find("N").asInt();
-    //if (rf.find("N").isNull())
-    //parameters.N=rf.check("N",Value(600)).asInt();
+    parameters.numMeas=measurements.size();
     Vector aux_vectN(n_m,0.0);
     readDiagonalMatrix("N", aux_vectN, n_N);
-    cout<<"AUX VECT N"<<aux_vectN.toString()<<endl<<endl;
     parameters.N=aux_vectN(l);
 
     parameters.center0.resize(3,0.0);
@@ -1030,9 +957,6 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         parameters.radius0[1]=rf.check("radius0",Value(0.2)).asDouble();
         parameters.radius0[2]=rf.check("radius0",Value(0.2)).asDouble();
     }
-
-    cout<<"RADIUS "<<parameters.radius0.toString()<<endl;
-    cout<<"CENTER "<<parameters.center0.toString()<<endl;
 
     parameters.n=rf.find("n").asInt();
     if (rf.find("n").isNull())
@@ -1067,8 +991,6 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
     string str_Q = ssQ.str();
     check=readDiagonalMatrix("Qvect"+str_Q,diagQ,parameters.n);
 
-    cout<<"DEBUG: Q"<<diagQ.toString()<<endl;
-
     if(!check)
     {
         diagQ[0]=rf.check("Q1",Value(0.0001)).asDouble();
@@ -1080,16 +1002,42 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
     }
 
     yarp::sig::Vector diagR;
+    yarp::sig::Matrix R;
     diagR.resize(parameters.p,1);
 
-    check=readDiagonalMatrix("R",diagR,parameters.p);
+    check=readDiagonalMatrix("Rvision",diagR,parameters.p);
 
     if(!check)
     {
-        diagR[0]=rf.check("R1",Value(0.0001)).asDouble();
-        diagR[1]=rf.check("R2",Value(0.0001)).asDouble();
-        diagR[2]=rf.check("R3",Value(0.0001)).asDouble();
+        diagR[0]=rf.check("R1vision",Value(0.0001)).asDouble();
+        diagR[1]=rf.check("R2vision",Value(0.0001)).asDouble();
+        diagR[2]=rf.check("R3vision",Value(0.0001)).asDouble();
     }
+
+    check=readDiagonalMatrix("Rvision",diagR,parameters.p);
+
+    for(size_t i=0; i<parameters.p; i++)
+    {
+         R(i,i)=diagR[i];
+    }
+
+    parameters.Rvision=R;
+
+    if(!check)
+    {
+        diagR[0]=rf.check("R1touch",Value(0.000001)).asDouble();
+        diagR[1]=rf.check("R2touch",Value(0.000001)).asDouble();
+        diagR[2]=rf.check("R3touch",Value(0.000001)).asDouble();
+    }
+
+
+    for(size_t i=0; i<parameters.p; i++)
+    {
+         R(i,i)=diagR[i];
+    }
+
+    parameters.Rtouch=R;
+
 
     yarp::sig::Vector diagP0;
     diagP0.resize(parameters.n,1);
@@ -1106,31 +1054,9 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         diagP0[5]=rf.check("P06",Value(pow(M_PI,2.0))).asDouble();
     }
 
-    yarp::sig::Vector neigh0;
-    neigh0.resize(parameters.n,1);
-
-    check=readDiagonalMatrix("neigh",neigh0,parameters.n);
-
-    if(!check)
-    {
-        neigh0[0]=rf.check("neigh0",Value(0.08)).asDouble();
-        neigh0[1]=rf.check("neigh1",Value(0.08)).asDouble();
-        neigh0[2]=rf.check("neigh2",Value(0.08)).asDouble();
-        neigh0[3]=rf.check("neigh3",Value(0.3)).asDouble();
-        neigh0[4]=rf.check("neigh4",Value(0.3)).asDouble();
-        neigh0[5]=rf.check("neigh5",Value(0.3)).asDouble();
-    }
-
-
-    parameters.neigh=neigh0;
-
-    cout<<"perc "<<parameters.percent<<endl;
-    cout<<"neigh "<<parameters.neigh.toString(6,3)<<endl;
-
     yarp::sig::Matrix Q;
     Q.resize(parameters.n,parameters.n);
 
-    yarp::sig::Matrix R;
     R.resize(parameters.p,parameters.p);
 
     yarp::sig::Matrix P0;
@@ -1145,60 +1071,9 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
     parameters.Q=Q;
     parameters.P0=P0;
 
-    for(size_t i=0; i<parameters.p; i++)
-    {
-         R(i,i)=diagR[i];
-    }
-
-    parameters.R=R;
-
-    // read the polyhedron from a .OFF file
-     ifstream modelFile(modelFileName.c_str());
-    if (!modelFile.is_open())
-    {
-        yError()<<"problem opening model file!";
-        return false;
-    }
-
-    modelFile>>get_model();
-
-    if (modelFile.bad())
-    {
-        yError()<<"problem reading model file!";
-        modelFile.close();
-        return false;
-    }
-    modelFile.close();
-
-    // read the measurements file
-    ifstream measurementsFile(measurementsFileName.c_str());
-    if (!measurementsFile.is_open())
-    {
-        yError()<<"problem opening measurements file!";
-        modelFile.close();
-        return false;
-    }
-    if (!readMeasurements(measurementsFile, downsampling))
-    {
-        yError()<<"problem reading measurements file!";
-        modelFile.close();
-        measurementsFile.close();
-        return false;
-    }
-    measurementsFile.close();
-    cout<<"measurements "<<endl;
-    for(int i=0;  i<measurements.size(); i++)
-        cout<< measurements[i]<<endl;
-
-      //parameters.window_width=rf.find("window_width").asInt();
     Vector aux_vect(n_m,0.0);
     readDiagonalMatrix("window_width", aux_vect, n_m);
-    cout<<"AUX VECT "<<aux_vect.toString()<<endl<<endl;
     parameters.window_width=aux_vect(k);
-    cout<<"M VALUE "<<parameters.window_width<<endl;
-    //if (rf.find("window_width").isNull())
-    //parameters.window_width=rf.check("window_width",Value(parameters.numMeas)).asInt();
-    //cout<<"WINDOW_WIDTH "<<parameters.window_width<<endl;
 }
 
 /*******************************************************************************/
@@ -1268,7 +1143,6 @@ void UnscentedParticleFilter::saveStatisticsData( const yarp::sig::Matrix &solut
         fout2<<"Average (over trials): "<< average1/solutions.rows()<<endl<<endl;
         fout2<<"Standard deviation (over trials) "<<stdev<<endl<<endl;
         fout2<<"Average Execution Time (over trials): "<<average_time/solutions.rows()<<endl<<endl;
-        //fout2<<"Average Maximum Likelihood (over trials): "<<average_lik/solutions.rows()<<endl;
     }
 }
        

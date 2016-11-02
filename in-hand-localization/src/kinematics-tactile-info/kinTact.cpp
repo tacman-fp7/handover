@@ -207,6 +207,7 @@ protected:
         giveContactPoint(contactPoint_thumb, "thumb");
         giveContactPoint(contactPoint_index, "index");
         giveContactPoint(contactPoint_middle, "middle");
+
         if (frame == "hand")
         {
             Vector aux(4,1.0);

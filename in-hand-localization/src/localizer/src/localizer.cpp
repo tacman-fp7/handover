@@ -18,7 +18,7 @@
 
 #include <iCub/ctrl/math.h>
 
-#include "headers/localizer.h"
+#include "../headers/localizer.h"
 
 using namespace std;
 using namespace yarp::os;
