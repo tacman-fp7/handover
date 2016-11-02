@@ -322,7 +322,7 @@ public:
     {
         Vector colors(3,0.0);
 
-        if (online && pointsIn.size()==0)
+        if (online && pointsIn.size()==0 && go_on)
         {
             askForCloud();
         }

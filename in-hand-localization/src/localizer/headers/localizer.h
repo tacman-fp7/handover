@@ -21,6 +21,7 @@
 #include <string>
 #include <yarp/sig/all.h>
 #include <yarp/os/ResourceFinder.h>
+#include <deque>
 
 
 
@@ -84,7 +85,7 @@ class Localizer
      * @param rf a previously inizialized @see Resource Finder
      * @return true/false upon succes/failure
      */
-    virtual bool configure(yarp::os::ResourceFinder &rf, const int &i, const int &k, const int &n_m, const int &l, const int &n_N, const int &m)=0;
+    virtual bool configure(yarp::os::ResourceFinder &rf, const int &i, const int &k, const int &n_m, const int &l, const int &n_N, const int &m, bool online, std::deque<yarp::sig::Vector> & points, bool enabled_touch)=0;
     
     
     /*******************************************************************/

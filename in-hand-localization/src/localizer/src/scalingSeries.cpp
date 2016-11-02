@@ -17,7 +17,7 @@
 #include <yarp/os/ResourceFinder.h>
 #include <iCub/ctrl/math.h>
 
-#include "headers/scalingSeries.h"
+#include "../headers/scalingSeries.h"
 
 typedef CGAL::Aff_transformation_3<K> Affine;
 

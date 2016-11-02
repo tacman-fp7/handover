@@ -38,13 +38,13 @@ struct ParametersUPF : public Parameters
     int              window_width;
     
     /**number of measurement for measurementFile*/
-	   int               numMeas;
+    int               numMeas;
 	
-	   /**number of degree of freedom*/
-   	int               n;
+    /**number of degree of freedom*/
+    int               n;
 	
-   	/**dimension of measurements*/
-	   int               p;
+    /**dimension of measurements*/
+     int               p;
    
     /** Unscented Transform parameters*/
     double            beta;
@@ -55,22 +55,16 @@ struct ParametersUPF : public Parameters
     
     /** Covariance matrix of process noise Q, measurement noise R and of initial estimate*/
     yarp::sig::Matrix Q;
-    yarp::sig::Matrix R;
+    yarp::sig::Matrix Rvision, Rtouch;
     yarp::sig::Matrix P0;
     
     /**  Dimension of initial area*/
     yarp::sig::Vector center0;
     yarp::sig::Vector radius0;  
-    yarp::sig::Vector neigh;
-    
-    
-    
-    
-    
+    yarp::sig::Vector neigh;  
 };
 
 /*******************************************************************/
-
 struct ParticleUPF
 {
     /** Particles after correction step*/
@@ -100,8 +94,6 @@ struct ParticleUPF
     
     /** Predicted particles */
     yarp::sig::Vector x_pred;
-    
-
 
     /** Sigma Points for average and covariance*/
     yarp::sig::Matrix XsigmaPoints_corr;
@@ -170,6 +162,9 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
     
     /** This is a point of the current measurements*/
     std::deque<Point>  current_measurement;
+
+    /** This is a point of the fingers*/
+    std::deque<Point>  fingers;
     
     /** This is an auxiliary vector*/
     std::deque<yarp::sig::Vector> x_most;
@@ -178,14 +173,14 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
      */
     int t;
     
-	   /** degree of freedom
-	   */
-	   int n;
+    /** degree of freedom
+    */
+    int n;
 
     /** dimension of measurements
-	   */
-	   int p;
-	
+    */
+    int p;
+
     protected:
  
     /** starting time*/
@@ -194,32 +189,32 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
     /** executional time*/
     double dt;
     
-     /** vector for solution with high weight*/
-     MsParticleUPF ms_particle1;
+    /** vector for solution with high weight*/
+    MsParticleUPF ms_particle1;
     
     /** vector for solution with high density*/
-     MsParticleUPF ms_particle2;
+    MsParticleUPF ms_particle2;
      
-      /** vector for solution with high density second method*/
-     MsParticleUPF ms_particle3;
+    /** vector for solution with high density second method*/
+    MsParticleUPF ms_particle3;
      
-      /** vector for solution with high density with sum of gaussians*/
-     MsParticleUPF ms_particle4;
+    /** vector for solution with high density with sum of gaussians*/
+    MsParticleUPF ms_particle4;
      
      
-     yarp::sig::Vector result;
-     
-     yarp::sig::Vector result4;
+    yarp::sig::Vector result;
 
-     std::string str_obj;
+    yarp::sig::Vector result4;
 
-     double max_prob;
-     double max_likelihood;
-     int downsampling;
-    
-     
-    
-   
+    std::string str_obj;
+
+    double max_prob;
+    double max_likelihood;
+    int downsampling;
+    bool online;
+
+    std::deque<yarp::sig::Vector> points;
+
     /*******************************************************************/
     
     /** Get parameters necessary for UnscentedParticleFilter class
@@ -247,8 +242,7 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
     * @return true when UPF is completed
     */
     bool step();
-   
-   
+      
     /*******************************************************************/   
    
     /** It is executed when UPF is finished.
@@ -257,7 +251,7 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
     */ 
     yarp::sig::Vector finalize();
     
-    /************************string str_obj*******************************************/
+    /*******************************************************************/
    
     /** Compute roll pitch roll rototranslation matrix.
     * @param particle, whose first three components are the coordinate 
@@ -278,7 +272,7 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
     */ 
     yarp::sig::Vector compute_y(const int &t,const  int &k,const  int &j);
     
-     /*******************************************************************/ 
+    /*******************************************************************/
   
     /** Return likelihood (probability to have a measurement y, given object pose x)
     * @param t index of current measurements
@@ -294,16 +288,14 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
     */
     void resampling();
     
-     /*******************************************************************/
-     
-     
+    /*******************************************************************/
+          
     /** Compute Sigma Points for i-th particle
     */
     void computeSigmaPoints(const int &i);
     
     /*******************************************************************/
-    
-    
+        
     /** Compute performance index (average among measurementsof minimum
     * distance of each measurement to object) and ms_particle.error_index 
     * is modified
@@ -396,54 +388,34 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
      bool readMeasurements(std::ifstream &fin, const int &downsampling);
     
      /*******************************************************************/
-     
-     
-     double finaleLikelihood(const int &best_part);
 
-     /** Find the particle with the highest density
-   
-     */
-     yarp::sig::Vector particleDensity();
+     double finaleLikelihood(const int &best_part);
      /*******************************************************************/
      
-     
-       /** Find the particle with the highest density
-   
-     */
-     yarp::sig::Vector particleDensity2();
-     /*******************************************************************/
-     
-       /** Find the particle with the highest rpobability
-   
+      /** Find the particle with the highest rpobability
      */
      yarp::sig::Vector particleDensity3();
      /*******************************************************************/
      
-      /**Time with the new method
-   
+     /**Time with the new method
      */
      double dt_gauss;
-       /*******************************************************************/
-          /**Time with the new method
-   
+     /*******************************************************************/
+
+      /**Time with the new method
      */
      double dt_gauss2;
        /*******************************************************************/
-       double DT;
-     
-    
-     public:
-    
-    
+     double DT;
+       
+     public:    
      /** constructor, derived from optimizer
      */
      UnscentedParticleFilter();
-    
-    
+       
      /** Calls step( ) until measurements finish
      */
-     void solve();
-    
+     void solve();    
      /*******************************************************************/
     
      /** Saves x with gretest weight, localization error and execution time 
@@ -451,17 +423,14 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
      * @param rf a previously inizialized @see Resource Finder
      * @param ms_particle, containing estimated x, localization error and execution time
      */
-     void saveData( const yarp::sig::Vector &ms_particle,const int &y, const int &k, const int &l, const int &m);
-     
-     
+     void saveData( const yarp::sig::Vector &ms_particle,const int &y, const int &k, const int &l, const int &m);    
      /*******************************************************************/
     
      /** Saves the solution and the time computed for all the trials, computes the average
      * of the solution and of the time of the trials 
      * @param Matrix, containing the three solutions
      */
-     void saveStatisticsData(const yarp::sig::Matrix &solutions, const int &i, const int &k, const int &l, const int &m);
-    
+     void saveStatisticsData(const yarp::sig::Matrix &solutions, const int &i, const int &k, const int &l, const int &m);    
      /*******************************************************************/
      
      /**Configures all parameters needed by the algorithm, reading them from a 
@@ -470,8 +439,7 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
      * @param rf a previously inizialized @see Resource Finder
      * @return true/false on succes/failure
      */
-     bool configure(yarp::os::ResourceFinder &rf, const int &obj, const int &k, const int &n_m, const int &l, const int &n_N, const int &m);
-    
+     bool configure(yarp::os::ResourceFinder &rf, const int &obj, const int &k, const int &n_m, const int &l, const int &n_N, const int &m, bool  online, std::deque<yarp::sig::Vector> &points, bool enabled_touch);
      /*******************************************************************/
     
      /** Runs init() and solve(). Configure must be runned before and if we want to
@@ -484,7 +452,8 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
      
      /****************************************************************************************************/
 
-   
+     /*******************************************************************************/
+     bool readFingers(std::ifstream &fin);
 };
 
 
