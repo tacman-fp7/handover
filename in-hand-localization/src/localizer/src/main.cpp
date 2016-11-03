@@ -57,7 +57,7 @@ public:
         module_name=rf.check("module_name", Value("inHandLocalizer"), "Getting module name").asString();
         object_name=rf.check("module_name", Value("object"), "Getting module name").asString();
         online=(rf.check("online", Value("no")).asString()=="yes");
-        enabled_touch=(rf.check("touch", Value("no")).asString()=="yes");
+        enabled_touch=(rf.check("enabled_touch", Value("no")).asString()=="yes");
 
         homeContextPath=rf.getHomeContextPath().c_str();
         savename=rf.check("savename", Value(object_name+"_pose"), "Default file savename").asString();

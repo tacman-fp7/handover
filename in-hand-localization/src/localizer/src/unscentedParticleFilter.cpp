@@ -781,6 +781,7 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
 
     while (!fin.eof())
     {
+        cout<<"debug fing "<<endl;
         fin.getline(line,sizeof(line),'\n');
         Bottle b(line);
         Value firstItem=b.get(0);
@@ -788,6 +789,7 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
 
         if (state==0)
         {
+            cout<<"debug fing "<<endl;
             string tmp=firstItem.asString().c_str();
             std::transform(tmp.begin(),tmp.end(),tmp.begin(),::toupper);
             if (tmp=="OFF" || tmp=="COFF")
@@ -795,6 +797,7 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
             }
             else if (state==1)
             {
+            cout<<"debug fing "<<endl;
                 if (isNumber)
                 {
                     nPoints=firstItem.asInt();
@@ -803,8 +806,10 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
             }
             else if (state==2)
             {
+            cout<<"debug fing "<<endl;
                 if (isNumber && (b.size()>=3))
                 {
+                    cout<<"debug fing "<<endl;
                     fingers.push_back(Point(b.get(0).asDouble(),
                                                        b.get(1).asDouble(),
                                                        b.get(2).asDouble()));
@@ -904,9 +909,6 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
 
     }    
 
-    for (size_t i=0; i<measurements.size(); i++)
-        cout<<measurements[i]<<endl;
-
     if (enabled_touch==true)
     {
         string fingersFileName=rf.find("fingersFile"). asString().c_str();
@@ -930,6 +932,12 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         }
         fingersFile.close();
     }
+
+    measurements.push_back(fingers[0]);
+    measurements.push_back(fingers[1]);
+    measurements.push_back(fingers[2]);
+    for (size_t i=0; i<measurements.size(); i++)
+        cout<<measurements[i]<<endl;
 
     ParametersUPF &parameters=get_parameters();
     parameters.numMeas=measurements.size();
@@ -1003,15 +1011,16 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
 
     yarp::sig::Vector diagR;
     yarp::sig::Matrix R;
+    R.resize(parameters.p,parameters.p);
     diagR.resize(parameters.p,1);
 
     check=readDiagonalMatrix("Rvision",diagR,parameters.p);
 
     if(!check)
     {
-        diagR[0]=rf.check("R1vision",Value(0.0001)).asDouble();
-        diagR[1]=rf.check("R2vision",Value(0.0001)).asDouble();
-        diagR[2]=rf.check("R3vision",Value(0.0001)).asDouble();
+        diagR[0]=rf.check("R1vision",Value(0.0004)).asDouble();
+        diagR[1]=rf.check("R2vision",Value(0.0004)).asDouble();
+        diagR[2]=rf.check("R3vision",Value(0.0004)).asDouble();
     }
 
     check=readDiagonalMatrix("Rvision",diagR,parameters.p);
@@ -1025,9 +1034,9 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
 
     if(!check)
     {
-        diagR[0]=rf.check("R1touch",Value(0.000001)).asDouble();
-        diagR[1]=rf.check("R2touch",Value(0.000001)).asDouble();
-        diagR[2]=rf.check("R3touch",Value(0.000001)).asDouble();
+        diagR[0]=rf.check("R1touch",Value(0.0005)).asDouble();
+        diagR[1]=rf.check("R2touch",Value(0.0005)).asDouble();
+        diagR[2]=rf.check("R3touch",Value(0.0005)).asDouble();
     }
 
 
@@ -1057,8 +1066,6 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
     yarp::sig::Matrix Q;
     Q.resize(parameters.n,parameters.n);
 
-    R.resize(parameters.p,parameters.p);
-
     yarp::sig::Matrix P0;
     P0.resize(parameters.n,parameters.n);
 
@@ -1074,6 +1081,8 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
     Vector aux_vect(n_m,0.0);
     readDiagonalMatrix("window_width", aux_vect, n_m);
     parameters.window_width=aux_vect(k);
+
+    return true;
 }
 
 /*******************************************************************************/
