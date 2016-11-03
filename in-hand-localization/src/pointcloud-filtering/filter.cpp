@@ -243,8 +243,8 @@ public:
         change_frame=(rf.check("change_frame", Value("yes")).asString()=="yes");
         hand_filter=(rf.check("hand_filter", Value("no")).asString()=="yes");
         volume_filter=(rf.check("volume_filter", Value("no")).asString()=="yes");
-        x_lim=rf.check("x_lim", Value(0.05)).asDouble();
-        y_lim=rf.check("y_lim", Value(0.05)).asDouble();
+        x_lim=rf.check("x_lim", Value(0.15)).asDouble();
+        y_lim=rf.check("y_lim", Value(0.15)).asDouble();
         z_lim=rf.check("z_lim", Value(0.15)).asDouble();
  
         radius_volume_offset=rf.check("radius_volume_offset", Value(0.03)).asDouble();
@@ -648,6 +648,7 @@ public:
     vector<int>  grayColorFilter(const double radius, const int maxResults, const int diff_colors, vector<Vector> &pointsIn)
     {
         numVertices=pointsIn.size();
+        pointsOut.clear();
 
         cv:: Mat data(numVertices,3,CV_32F);
         cv:: Mat datacolor(numVertices,3,CV_32F);

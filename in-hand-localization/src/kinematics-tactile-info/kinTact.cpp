@@ -273,7 +273,7 @@ protected:
 
         left_or_right=rf.find("which_hand").asString().c_str();
         if(rf.find("which_hand").isNull())
-            left_or_right="right";
+            left_or_right="left";
 
         Property option_arm("(device cartesiancontrollerclient)");
         option_arm.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
