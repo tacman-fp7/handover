@@ -211,6 +211,7 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
     double max_prob;
     double max_likelihood;
     int downsampling;
+    int max_num_meas;
     bool online;
 
     std::deque<yarp::sig::Vector> points;
@@ -385,7 +386,7 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
      * @param fin is the ifstream associated to measurements file
      * @return true/false on succes/failure
      */
-     bool readMeasurements(std::ifstream &fin, const int &downsampling);
+     bool readMeasurements(std::ifstream &fin);
     
      /*******************************************************************/
 

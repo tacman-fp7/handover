@@ -722,7 +722,7 @@ void UnscentedParticleFilter::solve()
 }
 
 /*******************************************************************************/
-bool UnscentedParticleFilter::readMeasurements(ifstream &fin, const int &downsampling)
+bool UnscentedParticleFilter::readMeasurements(ifstream &fin)
 {
     ParametersUPF &params=get_parameters();
     int state=0;
@@ -840,7 +840,8 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
     }
 
     string modelFileName=rf.find("modelFile"+str_obj).asString().c_str();
-    downsampling=rf.check("downsampling", Value(1)).asInt();
+    //downsampling=rf.check("downsampling", Value(1)).asInt();
+    max_num_meas=rf.check("max_num_meas", Value(100)).asInt();
 
     ifstream modelFile(modelFileName.c_str());
     if (!modelFile.is_open())
@@ -879,7 +880,7 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
             modelFile.close();
             return false;
         }
-        if (!readMeasurements(measurementsFile, downsampling))
+        if (!readMeasurements(measurementsFile))
         {
             yError()<<"problem reading measurements file!";
             modelFile.close();
@@ -887,6 +888,7 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
             return false;
         }
         measurementsFile.close();
+        downsampling=measurements.size()/max_num_meas;
 
         if (downsampling>1)
         {
@@ -901,6 +903,8 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
     }
     else
     {
+        downsampling=points.size()/max_num_meas;
+
         for (size_t i=0; i<points.size(); i=i+downsampling)
         {
             Vector point=points[i];
@@ -1034,9 +1038,9 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
 
     if(!check)
     {
-        diagR[0]=rf.check("R1touch",Value(0.0005)).asDouble();
-        diagR[1]=rf.check("R2touch",Value(0.0005)).asDouble();
-        diagR[2]=rf.check("R3touch",Value(0.0005)).asDouble();
+        diagR[0]=rf.check("R1touch",Value(0.0004)).asDouble();
+        diagR[1]=rf.check("R2touch",Value(0.0004)).asDouble();
+        diagR[2]=rf.check("R3touch",Value(0.0004)).asDouble();
     }
 
 
