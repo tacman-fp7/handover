@@ -327,6 +327,9 @@ public:
             askForCloud();
         }
 
+        if (online==false)
+            go_on=true;
+
         if (pointsIn.size()>0 && go_on)
         {
             askForFingers();
@@ -928,6 +931,9 @@ public:
         center_volume[0]=(ma*mb * (thumb[2]-middle[2]) + mb * (index[0]+thumb[0]) - ma * (index[0]+middle[0]))/(2*(mb-ma));
         center_volume[1]=-1/ma * (center_volume[0] - (thumb[0]+index[0])/2) +(thumb[2]+index[2])/2;
         radius_volume=sqrt((center_volume[0]-thumb[0])*(center_volume[0]-thumb[0]) + (center_volume[1]-thumb[2])*(center_volume[1]-thumb[2]));
+
+        cout<<"center "<<center_volume.toString()<<endl;
+        cout<<"radius "<<radius_volume<<endl;
     }
 
     /*******************************************************************************/
