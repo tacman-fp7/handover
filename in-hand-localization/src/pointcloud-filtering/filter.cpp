@@ -61,13 +61,17 @@ class filteringModule : public RFModule,
     bool change_frame;
     bool hand_filter;
     bool volume_filter;
+    bool ellips_filter;
     bool go_on;
     string color_space;
     double x_lim, y_lim, z_lim;
 
     Vector center_volume;
     double radius_volume;
+    Vector center_ellips;
+    double a,b;
     double radius_volume_offset;
+    double a_offset, b_offset;
     Vector position, orientation;
 
 public:
@@ -243,13 +247,18 @@ public:
         change_frame=(rf.check("change_frame", Value("yes")).asString()=="yes");
         hand_filter=(rf.check("hand_filter", Value("no")).asString()=="yes");
         volume_filter=(rf.check("volume_filter", Value("no")).asString()=="yes");
-        x_lim=rf.check("x_lim", Value(0.15)).asDouble();
-        y_lim=rf.check("y_lim", Value(0.15)).asDouble();
-        z_lim=rf.check("z_lim", Value(0.15)).asDouble();
+        ellips_filter=(rf.check("ellips_filter", Value("no")).asString()=="yes");
+        x_lim=rf.check("x_lim", Value(0.18)).asDouble();
+        y_lim=rf.check("y_lim", Value(0.18)).asDouble();
+        z_lim=rf.check("z_lim", Value(0.18)).asDouble();
  
         radius_volume_offset=rf.check("radius_volume_offset", Value(0.03)).asDouble();
+        a_offset=rf.check("a_offset", Value(0.03)).asDouble();
+        cout<<"a offset "<<a_offset<<endl;
+        b_offset=rf.check("b_offset", Value(0.0)).asDouble();
 
         center_volume.resize(2,0.0);
+        center_ellips.resize(2,0.0);
         position.resize(3,0.0);
         orientation.resize(4,0.0);
 
@@ -272,6 +281,12 @@ public:
                 fingersFileName=rf.check("fingersFileName", Value("tactile_hand_pose.off"), "Default cloud name").asString();
                 readPointCloud(fingersFileName, "fingers");
                 graspableVolume(fingers);
+            }
+            if (ellips_filter)
+            {
+                fingersFileName=rf.check("fingersFileName", Value("tactile_hand_pose.off"), "Default cloud name").asString();
+                readPointCloud(fingersFileName, "fingers");
+                graspableEllips(fingers);
             }
 
             return readPointCloud(fileInName, "points");
@@ -387,7 +402,19 @@ public:
                 saveNewCloud(colors, pointsOut,info);
             }
 
-            if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF")
+            if (ellips_filter && pointsIn.size()>0 )
+            {
+                colors[1]=255;
+                if ((spatial_filter==true || gray_filter==true)==true)
+                    ellipsFilter(pointsOut);
+                else
+                    ellipsFilter(pointsIn);
+                info+="_EF";
+
+                saveNewCloud(colors, pointsOut,info);
+            }
+
+            if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF"||info == "_HF_GF_ycbcr_SF_EF"|| info == "_HF_GF_ycbcr_SF_EF")
             {
                 info="all_filters";
                 saveNewCloud(colors, pointsOut,info);
@@ -945,8 +972,42 @@ public:
         for (size_t i=0;i<pointsTmp.size(); i++)
         {
             Vector point=pointsTmp[i];
-            //cout<<(point[0]-center_volume[0])*(point[0]-center_volume[0]) + (point[1]-center_volume[1])*(point[1]-center_volume[1]) - radius_volume*radius_volume<<endl;
-            if ((point[0]-center_volume[0])*(point[0]-center_volume[0]) + (point[2]-center_volume[1])*(point[2]-center_volume[1]) - (radius_volume+radius_volume_offset)*(radius_volume+radius_volume_offset )<0 )
+            if ((point[0]-center_volume[0])*(point[0]-center_volume[0]) + (point[2]-center_volume[1])*(point[2]-center_volume[1]) - (radius_volume+a_offset)*(radius_volume+b_offset )<0 )
+                pointsOut.push_back(point);
+        }
+    }
+
+    /*******************************************************************************/
+    void graspableEllips(vector<Vector> &fingerPoses)
+    {
+        cout<<"debug 1"<<endl;
+        Vector thumb, index, middle;
+        thumb=fingerPoses[0];
+        index=fingerPoses[1];
+        middle=fingerPoses[2];
+        a=abs(thumb[0]-index[0])/2.0;
+        b=sqrt(thumb[2]*thumb[2]+thumb[0]*thumb[0]);
+        double ma, mb, ca, cb;
+        ma=(index[2]-thumb[2])/(index[0]-thumb[0]);
+        mb=-1/ma;
+
+        ca=index[2]- index[0]*ma;
+        cb=0;
+
+        center_ellips[0]=(ca - cb)/(mb-ma);
+        center_ellips[1]=ma*center_ellips[0]+ca;
+    }
+
+    /*******************************************************************************/
+    void ellipsFilter(vector<Vector> &points)
+    {
+        vector<Vector> pointsTmp=points;
+        pointsOut.clear();
+
+        for (size_t i=0;i<pointsTmp.size(); i++)
+        {
+            Vector point=pointsTmp[i];
+            if ((point[0]-center_ellips[0])*(point[0]-center_ellips[0])*b*b + (point[2]-center_ellips[1])*(point[2]-center_ellips[1])*a*a - (a+a_offset)*(a+a_offset)*(b+b_offset)*(b+b_offset)<0 )
                 pointsOut.push_back(point);
         }
     }
