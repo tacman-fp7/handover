@@ -16,12 +16,12 @@ struct Bottle
   )
 
 /**
-* pointCloudExtraction_IDL
+* inHandSegmentation_IDL
 *
 * IDL Interface to \ref pointCloudExtraction services.
 */
 
-service pointCloudExtraction_IDL
+service inHandSegmentation_IDL
 {
     /**
     * Clear collected points
@@ -52,10 +52,9 @@ service pointCloudExtraction_IDL
 
     /**
     * acquire or not point cloud
-    * @param entry is "yes" or "no"
     * @return true/false on success/failure.
     */
-    bool acquiring(1: string entry);
+    bool go_acquire();
 
     /**
     * Get the 2D pixels of the nearest blob
@@ -68,6 +67,85 @@ service pointCloudExtraction_IDL
     * @return a bottle with the 3D points
     */
     Bottle get_3D_blob_points();
+
+    /**
+    * Get reference frame selected
+    * @return "robot" or "hand"
+    */
+    string get_frame();
+
+    /**
+    * Set reference frame selected
+    * @param entry can be "robot" or "hand"
+    * @return true/false on success/failure
+    */
+    bool set_frame(1:string entry);
+
+    /**
+    * Get pose information from kinematics
+    * @return the Property including all the information about pose
+    */
+    Bottle get_pose();
+
+    /**
+    * Get tactile information from fingertips
+    * @return the Property including all the information about tactila data
+    */
+    Bottle get_tactile_data();
+/**
+    * Get filtered points
+    * @return true/false on success/failure.
+    */
+    Bottle get_filtered_points();
+
+    /**
+    * Say which filters are on
+    * @return a string containing names of filters: HF for hand filter, GF for gray filter
+    * SF for spatial filter, VF for volume filters, all is all filters are applied.
+`   */
+    string get_filters();
+
+    /**
+    * Set hand filter on or off
+    * @param entry is yes or no
+    * @return return true/false on success/failure
+`   */
+    bool set_hand_filter(1: string entry);
+
+    /**
+    * Set hand filter on or off
+    * @param entry is yes or no
+    * @return return true/false on success/failure
+`   */
+    bool set_gray_filter(1: string entry);
+
+    /**
+    * Set hand filter on or off
+    * @param entry is yes or no
+    * @return return true/false on success/failure
+`   */
+    bool set_spatial_filter(1: string entry);
+
+    /**
+    * Set hand filter on or off
+    * @param entry is yes or no
+    * @return return true/false on success/failure
+`   */
+    bool set_volume_filter(1: string entry);
+
+    /**
+    * Set all filters on or off
+    * @param entry is yes or no
+    * @return return true/false on success/failure
+`   */
+    bool set_all_filters(1: string entry);
+
+    /**
+    * Let start the filtering process
+    * @return return true/false on success/failure
+`   */
+    bool go_filter();
+
 
 
 }
