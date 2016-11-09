@@ -266,9 +266,11 @@ public:
         {
             portCloudRpc.open("/" + module_name + "/cld:i");
             portTactRpc.open("/" + module_name + "/tct:i");
+            go_on=false;
         }
         else
         {
+            go_on=true;
             fileInName=rf.check("fileInName", Value("cloud.off"), "Default cloud name").asString();
             if (change_frame)
             {
@@ -342,9 +344,6 @@ public:
             askForCloud();
         }
 
-        if (online==false)
-            go_on=true;
-
         if (pointsIn.size()>0 && go_on)
         {
             askForFingers();
@@ -401,8 +400,7 @@ public:
 
                 saveNewCloud(colors, pointsOut,info);
             }
-
-            if (ellips_filter && pointsIn.size()>0 )
+            else if (ellips_filter && pointsIn.size()>0 )
             {
                 colors[1]=255;
                 if ((spatial_filter==true || gray_filter==true)==true)
@@ -958,9 +956,6 @@ public:
         center_volume[0]=(ma*mb * (thumb[2]-middle[2]) + mb * (index[0]+thumb[0]) - ma * (index[0]+middle[0]))/(2*(mb-ma));
         center_volume[1]=-1/ma * (center_volume[0] - (thumb[0]+index[0])/2) +(thumb[2]+index[2])/2;
         radius_volume=sqrt((center_volume[0]-thumb[0])*(center_volume[0]-thumb[0]) + (center_volume[1]-thumb[2])*(center_volume[1]-thumb[2]));
-
-        cout<<"center "<<center_volume.toString()<<endl;
-        cout<<"radius "<<radius_volume<<endl;
     }
 
     /*******************************************************************************/
@@ -980,7 +975,6 @@ public:
     /*******************************************************************************/
     void graspableEllips(vector<Vector> &fingerPoses)
     {
-        cout<<"debug 1"<<endl;
         Vector thumb, index, middle;
         thumb=fingerPoses[0];
         index=fingerPoses[1];

@@ -50,6 +50,8 @@ class localizingModule : public RFModule
     Vector error_indices;
     deque<Vector> measurements;
 
+    Matrix info_recognition;
+
 public:
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
@@ -71,6 +73,8 @@ public:
         num_objs=rf.check("num_objs", Value(1)).asInt();
         num_Q=rf.check("num_Q", Value(1)).asInt();
         num_trials=rf.check("num_trials", Value(1)).asInt();
+
+        info_recognition.resize(num_objs, num_trials);
 
         if (online)
             localize=false;
@@ -157,6 +161,7 @@ public:
                                 solutions(i,1)=error_indices[7];
                                 solutions(i,2)=error_indices[8];
                                 solutions(i,3)=error_indices[9];
+                                info_recognition(j,i)=error_indices[6];
 
                                 delete loc5;
                             }
@@ -171,6 +176,24 @@ public:
                 }
             }           
         }
+
+        string output_compare="../../outputs/comparison-among-objects.off";
+        ofstream fout(output_compare.c_str());
+        if(fout.is_open())
+        {
+            for (int j=0; j<num_objs;j++)
+            {
+                double sum=0.0;
+                for (int i=0; i<num_trials; i++)
+                    sum+=info_recognition(j,i);
+
+                fout<< "Objects: "<<j<<" "<<"Localization error: "<<sum/num_trials <<endl;
+            }
+        }
+        else
+            cout<< "problem opening output_data file!";
+
+        fout.close();
 
         if (online)
         {
