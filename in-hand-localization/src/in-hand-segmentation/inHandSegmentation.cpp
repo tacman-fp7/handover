@@ -417,7 +417,7 @@ public:
 
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         tactile_on=(rf.check("tactile_on", Value("yes"), "use or not finger positions").asString()== "yes");
-        frame=(rf.check("frame", Value("yes"), "in which frame save finger positions").asString()== "yes");
+        frame=rf.check("frame", Value("hand"), "in which frame save finger positions").asString();
 
         spatial_filter=(rf.check("spatial_filter", Value("no")).asString()=="yes");
         gray_filter=(rf.check("gray_filter", Value("yes")).asString()=="yes");
@@ -592,18 +592,23 @@ public:
         if (online)
         {
             acquirePoints();
-            H_hand=computePose();
+            
+            if (pointsIn.size()>0 && acquire==true)
+            {
+                H_hand=computePose();
+                if (change_frame)
+                    fromRobotTohandFrame(pointsIn);
 
-            if (change_frame)
-                fromRobotTohandFrame(pointsIn);
+                if (tactile_on)
+                    acquireFingers();
 
-            if (tactile_on)
-                acquireFingers();
+                cout<<pointsIn.size()<<" points coming from vision ";
+                if (tactile_on)
+                    cout<<"and touch";
+                cout<<"have been collected"<<endl;
 
-            cout<<pointsIn.size()<<" points coming from vision ";
-            if (tactile_on)
-                cout<<"and touch";
-            cout<<"have been collected"<<endl;
+                acquire=false;
+            }
         }
         else
         {
@@ -796,8 +801,7 @@ public:
         {
             if (saving)
             {
-                saveCloud(pointsIn);
-                acquire=false;
+                saveCloud(pointsIn);               
             }
         }
 
@@ -966,7 +970,7 @@ public:
         {
             ofstream fout;
             stringstream fileName;
-            fileName<<homeContextPath + "/" + poseOutFileName<<"_"+savename<<"_"<<fileCount;
+            fileName<<homeContextPath + "/" + poseOutFileName<<savename<<"_"<<fileCount;
             string fileNameFormat;
             fileNameFormat=fileName.str()+".txt";
             fout.open(fileNameFormat.c_str());
@@ -1026,7 +1030,7 @@ public:
             ofstream fout;
             stringstream fileName;
             string fileNameFormat;
-            fileName<<homeContextPath + "/" + fingersOutFileName.c_str() <<"_"+savename<< "_"+frame<<"_"+left_or_right+"_hand_"<<fileCount;
+            fileName<<homeContextPath + "/" + fingersOutFileName.c_str() <<savename<< "_"+frame<<"_"+left_or_right+"_hand_"<<fileCount;
             fileNameFormat= fileName.str()+".off";
             fout.open(fileNameFormat.c_str());
             if (fout.is_open())
