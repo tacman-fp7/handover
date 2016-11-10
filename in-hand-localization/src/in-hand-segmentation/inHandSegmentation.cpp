@@ -427,6 +427,11 @@ public:
         ellips_filter=(rf.check("ellips_filter", Value("no")).asString()=="yes");
         color_space=rf.check("color_code", Value("rgb")).asString();
 
+        if (tactile_on==false)
+        {
+            volume_filter=ellips_filter=false;
+        }
+
         radius=rf.check("radius", Value(0.0002)).asDouble();
         nnThreshold=rf.check("nn-threshold", Value(40)).asInt();
         radius_color=rf.check("radius_color", Value(0.0003)).asDouble();
@@ -588,21 +593,32 @@ public:
         {
             acquirePoints();
             H_hand=computePose();
-            acquireFingers();
+
+            if (change_frame)
+                fromRobotTohandFrame(pointsIn);
+
+            if (tactile_on)
+                acquireFingers();
+
+            cout<<pointsIn.size()<<" points coming from vision ";
+            if (tactile_on)
+                cout<<"and touch";
+            cout<<"have been collected"<<endl;
         }
         else
         {
             readPoints(visionFileName, "points");
             H_hand=readPose();
+
+            if (change_frame)
+                fromRobotTohandFrame(pointsIn);
+
             if (tactile_on)
                 readPoints(fingersFileName, "fingers");
         }
 
         if (filter && pointsIn.size()>0)
-        {
-            if (change_frame)
-                fromRobotTohandFrame(pointsIn);
-
+        {            
             if (hand_filter)
             {
                 colors[1]=255;
@@ -663,15 +679,18 @@ public:
                 saveNewCloud(colors, pointsOut,info);
             }
 
-            if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF"||info == "_HF_GF_ycbcr_SF_EF"|| info == "_HF_GF_ycbcr_SF_EF")
+            if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF"||info == "_HF_GF_rgb_SF_EF"|| info == "_HF_GF_ycbcr_SF_EF")
             {
-                info="all_filters";
+                info="_all_filters";
                 saveNewCloud(colors, pointsOut,info);
             }
 
-            pointsIn.clear();
+            //pointsIn.clear();
             filter=false;
             fileCount++;
+
+            if (online)
+                cout<<"All filters have been executed. Ready for new points filtering or acquisition "<<endl;
         }
         else
         {
@@ -974,6 +993,11 @@ public:
         giveContactPoint(contactPoint_thumb, "thumb");
         giveContactPoint(contactPoint_index, "index");
         giveContactPoint(contactPoint_middle, "middle");
+
+        if (frame =="robot" && change_frame==true)
+            frame="hand";
+        else if (frame =="hand" && change_frame==false)
+            frame="robot";
 
         if (frame == "hand")
         {
@@ -1320,7 +1344,7 @@ public:
         stringstream fileName;
         string fileNameFormat;
         fileName.str("");
-        fileName << homeContextPath + "/" + savename.c_str() << fileCount;
+        fileName << homeContextPath + "/" + savename.c_str() <<"_"<< fileCount;
 
         if (fileOutFormat == "ply")
         {
@@ -1389,7 +1413,7 @@ public:
         stringstream fileName;
         string fileNameFormat;
         fileName.str("");
-        fileName << homeContextPath + "/" + savename.c_str() << fileCount<<info;
+        fileName << homeContextPath + "/" + savename.c_str() <<"_"<<  fileCount<<info;
 
         if (fileOutFormat == "ply")
         {
