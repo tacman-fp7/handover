@@ -254,7 +254,7 @@ protected:
         if (frame == "hand")
         {
             Vector aux(4,1.0);
-            aux.setSubvector(0,contactPoint_thumb);
+            aux.setSubvector(0,contactPoint_thumb);           
             aux=H_hand*aux;
             contactPoint_thumb=aux.subVector(0,2);
             aux.setSubvector(0,contactPoint_index);
@@ -541,6 +541,8 @@ public:
             }
 
             analogDevice.view(analog);
+
+            H_hand=computePose();
         }
         else
             filter=true;
@@ -595,7 +597,7 @@ public:
             
             if (pointsIn.size()>0 && acquire==true)
             {
-                H_hand=computePose();
+                //H_hand=computePose();
                 if (change_frame)
                     fromRobotTohandFrame(pointsIn);
 
