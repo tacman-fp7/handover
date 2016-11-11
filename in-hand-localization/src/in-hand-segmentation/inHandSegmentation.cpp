@@ -68,7 +68,7 @@ protected:
     int diff_ycbcr;
     double radius;
     double radius_color;
-    double x_lim, y_lim, z_lim;
+    double x_lim_up, x_lim_down, y_lim_up, y_lim_down, z_lim_up, z_lim_down;
     double radius_volume;
     double a,b;
     double radius_volume_offset;
@@ -145,6 +145,15 @@ protected:
     }
 
     /*******************************************************************************/
+    string get_saving()
+    {
+        if (saving==true)
+            return "yes";
+        else
+            return "no";
+    }
+
+    /*******************************************************************************/
     bool set_format(const string &entry)
     {
         if (entry == "off" || entry == "ply")
@@ -160,10 +169,22 @@ protected:
     }
 
     /*******************************************************************************/
+    string get_format()
+    {
+        return fileOutFormat;
+    }
+
+    /*******************************************************************************/
     bool set_filename(const string &entry)
     {
         savename=entry;
         return true;
+    }
+
+    /*******************************************************************************/
+    string get_filename()
+    {
+        return savename;
     }
 
     /*******************************************************************************/
@@ -299,6 +320,9 @@ protected:
             filters+=" SF";
         if (volume_filter)
             filters+=" VF";
+        if (ellips_filter)
+            filters+=" EF";
+
 
         return filters;
     }
@@ -306,9 +330,9 @@ protected:
     /***********************************************************************/
     bool set_hand_filter(const string &entry)
     {
-        if (entry=="yes" || entry=="no")
+        if (entry=="on" || entry=="off")
         {
-            hand_filter=(entry=="yes");
+            hand_filter=(entry=="on");
             return true;
         }
         else
@@ -318,9 +342,9 @@ protected:
     /***********************************************************************/
     bool set_gray_filter(const string &entry)
     {
-        if (entry=="yes" || entry=="no")
+        if (entry=="on" || entry=="off")
         {
-            gray_filter=(entry=="yes");
+            gray_filter=(entry=="on");
             return true;
         }
         else
@@ -330,9 +354,9 @@ protected:
     /***********************************************************************/
     bool set_spatial_filter(const string &entry)
     {
-        if (entry=="yes" || entry=="no")
+        if (entry=="on" || entry=="off")
         {
-            spatial_filter=(entry=="yes");
+            spatial_filter=(entry=="on");
             return true;
         }
         else
@@ -342,9 +366,21 @@ protected:
     /***********************************************************************/
     bool set_volume_filter(const string &entry)
     {
-        if (entry=="yes" || entry=="no")
+        if (entry=="on" || entry=="off")
         {
-            volume_filter=(entry=="yes");
+            volume_filter=(entry=="on");
+            return true;
+        }
+        else
+            return false;
+    }
+
+    /***********************************************************************/
+    bool set_ellips_filter(const string &entry)
+    {
+        if (entry=="on" || entry=="off")
+        {
+            ellips_filter=(entry=="on");
             return true;
         }
         else
@@ -354,12 +390,12 @@ protected:
     /***********************************************************************/
     bool set_all_filters(const string &entry)
     {
-        if (entry=="yes")
+        if (entry=="on")
         {
             hand_filter=true;
             gray_filter=true;
             spatial_filter=true;
-            volume_filter=true;
+            ellips_filter=true;
             return true;
         }
         else
@@ -398,6 +434,86 @@ protected:
     {
         filter=true;
         return true;
+    }
+
+    /***********************************************************************/
+    bool set_parameter_hand_filter(const string &entry, const double value)
+    {
+        if (entry=="x_lim_up")
+        {
+            x_lim_up=value;
+            return true;
+        }
+        else if (entry=="x_lim_down")
+        {
+            x_lim_down=value;
+            return true;
+        }
+        else if (entry=="y_lim_up")
+        {
+            y_lim_up=value;
+            return true;
+        }
+        else if (entry=="y_lim_down")
+        {
+            y_lim_down=value;
+            return true;
+        }
+        else if (entry=="z_lim_up")
+        {
+            z_lim_up=value;
+            return true;
+        }
+        else if (entry=="z_lim_down")
+        {
+            z_lim_down=value;
+            return true;
+        }
+        else
+            return false;
+    }
+
+    /***********************************************************************/
+    double get_parameter_hand_filter(const string &entry)
+    {
+        if (entry=="x_lim_up")
+            return x_lim_up;
+        else if (entry=="x_lim_down")
+            return x_lim_down;
+        else if (entry=="y_lim_up")
+            return y_lim_up;
+        else if (entry=="y_lim_down")
+            return y_lim_down;
+        else if (entry=="z_lim_up")
+            return z_lim_up;
+        else if (entry=="z_lim_down")
+            return z_lim_down;
+    }
+
+    /***********************************************************************/
+    bool set_parameter_ellips_filter(const string &entry, const double value)
+    {
+        if (entry=="a_offset")
+        {
+            a_offset=value;
+            return true;
+        }
+        else if (entry=="b_offset")
+        {
+            b_offset=value;
+            return true;
+        }
+        else
+            return false;
+    }
+
+    /***********************************************************************/
+    double get_parameter_ellips_filter(const string &entry)
+    {
+        if (entry=="a_offset")
+            return a_offset;
+        else if (entry=="b_offset")
+            return b_offset;
     }
 
 public:
@@ -439,9 +555,21 @@ public:
         diff_rgb=rf.check("diff_rgb", Value(25)).asInt();
         diff_ycbcr=rf.check("diff_ycbcr", Value(2)).asInt();
 
-        x_lim=rf.check("x_lim", Value(0.18)).asDouble();
-        y_lim=rf.check("y_lim", Value(0.18)).asDouble();
-        z_lim=rf.check("z_lim", Value(0.18)).asDouble();
+        x_lim_up=rf.check("x_lim_up", Value(0.07)).asDouble();
+        x_lim_down=rf.check("x_lim_down", Value(-0.07)).asDouble();
+        y_lim_up=rf.check("y_lim_up", Value(0.2)).asDouble();
+        y_lim_down=rf.check("y_lim_down", Value(-0.03)).asDouble();
+
+        if (left_or_right == "right")
+        {
+            z_lim_up=rf.check("z_lim_up", Value(0.15)).asDouble();
+            z_lim_down=rf.check("z_lim_down", Value(-0.03)).asDouble();
+        }
+        else
+        {
+            z_lim_up=rf.check("z_lim_up", Value(0.03)).asDouble();
+            z_lim_down=rf.check("z_lim_down", Value(-0.15)).asDouble();
+        }
 
         radius_volume_offset=rf.check("radius_volume_offset", Value(0.03)).asDouble();
         a_offset=rf.check("a_offset", Value(0.03)).asDouble();
@@ -629,7 +757,7 @@ public:
             if (hand_filter)
             {
                 colors[1]=255;
-                handFilter(pointsIn, x_lim, y_lim, z_lim);
+                handFilter(pointsIn);
                 info="_HF";
                 saveNewCloud(colors, pointsIn, info);
             }
@@ -1219,7 +1347,7 @@ public:
     }
 
     /*******************************************************************************/
-    void handFilter(vector<Vector> &points, double &x_lim , double &y_lim, double &z_lim)
+    void handFilter(vector<Vector> &points)
     {
         vector<Vector> pointsTmp=points;
         pointsIn.clear();
@@ -1228,7 +1356,7 @@ public:
         {
             Vector point=pointsTmp[i];
 
-            if ((abs(point[0])<= x_lim) && (abs(point[1])<= y_lim) && (abs(point[2])<= z_lim) )
+            if ((point[0]<= x_lim_up) && (point[0]>= x_lim_down) && (point[1]<= y_lim_up) && (point[1]>= y_lim_down) && (point[2]<= z_lim_up) && (point[2]>= z_lim_down))
                 pointsIn.push_back(point);
         }
     }

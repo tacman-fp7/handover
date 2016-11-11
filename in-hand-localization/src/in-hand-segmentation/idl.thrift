@@ -25,34 +25,52 @@ service inHandSegmentation_IDL
 {
     /**
     * Clear collected points
-    * @return true/false on success/failure.
+    * @return true/false on success/failure
     */
     bool clear_points();
 
     /**
     * save or not
     * @param entry is yes or no
-    * @return true/false on success/failure.
+    * @return true/false on success/failure
     */
     bool set_saving(1: string entry);
 
     /**
+    * say if saving is set true or false
+    * @return yes or no
+    */
+    string get_saving();
+
+    /**
     * Select the saving format
     * @param entry is ply or off
-    * @return true/false on success/failure.
+    * @return true/false on success/failure
     */
     bool set_format(1: string entry);
 
     /**
+    * say the saving format
+    * @return the saving format
+    */
+    string get_format();
+
+    /**
     * set filename for saving
     * @param entry is the name of file
-    * @return true/false on success/failure.
+    * @return true/false on success/failure
     */
     bool set_filename(1: string entry);
 
     /**
+    * get filename for saving
+    * @return saving filename
+    */
+    string get_filename();
+
+    /**
     * acquire or not point cloud
-    * @return true/false on success/failure.
+    * @return true/false on success/failure
     */
     bool go_acquire();
 
@@ -107,35 +125,42 @@ service inHandSegmentation_IDL
 
     /**
     * Set hand filter on or off
-    * @param entry is yes or no
+    * @param entry is on or off
     * @return return true/false on success/failure
 `   */
     bool set_hand_filter(1: string entry);
 
     /**
-    * Set hand filter on or off
-    * @param entry is yes or no
+    * Set gray filter on or off
+    * @param entry is on or off
     * @return return true/false on success/failure
 `   */
     bool set_gray_filter(1: string entry);
 
     /**
-    * Set hand filter on or off
-    * @param entry is yes or no
+    * Set spatial filter on or off
+    * @param entry is on or off
     * @return return true/false on success/failure
 `   */
     bool set_spatial_filter(1: string entry);
 
     /**
-    * Set hand filter on or off
+    * Set volume filter on or off
     * @param entry is yes or no
     * @return return true/false on success/failure
 `   */
     bool set_volume_filter(1: string entry);
 
     /**
+    * Set ellips filter on or off
+    * @param entry is on or off
+    * @return return true/false on success/failure
+`   */
+    bool set_ellips_filter(1: string entry);
+
+    /**
     * Set all filters on or off
-    * @param entry is yes or no
+    * @param entry is on or off
     * @return return true/false on success/failure
 `   */
     bool set_all_filters(1: string entry);
@@ -146,6 +171,34 @@ service inHandSegmentation_IDL
 `   */
     bool go_filter();
 
+    /**
+    * Set hand filter parameter
+    * @param entry is the name of the parameter
+    * @param value is the value of the parameter
+    * @return return true/false on success/failure
+`   */
+    bool set_parameter_hand_filter(1: string entry, 2: double value);
 
+    /**
+    * Get hand filter parameter
+    * @param entry is the name of the parameter
+    * @return return the value of the parameter
+`   */
+    double get_parameter_hand_filter(1: string entry);
+
+    /**
+    * Set ellips filter parameter
+    * @param entry is the name of the parameter
+    * @param value is the value of the parameter
+    * @return return true/false on success/failure
+`   */
+    bool set_parameter_ellips_filter(1: string entry, 2: double value);
+
+    /**
+    * Get elli[s filter parameter
+    * @param entry is the name of the parameter
+    * @return return the value of the parameter
+`   */
+    double get_parameter_ellips_filter(1: string entry);
 
 }
