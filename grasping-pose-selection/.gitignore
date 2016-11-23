@@ -1,0 +1,10 @@
+# Executables
+*.exe
+*.out
+*.app
+
+#Build folder
+/build*/
+
+# Linux temp files
+*~

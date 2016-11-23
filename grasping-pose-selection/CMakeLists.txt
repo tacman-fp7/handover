@@ -7,7 +7,7 @@ find_package(ICUBcontrib REQUIRED)
 list(APPEND CMAKE_MODULE_PATH ${YARP_MODULE_PATH})
 list(APPEND CMAKE_MODULE_PATH ${ICUBCONTRIB_MODULE_PATH})
 list(APPEND CMAKE_MODULE_PATH ${ICUB_MODULE_PATH})
-include(YarpIDL)
+#include(YarpIDL)
 
 add_definitions(${YARP_DEFINES})   
 
@@ -16,13 +16,13 @@ include(ICUBcontribHelpers)
 include(ICUBcontribOptions)
 icubcontrib_set_default_prefix()
 
-set(sources main.cpp)
-yarp_add_idl(IDL_GEN_FILES idl.thrift)
-source_group("IDL Files" FILES idl.thrift)
+set(sources src/main.cpp)
+#yarp_add_idl(IDL_GEN_FILES idl.thrift)
+#source_group("IDL Files" FILES idl.thrift)
 source_group("Source Files" FILES ${sources})
 
 include_directories(${YARP_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${ICUB_INCLUDE_DIRS})
-add_executable(${PROJECT_NAME} ${sources} idl.thrift ${IDL_GEN_FILES})
+add_executable(${PROJECT_NAME} ${sources}) # idl.thrift ${IDL_GEN_FILES})
 target_link_libraries(${PROJECT_NAME} ${YARP_LIBRARIES} ${OpenCV_LIBRARIES} ${ICUB_LIBRARIES} iKin ctrlLib perceptiveModels)
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
