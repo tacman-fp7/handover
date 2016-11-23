@@ -757,8 +757,8 @@ public:
             if (coarse_filter)
             {
                 colors[1]=255;
-                handFilter(pointsIn);
-                info="_HF";
+                coarseFilter(pointsIn);
+                info="_CF";
                 saveNewCloud(colors, pointsIn, info);
             }
 
@@ -766,16 +766,16 @@ public:
             {
                 colors[2]=255;
                 colors[1]=0;
-                grayColorFilter(radius_color,nnThreshold_color,diff_rgb, pointsIn);
-                info+="_GF_rgb";
+                handFilter(radius_color,nnThreshold_color,diff_rgb, pointsIn);
+                info+="_HF_rgb";
                 saveNewCloud(colors, pointsOut, info);
             }
             else if (hand_filter && color_space == "ycbcr" && pointsIn.size()>0)
             {
                 colors[2]=255;
                 colors[1]=0;
-                grayColorFilter(radius_color,nnThreshold_color,diff_ycbcr, pointsIn);
-                info+="_GF_ycbcr";
+                handFilter(radius_color,nnThreshold_color,diff_ycbcr, pointsIn);
+                info+="_HF_ycbcr";
                 saveNewCloud(colors, pointsOut, info);
             }
 
@@ -787,7 +787,7 @@ public:
                     spatialDensityFilter(radius,nnThreshold+1, pointsOut);
                 else
                     spatialDensityFilter(radius,nnThreshold+1, pointsIn);
-                info+="_SF";
+                info+="_DF";
                 saveNewCloud(colors, pointsOut, info);
             }
 
@@ -795,10 +795,10 @@ public:
             {
                 colors[1]=255;
                 if ((density_filter==true || hand_filter==true)==true)
-                    volumeFilter(pointsOut);
+                    cylinderFilter(pointsOut);
                 else
-                    volumeFilter(pointsIn);
-                info+="_VF";
+                    cylinderFilter(pointsIn);
+                info+="_CyF";
 
                 saveNewCloud(colors, pointsOut,info);
             }
@@ -806,15 +806,15 @@ public:
             {
                 colors[1]=255;
                 if ((density_filter==true || hand_filter==true)==true)
-                    ellipsFilter(pointsOut);
+                    ellipseFilter(pointsOut);
                 else
-                    ellipsFilter(pointsIn);
+                    ellipseFilter(pointsIn);
                 info+="_EF";
 
                 saveNewCloud(colors, pointsOut,info);
             }
 
-            if (info == "_HF_GF_rgb_SF_VF" ||info == "_HF_GF_ycbcr_SF_VF"||info == "_HF_GF_rgb_SF_EF"|| info == "_HF_GF_ycbcr_SF_EF")
+            if (info == "_CF_FF_rgb_DF_CyF" ||info == "_CF_GF_ycbcr_DF_CyF"||info == "_CF_HF_rgb_DF_CyF"|| info == "_CF_HF_ycbcr_DF_CyF")
             {
                 info="_all_filters";
                 saveNewCloud(colors, pointsOut,info);
@@ -1268,7 +1268,7 @@ public:
     }
 
     /*******************************************************************************/
-    vector<int>  grayColorFilter(const double radius, const int maxResults, const int diff_colors, vector<Vector> &pointsIn)
+    vector<int> handFilter(const double radius, const int maxResults, const int diff_colors, vector<Vector> &pointsIn)
     {
         numVertices=pointsIn.size();
         pointsOut.clear();
@@ -1347,7 +1347,7 @@ public:
     }
 
     /*******************************************************************************/
-    void handFilter(vector<Vector> &points)
+    void coarseFilter(vector<Vector> &points)
     {
         vector<Vector> pointsTmp=points;
         pointsIn.clear();
@@ -1420,7 +1420,7 @@ public:
     }
 
     /*******************************************************************************/
-    void volumeFilter(vector<Vector> &points)
+    void cylinderFilter(vector<Vector> &points)
     {
         vector<Vector> pointsTmp=points;
         pointsOut.clear();
@@ -1456,7 +1456,7 @@ public:
     }
 
     /*******************************************************************************/
-    void ellipsFilter(vector<Vector> &points)
+    void ellipseFilter(vector<Vector> &points)
     {
         vector<Vector> pointsTmp=points;
         pointsOut.clear();
