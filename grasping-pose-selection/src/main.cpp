@@ -32,27 +32,40 @@ using namespace yarp::math;
 
 class poseSelection : public RFModule
 {
+    Matrix H_object;
     vector<Vector> positions;
+    vector<Vector> positions_rotated;
     vector<Vector> orientations;
+    vector<Vector> x_axis, y_axis, z_axis;
+    vector<Vector> x_axis_rotated, y_axis_rotated, z_axis_rotated;
 
     string orientationFileName;
+    string objectPoseFileName;
     string positionFileName;
     string homeContextPath;
+    string module_name;
     string frame;
 
     bool change_frame;
+    bool online;
+
+    RpcClient portPoseIn;
 
     /*********************************************************/
     bool configure(ResourceFinder &rf)
     {
+        module_name=rf.check("module_name", Value("pose-selection"), "Getting module name").asString();
         positionFileName=rf.check("positionFileName", Value("positions.off"), "Default positions file name").asString();
         orientationFileName=rf.check("orientationFileName", Value("orientations-left.txt"), "Default orientations file name").asString();
+        objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default orientations file name").asString();
+        online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         homeContextPath=rf.getHomeContextPath().c_str();
 
         readPoses(positionFileName, orientationFileName);
-
-        //if (frame == "hand")
-        //    changeEstimatedPoseFrame();
+        if (online)
+            portPoseIn.open("/"+module_name+"ps:rpc");
+        else
+            H_object=readObjectPose();
 
         return true;
     }
@@ -60,6 +73,7 @@ class poseSelection : public RFModule
     /*********************************************************/
     bool updateModule()
     {
+        changeFrame();
         cout<<"positions"<<endl;
         for (int i=0; i<positions.size(); i++)
             cout<<positions[i].toString()<<endl;
@@ -68,8 +82,11 @@ class poseSelection : public RFModule
         for (int i=0; i<orientations.size(); i++)
             cout<<orientations[i].toString()<<endl;
 
-        //if (online)
-        //    showPoses();
+        if (online)
+        {
+            askForObjectPose();
+            //showPoses();
+        }
 
         return false;
     }
@@ -77,6 +94,15 @@ class poseSelection : public RFModule
     /*********************************************************/
     bool close()
     {
+        portPoseIn.close();
+        return true;
+    }
+
+    /*********************************************************/
+    bool interrupt()
+    {
+        portPoseIn.interrupt();
+        return true;
         return true;
     }
 
@@ -173,6 +199,89 @@ class poseSelection : public RFModule
         }
         return false;
     }
+
+    /*******************************************************************************/
+    bool changeFrame()
+    {
+        Vector tmp(4,1.0);
+        for (size_t i=0; i<positions.size(); i++)
+        {
+            positions_rotated.push_back(tmp.setSubvector(0,positions[i]));
+        }
+
+        // compute axis of frame and rotate them
+
+        return true;
+    }
+
+    /*******************************************************************************/
+    Matrix readObjectPose()
+    {
+        Matrix H;
+        int state=0;
+        char line[255];
+
+        cout<< "In pose file "<<homeContextPath+"/"+objectPoseFileName<<endl;
+
+        ifstream poseFile((homeContextPath+"/"+objectPoseFileName).c_str());
+        if (!poseFile.is_open())
+        {
+            yError()<<"problem opening pose file!";
+        }
+
+        while (!poseFile.eof())
+        {
+            poseFile.getline(line,sizeof(line),'\n');
+            Bottle b(line);
+            Value firstItem=b.get(0);
+            bool isNumber=firstItem.isInt() || firstItem.isDouble();
+
+            if (state==0)
+            {
+                string tmp=firstItem.asString().c_str();
+                std::transform(tmp.begin(),tmp.end(),tmp.begin(),::toupper);
+                if (tmp=="position" || tmp=="orientation")
+                    state++;
+            }
+            else if (state==1)
+            {
+                if (isNumber && (b.size()==3))
+                {
+                    pos[0]=b.get(0).asDouble();
+                    pos[1]=b.get(1).asDouble();
+                    pos[2]=b.get(2).asDouble();
+                }
+            }
+            else if (state==2)
+            {
+                else if (isNumber && (b.size()==3))
+                {
+                    euler_angles[0]=b.get(0).asDouble();
+                    euler_angles[1]=b.get(1).asDouble();
+                    euler_angles[2]=b.get(2).asDouble();
+                }
+            }
+        }
+
+        H.resize(4,0.0);
+
+        H=euler2dcm(euler_angles);
+        Vector x_aux(4,1.0);
+        x_aux.setSubvector(0,position);
+        H.setCol(3,x_aux);
+        H=SE3inv(H);
+
+        return H;
+    }
+
+    /*******************************************************************************/
+    bool askForObjectPose()
+    {
+
+        return true;
+    }
+
+
 };
 
 int main(int argc,char *argv[])
