@@ -128,35 +128,35 @@ service inHandSegmentation_IDL
     * @param entry is on or off
     * @return return true/false on success/failure
 `   */
-    bool set_hand_filter(1: string entry);
+    bool set_coarse_filter(1: string entry);
 
     /**
     * Set gray filter on or off
     * @param entry is on or off
     * @return return true/false on success/failure
 `   */
-    bool set_gray_filter(1: string entry);
+    bool set_hand_filter(1: string entry);
 
     /**
     * Set spatial filter on or off
     * @param entry is on or off
     * @return return true/false on success/failure
 `   */
-    bool set_spatial_filter(1: string entry);
+    bool set_density_filter(1: string entry);
 
     /**
     * Set volume filter on or off
     * @param entry is yes or no
     * @return return true/false on success/failure
 `   */
-    bool set_volume_filter(1: string entry);
+    bool set_cylinder_filter(1: string entry);
 
     /**
     * Set ellips filter on or off
     * @param entry is on or off
     * @return return true/false on success/failure
 `   */
-    bool set_ellips_filter(1: string entry);
+    bool set_ellipse_filter(1: string entry);
 
     /**
     * Set all filters on or off
@@ -177,14 +177,14 @@ service inHandSegmentation_IDL
     * @param value is the value of the parameter
     * @return return true/false on success/failure
 `   */
-    bool set_parameter_hand_filter(1: string entry, 2: double value);
+    bool set_parameter_coarse_filter(1: string entry, 2: double value);
 
     /**
     * Get hand filter parameter
     * @param entry is the name of the parameter
     * @return return the value of the parameter
 `   */
-    double get_parameter_hand_filter(1: string entry);
+    double get_parameter_coarse_filter(1: string entry);
 
     /**
     * Set ellips filter parameter
@@ -192,13 +192,13 @@ service inHandSegmentation_IDL
     * @param value is the value of the parameter
     * @return return true/false on success/failure
 `   */
-    bool set_parameter_ellips_filter(1: string entry, 2: double value);
+    bool set_parameter_ellipse_filter(1: string entry, 2: double value);
 
     /**
     * Get elli[s filter parameter
     * @param entry is the name of the parameter
     * @return return the value of the parameter
 `   */
-    double get_parameter_ellips_filter(1: string entry);
+    double get_parameter_ellipse_filter(1: string entry);
 
 }

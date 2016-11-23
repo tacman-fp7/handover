@@ -82,11 +82,11 @@ protected:
     bool tactile_on;
     bool filter;
     bool change_frame;
+    bool coarse_filter;
     bool hand_filter;
-    bool gray_filter;
-    bool spatial_filter;
-    bool volume_filter;
-    bool ellips_filter;
+    bool density_filter;
+    bool cylinder_filter;
+    bool ellipse_filter;
 
     PolyDriver robotDevice;
     PolyDriver robotDevice2;
@@ -312,19 +312,31 @@ protected:
     {
         string filters;
 
-        if (hand_filter)
+        if (coarse_filter)
             filters="HF";
-        if (gray_filter)
+        if (hand_filter)
             filters+=" GF";
-        if (spatial_filter)
+        if (density_filter)
             filters+=" SF";
-        if (volume_filter)
+        if (cylinder_filter)
             filters+=" VF";
-        if (ellips_filter)
+        if (ellipse_filter)
             filters+=" EF";
 
 
         return filters;
+    }
+
+    /***********************************************************************/
+    bool set_coarse_filter(const string &entry)
+    {
+        if (entry=="on" || entry=="off")
+        {
+            coarse_filter=(entry=="on");
+            return true;
+        }
+        else
+            return false;
     }
 
     /***********************************************************************/
@@ -340,11 +352,11 @@ protected:
     }
 
     /***********************************************************************/
-    bool set_gray_filter(const string &entry)
+    bool set_density_filter(const string &entry)
     {
         if (entry=="on" || entry=="off")
         {
-            gray_filter=(entry=="on");
+            density_filter=(entry=="on");
             return true;
         }
         else
@@ -352,11 +364,11 @@ protected:
     }
 
     /***********************************************************************/
-    bool set_spatial_filter(const string &entry)
+    bool set_cylinder_filter(const string &entry)
     {
         if (entry=="on" || entry=="off")
         {
-            spatial_filter=(entry=="on");
+            cylinder_filter=(entry=="on");
             return true;
         }
         else
@@ -364,23 +376,11 @@ protected:
     }
 
     /***********************************************************************/
-    bool set_volume_filter(const string &entry)
+    bool set_ellipse_filter(const string &entry)
     {
         if (entry=="on" || entry=="off")
         {
-            volume_filter=(entry=="on");
-            return true;
-        }
-        else
-            return false;
-    }
-
-    /***********************************************************************/
-    bool set_ellips_filter(const string &entry)
-    {
-        if (entry=="on" || entry=="off")
-        {
-            ellips_filter=(entry=="on");
+            ellipse_filter=(entry=="on");
             return true;
         }
         else
@@ -392,10 +392,10 @@ protected:
     {
         if (entry=="on")
         {
+            coarse_filter=true;
             hand_filter=true;
-            gray_filter=true;
-            spatial_filter=true;
-            ellips_filter=true;
+            density_filter=true;
+            ellipse_filter=true;
             return true;
         }
         else
@@ -409,7 +409,7 @@ protected:
 
         vector<Vector> pointsTobeSent;
 
-        if ((spatial_filter==true || gray_filter==true || volume_filter==true)==true && pointsOut.size()>0)
+        if ((density_filter==true || hand_filter==true || cylinder_filter==true)==true && pointsOut.size()>0)
             pointsTobeSent=pointsOut;
         else
             pointsTobeSent=pointsIn;
@@ -437,7 +437,7 @@ protected:
     }
 
     /***********************************************************************/
-    bool set_parameter_hand_filter(const string &entry, const double value)
+    bool set_parameter_coarse_filter(const string &entry, const double value)
     {
         if (entry=="x_lim_up")
         {
@@ -474,7 +474,7 @@ protected:
     }
 
     /***********************************************************************/
-    double get_parameter_hand_filter(const string &entry)
+    double get_parameter_coarse_filter(const string &entry)
     {
         if (entry=="x_lim_up")
             return x_lim_up;
@@ -491,7 +491,7 @@ protected:
     }
 
     /***********************************************************************/
-    bool set_parameter_ellips_filter(const string &entry, const double value)
+    bool set_parameter_ellipse_filter(const string &entry, const double value)
     {
         if (entry=="a_offset")
         {
@@ -508,7 +508,7 @@ protected:
     }
 
     /***********************************************************************/
-    double get_parameter_ellips_filter(const string &entry)
+    double get_parameter_ellipse_filter(const string &entry)
     {
         if (entry=="a_offset")
             return a_offset;
@@ -535,17 +535,17 @@ public:
         tactile_on=(rf.check("tactile_on", Value("yes"), "use or not finger positions").asString()== "yes");
         frame=rf.check("frame", Value("hand"), "in which frame save finger positions").asString();
 
-        spatial_filter=(rf.check("spatial_filter", Value("no")).asString()=="yes");
-        gray_filter=(rf.check("gray_filter", Value("yes")).asString()=="yes");
+        density_filter=(rf.check("density_filter", Value("no")).asString()=="yes");
+        hand_filter=(rf.check("hand_filter", Value("yes")).asString()=="yes");
         change_frame=(rf.check("change_frame", Value("yes")).asString()=="yes");
-        hand_filter=(rf.check("hand_filter", Value("no")).asString()=="yes");
-        volume_filter=(rf.check("volume_filter", Value("no")).asString()=="yes");
-        ellips_filter=(rf.check("ellips_filter", Value("no")).asString()=="yes");
+        coarse_filter=(rf.check("coarse_filter", Value("no")).asString()=="yes");
+        cylinder_filter=(rf.check("cylinder_filter", Value("no")).asString()=="yes");
+        ellipse_filter=(rf.check("ellipse_filter", Value("no")).asString()=="yes");
         color_space=rf.check("color_code", Value("rgb")).asString();
 
         if (tactile_on==false)
         {
-            volume_filter=ellips_filter=false;
+            cylinder_filter=ellipse_filter=false;
         }
 
         radius=rf.check("radius", Value(0.0002)).asDouble();
@@ -754,7 +754,7 @@ public:
 
         if (filter && pointsIn.size()>0)
         {            
-            if (hand_filter)
+            if (coarse_filter)
             {
                 colors[1]=255;
                 handFilter(pointsIn);
@@ -762,7 +762,7 @@ public:
                 saveNewCloud(colors, pointsIn, info);
             }
 
-            if (gray_filter && color_space == "rgb" && pointsIn.size()>0)
+            if (hand_filter && color_space == "rgb" && pointsIn.size()>0)
             {
                 colors[2]=255;
                 colors[1]=0;
@@ -770,7 +770,7 @@ public:
                 info+="_GF_rgb";
                 saveNewCloud(colors, pointsOut, info);
             }
-            else if (gray_filter && color_space == "ycbcr" && pointsIn.size()>0)
+            else if (hand_filter && color_space == "ycbcr" && pointsIn.size()>0)
             {
                 colors[2]=255;
                 colors[1]=0;
@@ -779,11 +779,11 @@ public:
                 saveNewCloud(colors, pointsOut, info);
             }
 
-            if (spatial_filter && pointsIn.size()>0)
+            if (density_filter && pointsIn.size()>0)
             {
                 colors[0]=255;
                 colors[2]=0;
-                if (gray_filter)
+                if (hand_filter)
                     spatialDensityFilter(radius,nnThreshold+1, pointsOut);
                 else
                     spatialDensityFilter(radius,nnThreshold+1, pointsIn);
@@ -791,10 +791,10 @@ public:
                 saveNewCloud(colors, pointsOut, info);
             }
 
-            if (volume_filter && pointsIn.size()>0 )
+            if (cylinder_filter && pointsIn.size()>0 )
             {
                 colors[1]=255;
-                if ((spatial_filter==true || gray_filter==true)==true)
+                if ((density_filter==true || hand_filter==true)==true)
                     volumeFilter(pointsOut);
                 else
                     volumeFilter(pointsIn);
@@ -802,10 +802,10 @@ public:
 
                 saveNewCloud(colors, pointsOut,info);
             }
-            else if (ellips_filter && pointsIn.size()>0 )
+            else if (ellipse_filter && pointsIn.size()>0 )
             {
                 colors[1]=255;
-                if ((spatial_filter==true || gray_filter==true)==true)
+                if ((density_filter==true || hand_filter==true)==true)
                     ellipsFilter(pointsOut);
                 else
                     ellipsFilter(pointsIn);
