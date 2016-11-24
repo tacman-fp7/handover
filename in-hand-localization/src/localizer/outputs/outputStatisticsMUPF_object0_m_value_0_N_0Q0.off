@@ -1,12 +1,12 @@
-trial 0: 0.0158798
-trial 1: 0.0162413
-trial 2: 0.00542657
-trial 3: 0.00759661
-trial 4: 0.00463439
+trial 0: 0.0159217
+trial 1: 0.0051226
+trial 2: 0.0161581
+trial 3: 0.00984469
+trial 4: 0.0107781
 
-Average (over trials): 0.00995572
+Average (over trials): 0.011565
 
-Standard deviation (over trials) 0.00567886
+Standard deviation (over trials) 0.00461411
 
-Average Execution Time (over trials): 25.0045
+Average Execution Time (over trials): 32.0321
 

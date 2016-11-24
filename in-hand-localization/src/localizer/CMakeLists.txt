@@ -23,8 +23,8 @@ icubcontrib_set_default_prefix()
 
 set(headers headers/geometryCGAL.h headers/unscentedParticleFilter.h headers/scalingSeries.h headers/localizer.h )
 set(sources src/unscentedParticleFilter.cpp src/main.cpp src/localizer.cpp src/scalingSeries.cpp) 
-yarp_add_idl(IDL_GEN_FILES idl.thrift)
-source_group("IDL Files" FILES idl.thrift)
+yarp_add_idl(IDL_GEN_FILES src/idl.thrift)
+source_group("IDL Files" FILES src/idl.thrift)
 source_group("Source Files" FILES ${sources})
 source_group("Header Files" FILES ${headers})
 
@@ -32,7 +32,7 @@ include(${CGAL_USE_FILE})
 include(CGAL_CreateSingleSourceCGALProgram)
 include_directories(${YARP_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
-add_executable(${PROJECT_NAME} ${headers} ${sources} idl.thrift ${IDL_GEN_FILES})
+add_executable(${PROJECT_NAME} ${headers} ${sources} src/idl.thrift ${IDL_GEN_FILES})
 target_link_libraries(${PROJECT_NAME} ${YARP_LIBRARIES} ${OpenCV_LIBRARIES})
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 

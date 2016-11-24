@@ -41,7 +41,8 @@ using namespace yarp::math;
 class poseSelection : public RFModule
 {
     Matrix H_object;
-    Vector pos, euler_angles;
+    Matrix H_hand;
+    Vector pos, euler_angles, axis;
     vector<Vector> positions;
     vector<Vector> positions_rotated;
     vector<Vector> orientations;
@@ -50,6 +51,7 @@ class poseSelection : public RFModule
 
     string orientationFileName;
     string objectPoseFileName;
+    string handPoseFileName;
     string positionFileName;
     string homeContextPath;
     string module_name;
@@ -57,6 +59,7 @@ class poseSelection : public RFModule
 
     bool change_frame;
     bool online;
+    bool euler;
 
     double length;
     int camera;
@@ -65,6 +68,7 @@ class poseSelection : public RFModule
     PolyDriver clientGazeCtrl;
 
     RpcClient portPoseIn;
+    RpcClient portHandIn;
 
     BufferedPort<ImageOf<PixelRgb> > portImgIn;
     BufferedPort<ImageOf<PixelRgb> > portImgOut;
@@ -77,21 +81,32 @@ class poseSelection : public RFModule
         positionFileName=rf.check("positionFileName", Value("positions.off"), "Default positions file name").asString();
         orientationFileName=rf.check("orientationFileName", Value("orientations-right.txt"), "Default orientations file name").asString();
         objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default orientations file name").asString();
+        handPoseFileName=rf.check("handPoseFileName", Value("hand-pose.txt"), "Hand pose").asString();
         online=(rf.check("online", Value("no"), "online or offline processing").asString()== "yes");
 
         H_object.resize(4,4);
+        H_hand.resize(4,4);
         pos.resize(3,0.0);
         euler_angles.resize(3,0.0);
+        axis.resize(4,0.0);
 
         readPoses(positionFileName, orientationFileName);
 
         if (online)
-            portPoseIn.open("/"+module_name+"ps:rpc");
+        {
+            portPoseIn.open("/"+module_name+"/ps:rpc");
+            portHandIn.open("/"+module_name+"/hn:rpc");
+            // temporaneo
+            H_hand=readPoseObjectAndHand(handPoseFileName);
+        }
         else
-            H_object=readObjectPose();
+        {
+            //H_object=readPoseObjectAndHand(objectPoseFileName);
+            H_hand=readPoseObjectAndHand(handPoseFileName);
+        }
 
         length=0.06;
-        camera=0;
+        camera=1;
 
         portImgIn.open("/" + module_name + "/img:i");
         portImgOut.open("/" + module_name + "/img:o");
@@ -114,17 +129,18 @@ class poseSelection : public RFModule
     /*********************************************************/
     bool updateModule()
     {
-        cout<<"positions"<<endl;
+        /**cout<<"positions"<<endl;
         for (int i=0; i<positions.size(); i++)
             cout<<positions[i].toString()<<endl;
 
         cout<<"orientations"<<endl;
         for (int i=0; i<orientations.size(); i++)
-            cout<<orientations[i].toString()<<endl;
+            cout<<orientations[i].toString()<<endl;*/
 
         if (online)
         {
-            askForObjectPose();
+            H_object=askForObjectPose();
+            askForHandPose();
         }
 
         changeFrame();
@@ -133,24 +149,27 @@ class poseSelection : public RFModule
         for (int i=0; i<positions_rotated.size(); i++)
             cout<<positions_rotated[i].toString()<<endl;
 
-        cout<<"rotated orientations"<<endl;
+        /**cout<<"rotated orientations"<<endl;
         for (int i=0; i<orientations.size(); i++)
         {
             cout<<x_axis_rotated[i].toString()<<endl;
             cout<<y_axis_rotated[i].toString()<<endl;
             cout<<z_axis_rotated[i].toString()<<endl;
-        }
+        }*/
 
         showPoses();
 
-
-        return false;
+        if (online)
+            return true;
+        else
+            return false;
     }
 
     /*********************************************************/
     bool close()
     {
         portPoseIn.close();
+        portHandIn.close();
         portImgIn.close();
         portImgOut.close();
         return true;
@@ -160,6 +179,7 @@ class poseSelection : public RFModule
     bool interrupt()
     {
         portPoseIn.interrupt();
+        portHandIn.interrupt();
         portImgIn.close();
         portImgOut.close();
         return true;
@@ -264,15 +284,15 @@ class poseSelection : public RFModule
     {
         Vector tmp(4,1.0);
 
-        cout<<"H object "<<H_object.toString()<<endl;
+        //cout<<"H hand "<<H_hand.toString()<<endl;
+        //cout<<"H object "<<H_object.toString()<<endl;
+        //cout<<"H hadn + object "<<(H_hand*SE3inv(H_object)).toString()<<endl;
         for (size_t i=0; i<positions.size(); i++)
         {
             tmp.setSubvector(0,positions[i].subVector(0,2));
-            tmp=H_object*(tmp);
+            tmp=H_hand*H_object*(tmp);
             positions_rotated.push_back(tmp.subVector(0,2));
         }
-
-        // compute axis of frame and rotate them
 
         Vector x(3,0.0), y(3,0.0), z(3,0.0);
         Vector matrix(9,0.0);
@@ -288,15 +308,15 @@ class poseSelection : public RFModule
             z_axis.push_back(positions[i].subVector(0,2)+length*z);
 
             tmp.setSubvector(0,x_axis[i]);
-            tmp=H_object*tmp;
+            tmp=H_hand*H_object*tmp;
             x_axis_rotated.push_back(tmp.subVector(0,2));
 
             tmp.setSubvector(0,y_axis[i]);
-            tmp=H_object*tmp;
+            tmp=H_hand*H_object*tmp;
             y_axis_rotated.push_back(tmp.subVector(0,2));
 
             tmp.setSubvector(0,z_axis[i]);
-            tmp=H_object*tmp;
+            tmp=H_hand*H_object*tmp;
             z_axis_rotated.push_back(tmp.subVector(0,2));
         }
 
@@ -305,15 +325,15 @@ class poseSelection : public RFModule
     }
 
     /*******************************************************************************/
-    Matrix readObjectPose()
+    Matrix readPoseObjectAndHand(string &fileName)
     {
         Matrix H;
         int state=0;
         char line[255];
 
-        cout<< "In pose file "<<homeContextPath+"/"+objectPoseFileName<<endl;
+        cout<< "In pose file "<<homeContextPath+"/"+fileName<<endl;
 
-        ifstream poseFile((homeContextPath+"/"+objectPoseFileName).c_str());
+        ifstream poseFile((homeContextPath+"/"+fileName).c_str());
 
         if (!poseFile.is_open())
         {
@@ -352,6 +372,15 @@ class poseSelection : public RFModule
                     euler_angles[0]=b.get(0).asDouble();
                     euler_angles[1]=b.get(1).asDouble();
                     euler_angles[2]=b.get(2).asDouble();
+                    euler=true;
+                }
+                else if (isNumber && (b.size()==4))
+                {
+                    axis[0]=b.get(0).asDouble();
+                    axis[1]=b.get(0).asDouble();
+                    axis[2]=b.get(0).asDouble();
+                    axis[3]=b.get(0).asDouble();
+                    euler=false;
                 }
                 state=3;
             }
@@ -359,7 +388,10 @@ class poseSelection : public RFModule
         H.resize(4,4);
 
         cout<<"pos "<<pos.toString()<<endl;
-        H=euler2dcm(euler_angles);
+        if (euler)
+            H=euler2dcm(euler_angles);
+        else
+            H=axis2dcm(axis);
         Vector x_aux(4,1.0);
         x_aux.setSubvector(0,pos);
         H.setCol(3,x_aux);
@@ -369,28 +401,37 @@ class poseSelection : public RFModule
     }
 
     /*******************************************************************************/
-    bool askForObjectPose()
+    Matrix askForObjectPose()
     {
-        Bottle cmdSFM,replySFM;
-        cmdSFM.addString("position");
+        Matrix H;
+        Bottle cmd,reply;
+        cmd.addString("get_estimated_pose");
+        cout<<"cmd "<<cmd.toString()<<endl;
 
-        if (portPoseIn.write(cmdSFM, replySFM))
+        if (portPoseIn.write(cmd, reply))
         {
-            pos[0]=replySFM.get(0).asDouble();
-            pos[1]=replySFM.get(1).asDouble();
-            pos[2]=replySFM.get(2).asDouble();
+            //portPoseIn.write(cmd, reply);
+            Bottle *rec=reply.get(0).asList();
+            cout<<"replySFM"<<reply.toString()<<endl;
+            pos[0]=rec->get(0).asDouble();
+            pos[1]=rec->get(1).asDouble();
+            pos[2]=rec->get(2).asDouble();
+
+            euler_angles[0]=rec->get(3).asDouble();
+            euler_angles[1]=rec->get(4).asDouble();
+            euler_angles[2]=rec->get(5).asDouble();
         }
+        cout<<"pose"<<pos.toString()<<" "<<euler_angles.toString()<<endl;
 
-        cmdSFM.addString("orientation");
+        H.resize(4,4);
 
-        if (portPoseIn.write(cmdSFM, replySFM))
-        {
-            euler_angles[0]=replySFM.get(0).asDouble();
-            euler_angles[1]=replySFM.get(1).asDouble();
-            euler_angles[2]=replySFM.get(2).asDouble();
-        }
+        cout<<"pos "<<pos.toString()<<endl;
+        H=euler2dcm(euler_angles);
 
-        return true;
+        Vector x_aux(4,1.0);
+        x_aux.setSubvector(0,pos);
+        H.setCol(3,x_aux);
+        return H;
     }
 
     /*******************************************************************************/
@@ -431,6 +472,11 @@ class poseSelection : public RFModule
 
         portImgOut.write();
 
+        return true;
+    }
+    /*******************************************************************************/
+    bool askForHandPose()
+    {
         return true;
     }
 };

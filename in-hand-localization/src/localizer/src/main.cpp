@@ -14,7 +14,10 @@ using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 
-class localizingModule : public RFModule
+#include "../build/include/src/localizer_IDL.h"
+
+class localizingModule : public RFModule,
+                         public localizer_IDL
 {
     string module_name;
     string save_name;
@@ -24,13 +27,13 @@ class localizingModule : public RFModule
     string object_name;
     string fileInName;
     string algorithm;
+    bool pose_computed;
 
     vector<Vector> points;
 
     RpcServer portRpc;
 
     RpcClient portPointsRpc;
-    RpcServer portPoseRpc;
 
     bool online;
     bool saving;
@@ -48,15 +51,38 @@ class localizingModule : public RFModule
 
     Matrix solutions;
     Vector error_indices;
+    Vector result;
     deque<Vector> measurements;
 
     Matrix info_recognition;
+    Mutex mutex;
 
 public:
+    /************************************************************************/
+    bool attach(RpcServer &source)
+    {
+        return this->yarp().attachAsServer(source);
+    }
+
+    /*******************************************************************************/
+    Bottle get_estimated_pose()
+    {
+        LockGuard lg(mutex);
+
+        Bottle pose;
+        if (pose_computed)
+        {
+            pose.addDouble(result[0]);pose.addDouble(result[1]);pose.addDouble(result[2]);
+            pose.addDouble(result[3]);pose.addDouble(result[4]);pose.addDouble(result[5]);
+        }
+
+        return pose;
+    }
+
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
-        module_name=rf.check("module_name", Value("inHandLocalizer"), "Getting module name").asString();
+        module_name=rf.check("module_name", Value("in-hand-localizer"), "Getting module name").asString();
         object_name=rf.check("module_name", Value("object"), "Getting module name").asString();
         online=(rf.check("online", Value("no")).asString()=="yes");
         enabled_touch=(rf.check("enabled_touch", Value("no")).asString()=="yes");
@@ -76,6 +102,8 @@ public:
 
         info_recognition.resize(num_objs, num_trials);
 
+        pose_computed=false;
+
         if (online)
             localize=false;
         else
@@ -87,7 +115,6 @@ public:
         if (online)
         {
             portPointsRpc.open("/" + module_name + "/pnt:i");
-            portPoseRpc.open("/" + module_name + "/ps:o");
         }
 
         portRpc.open("/" + module_name + "/rpc");
@@ -104,7 +131,6 @@ public:
         if (online)
         {
             portPointsRpc.interrupt();
-            portPoseRpc.interrupt();
         }
 
         portRpc.close();
@@ -118,7 +144,6 @@ public:
         if (online)
         {
             portPointsRpc.close();
-            portPoseRpc.close();
         }
 
         portRpc.interrupt();
@@ -156,6 +181,7 @@ public:
                                 Localizer *loc5=new UnscentedParticleFilter();
                                 loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch);
                                 error_indices=loc5->localization();
+                                result=loc5->finalize();
                                 loc5->saveData(error_indices,i,k,l,m);
                                 solutions(i,0)=error_indices[6];
                                 solutions(i,1)=error_indices[7];
@@ -164,6 +190,7 @@ public:
                                 info_recognition(j,i)=error_indices[6];
 
                                 delete loc5;
+                                pose_computed=true;
                             }
 
                             Localizer *loc5=new UnscentedParticleFilter();

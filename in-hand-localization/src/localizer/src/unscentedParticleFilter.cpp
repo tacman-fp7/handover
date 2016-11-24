@@ -781,7 +781,6 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
 
     while (!fin.eof())
     {
-        cout<<"debug fing "<<endl;
         fin.getline(line,sizeof(line),'\n');
         Bottle b(line);
         Value firstItem=b.get(0);
@@ -789,7 +788,6 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
 
         if (state==0)
         {
-            cout<<"debug fing "<<endl;
             string tmp=firstItem.asString().c_str();
             std::transform(tmp.begin(),tmp.end(),tmp.begin(),::toupper);
             if (tmp=="OFF" || tmp=="COFF")
@@ -797,7 +795,6 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
             }
             else if (state==1)
             {
-            cout<<"debug fing "<<endl;
                 if (isNumber)
                 {
                     nPoints=firstItem.asInt();
@@ -806,10 +803,8 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
             }
             else if (state==2)
             {
-            cout<<"debug fing "<<endl;
                 if (isNumber && (b.size()>=3))
                 {
-                    cout<<"debug fing "<<endl;
                     fingers.push_back(Point(b.get(0).asDouble(),
                                                        b.get(1).asDouble(),
                                                        b.get(2).asDouble()));
