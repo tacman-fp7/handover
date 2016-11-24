@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 2.8)
 project(poseSelection)
 
 find_package(YARP REQUIRED)
+find_package(ICUB REQUIRED)
 find_package(ICUBcontrib REQUIRED)
+find_package(OpenCV REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${YARP_MODULE_PATH})
 list(APPEND CMAKE_MODULE_PATH ${ICUBCONTRIB_MODULE_PATH})
