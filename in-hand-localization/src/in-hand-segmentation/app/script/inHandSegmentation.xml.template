@@ -1,8 +1,8 @@
 <application>
-    <name>pointCloudExtractor</name>
+    <name>inHandSegmentation</name>
     
     <module>
-       <name>cloud-extractor</name>
+       <name>in-hand-segmentation</name>
        <node>icub21</node>
     </module>
     <module>
@@ -12,32 +12,32 @@
     </module>
 
     <connection>
-        <from>/cloud-extractor/SFM:rpc</from>
+        <from>/in-hand-segmentation/SFM:rpc</from>
         <to>/SFM/rpc</to>
         <protocol>tcp</protocol>
     </connection>
 
     <connection>
-        <from>/cloud-extractor/disp:o</from>
+        <from>/in-hand-segmentation/disp:o</from>
         <to>/dispCloud</to>
         <protocol>tcp</protocol>
     </connection>
 
     <connection>
         <from>/icub/camcalib/left/out</from>
-        <to>/cloud-extractor/img:i</to>
+        <to>/in-hand-segmentation/img:i</to>
         <protocol>tcp</protocol>
     </connection>
 
     <connection>
         <from>/SFM/disp:o</from>
-        <to>/cloud-extractor/disp:i</to>
+        <to>/in-hand-segmentation/disp:i</to>
         <protocol>tcp</protocol>
     </connection>
 
     <connection>
         <from>/dispBlobber/opt:o</from>
-        <to>/cloud-extractor/blob:i</to>
+        <to>/in-hand-segmentation/blob:i</to>
         <protocol>tcp</protocol>
     </connection>
 

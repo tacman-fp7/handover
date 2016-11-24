@@ -24,7 +24,7 @@ using namespace yarp::os;
 using namespace yarp::sig;
 using namespace yarp::math;
 
-#include "pointCloudExtractor.cpp"
+#include "inHandSegmentation.cpp"
 
 int main(int argc,char *argv[])
 {
@@ -35,9 +35,9 @@ int main(int argc,char *argv[])
         return 1;
     }
 
-    pointCloudExtraction mod;
+    inHandSegmentation mod;
     ResourceFinder rf;
-    rf.setDefaultContext("cloudExtractor");
+    rf.setDefaultContext("inHandSegmentation");
     rf.configure(argc,argv);
     return mod.runModule(rf);
 }
