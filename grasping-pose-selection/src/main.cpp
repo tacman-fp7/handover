@@ -98,6 +98,8 @@ class poseSelection : public RFModule
             portPoseIn.open("/"+module_name+"/ps:rpc");
             portHandIn.open("/"+module_name+"/hn:rpc");
             // temporaneo
+            Vector tmp(3,0.0);
+            H_object.setCol(3,tmp);
             H_hand=readPoseObjectAndHand(handPoseFileName);
         }
         else
@@ -145,7 +147,7 @@ class poseSelection : public RFModule
 
         changeFrame();
 
-        cout<<"rotated positions"<<endl;
+        /**cout<<"rotated positions"<<endl;
         for (int i=0; i<positions_rotated.size(); i++)
             cout<<positions_rotated[i].toString()<<endl;
 
@@ -283,10 +285,11 @@ class poseSelection : public RFModule
     bool changeFrame()
     {
         Vector tmp(4,1.0);
-
-        cout<<"H hand "<<H_hand.toString()<<endl;
+        Vector tmp2(3,0.0);
+        H_object.setCol(3,tmp2);
+        /**cout<<"H hand "<<H_hand.toString()<<endl;
         cout<<"H object "<<H_object.toString()<<endl;
-        cout<<"H hadn + object "<<(H_hand*H_object).toString()<<endl;
+        cout<<"H hadn + object "<<(H_hand*H_object).toString()<<endl;*/
         for (size_t i=0; i<positions.size(); i++)
         {
             tmp.setSubvector(0,positions[i].subVector(0,2));
@@ -387,7 +390,7 @@ class poseSelection : public RFModule
         }
         H.resize(4,4);
 
-        cout<<"pos "<<pos.toString()<<endl;
+        cout<<"pose "<<pos.toString()<<endl;
         if (euler)
             H=euler2dcm(euler_angles);
         else
@@ -406,13 +409,11 @@ class poseSelection : public RFModule
         Matrix H;
         Bottle cmd,reply;
         cmd.addString("get_estimated_pose");
-        cout<<"cmd "<<cmd.toString()<<endl;
 
         if (portPoseIn.write(cmd, reply))
         {
             //portPoseIn.write(cmd, reply);
             Bottle *rec=reply.get(0).asList();
-            cout<<"replySFM"<<reply.toString()<<endl;
             pos[0]=rec->get(0).asDouble();
             pos[1]=rec->get(1).asDouble();
             pos[2]=rec->get(2).asDouble();
@@ -421,11 +422,15 @@ class poseSelection : public RFModule
             euler_angles[1]=rec->get(4).asDouble();
             euler_angles[2]=rec->get(5).asDouble();
         }
+        else
+        {
+            pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2];
+        }
         cout<<"pose"<<pos.toString()<<" "<<euler_angles.toString()<<endl;
 
         H.resize(4,4);
 
-        cout<<"pos "<<pos.toString()<<endl;
+        //cout<<"pos "<<pos.toString()<<endl;
         H=euler2dcm(euler_angles);
 
         Vector x_aux(4,1.0);
@@ -468,8 +473,6 @@ class poseSelection : public RFModule
             igaze->get2DPixel(camera, z_axis_rotated[i],axis_2D);
             cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
             cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255));
-
-            cout<<"2d points "<<position_2D.toString()<<endl;
         }
 
         portImgOut.write();
