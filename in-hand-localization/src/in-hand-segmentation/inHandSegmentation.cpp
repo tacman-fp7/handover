@@ -313,13 +313,13 @@ protected:
         string filters;
 
         if (coarse_filter)
-            filters="HF";
+            filters="CF";
         if (hand_filter)
-            filters+=" GF";
+            filters+=" HF";
         if (density_filter)
-            filters+=" SF";
+            filters+=" DF";
         if (cylinder_filter)
-            filters+=" VF";
+            filters+=" CyF";
         if (ellipse_filter)
             filters+=" EF";
 
@@ -555,25 +555,25 @@ public:
         diff_rgb=rf.check("diff_rgb", Value(25)).asInt();
         diff_ycbcr=rf.check("diff_ycbcr", Value(2)).asInt();
 
-        x_lim_up=rf.check("x_lim_up", Value(0.07)).asDouble();
-        x_lim_down=rf.check("x_lim_down", Value(-0.07)).asDouble();
-        y_lim_up=rf.check("y_lim_up", Value(0.2)).asDouble();
-        y_lim_down=rf.check("y_lim_down", Value(-0.03)).asDouble();
+        x_lim_up=rf.check("x_lim_up", Value(0.15)).asDouble();
+        x_lim_down=rf.check("x_lim_down", Value(-0.1)).asDouble();
+        y_lim_up=rf.check("y_lim_up", Value(0.05)).asDouble();
+        y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
 
         if (left_or_right == "right")
         {
-            z_lim_up=rf.check("z_lim_up", Value(0.15)).asDouble();
-            z_lim_down=rf.check("z_lim_down", Value(-0.03)).asDouble();
+            z_lim_up=rf.check("z_lim_up", Value(0.25)).asDouble();
+            z_lim_down=rf.check("z_lim_down", Value(-0.08)).asDouble();
         }
         else
         {
-            z_lim_up=rf.check("z_lim_up", Value(0.03)).asDouble();
-            z_lim_down=rf.check("z_lim_down", Value(-0.15)).asDouble();
+            z_lim_up=rf.check("z_lim_up", Value(0.08)).asDouble();
+            z_lim_down=rf.check("z_lim_down", Value(-0.25)).asDouble();
         }
 
         radius_volume_offset=rf.check("radius_volume_offset", Value(0.03)).asDouble();
         a_offset=rf.check("a_offset", Value(0.03)).asDouble();
-        b_offset=rf.check("b_offset", Value(0.0)).asDouble();
+        b_offset=rf.check("b_offset", Value(0.015)).asDouble();
 
         cout<<"Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl;
 
@@ -1466,7 +1466,7 @@ public:
         for (size_t i=0;i<pointsTmp.size(); i++)
         {
             Vector point=pointsTmp[i];
-            if ((point[0]-center_ellips[0])*(point[0]-center_ellips[0])*b*b + (point[2]-center_ellips[1])*(point[2]-center_ellips[1])*a*a - (a+a_offset)*(a+a_offset)*(b+b_offset)*(b+b_offset)<0 )
+            if ((point[0]-center_ellips[0])*(point[0]-center_ellips[0])*(b+b_offset)*(b+b_offset) + (point[2]-center_ellips[1])*(point[2]-center_ellips[1])*(a+a_offset)*(a+a_offset) - (a+a_offset)*(a+a_offset)*(b+b_offset)*(b+b_offset)<0 )
                 pointsOut.push_back(point);
         }
     }
@@ -1591,7 +1591,7 @@ public:
                 fout<<endl;
                 for (size_t i=0; i<pointsToBeSaved.size(); i++)
                 {
-                    if (info!="_HF")
+                    if (info!="_CF")
                     {
                         fout<<pointsToBeSaved[i].subVector(0,2).toString(3,4).c_str()<<" "<<
                               colors[0]<<" "<<colors[1]<<" "<<colors[2]<<endl;
