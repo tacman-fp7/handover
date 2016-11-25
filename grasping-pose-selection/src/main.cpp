@@ -83,6 +83,7 @@ class poseSelection : public RFModule
         objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default orientations file name").asString();
         handPoseFileName=rf.check("handPoseFileName", Value("hand-pose.txt"), "Hand pose").asString();
         online=(rf.check("online", Value("no"), "online or offline processing").asString()== "yes");
+        camera=(rf.check("camera", Value(0), "online or offline processing").asInt());
 
         H_object.resize(4,4);
         H_hand.resize(4,4);
@@ -105,8 +106,7 @@ class poseSelection : public RFModule
             H_hand=readPoseObjectAndHand(handPoseFileName);
         }
 
-        length=0.06;
-        camera=1;
+        length=0.06;        
 
         portImgIn.open("/" + module_name + "/img:i");
         portImgOut.open("/" + module_name + "/img:o");
@@ -284,9 +284,9 @@ class poseSelection : public RFModule
     {
         Vector tmp(4,1.0);
 
-        //cout<<"H hand "<<H_hand.toString()<<endl;
-        //cout<<"H object "<<H_object.toString()<<endl;
-        //cout<<"H hadn + object "<<(H_hand*SE3inv(H_object)).toString()<<endl;
+        cout<<"H hand "<<H_hand.toString()<<endl;
+        cout<<"H object "<<H_object.toString()<<endl;
+        cout<<"H hadn + object "<<(H_hand*H_object).toString()<<endl;
         for (size_t i=0; i<positions.size(); i++)
         {
             tmp.setSubvector(0,positions[i].subVector(0,2));
@@ -468,6 +468,8 @@ class poseSelection : public RFModule
             igaze->get2DPixel(camera, z_axis_rotated[i],axis_2D);
             cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
             cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255));
+
+            cout<<"2d points "<<position_2D.toString()<<endl;
         }
 
         portImgOut.write();
