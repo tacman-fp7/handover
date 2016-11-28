@@ -246,19 +246,18 @@ public:
 
         if (portPointsRpc.write(cmd,reply))
         {
-            for (size_t i=0; i<reply.size(); i++)
+            Bottle *bpoint=reply.get(0).asList(); 
+            for (size_t i=0; i<bpoint->size(); i++)
             {
-                Bottle *blist=reply.get(i).asList();
+                Bottle *blist=bpoint->get(i).asList();
                 point[0]=blist->get(0).asDouble();
                 point[1]=blist->get(1).asDouble();
                 point[2]=blist->get(2).asDouble();
                 points.push_back(point);
+                cout<<point.toString()<<endl;
 
             }
         }
-
-
-
 
         return true;
     }

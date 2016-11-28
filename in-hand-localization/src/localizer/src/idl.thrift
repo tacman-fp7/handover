@@ -29,4 +29,10 @@ service localizer_IDL
     */
     Bottle get_estimated_pose();
 
+    /**
+    * Set localize variable true and start localization
+    * @return true
+    */
+    bool go_localize()
+
 }

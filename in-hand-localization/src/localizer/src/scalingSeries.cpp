@@ -15,7 +15,6 @@
 #include <yarp/math/Rand.h>
 #include <CGAL/IO/Polyhedron_iostream.h>
 #include <yarp/os/ResourceFinder.h>
-#include <iCub/ctrl/math.h>
 
 #include "../headers/scalingSeries.h"
 
@@ -25,7 +24,6 @@ using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 using namespace yarp::math;
-using namespace iCub::ctrl;
 
 
 /*******************************************************************************/

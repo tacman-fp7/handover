@@ -19,7 +19,6 @@
 #include <yarp/math/SVD.h>
 #include <yarp/os/ResourceFinder.h>
 
-#include <iCub/ctrl/math.h>
 #include <CGAL/IO/Polyhedron_iostream.h>
 
 #include "../headers/unscentedParticleFilter.h"
@@ -30,7 +29,7 @@ using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 using namespace yarp::math;
-using namespace iCub::ctrl;
+
 
 /*******************************************************************************/
 UnscentedParticleFilter::UnscentedParticleFilter() : GeometryCGAL()
@@ -904,6 +903,7 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         {
             Vector point=points[i];
             measurements.push_back(Point(point[0], point[1], point[2]));
+            get_measurements().push_back(Point(point[0], point[1], point[2]));
         }
 
     }    

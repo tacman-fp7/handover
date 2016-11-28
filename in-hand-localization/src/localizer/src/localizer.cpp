@@ -16,7 +16,6 @@
 #include <CGAL/IO/Polyhedron_iostream.h>
 #include <yarp/os/ResourceFinder.h>
 
-#include <iCub/ctrl/math.h>
 
 #include "../headers/localizer.h"
 
@@ -24,7 +23,7 @@ using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 using namespace yarp::math;
-using namespace iCub::ctrl;
+
 
 /***********************************************************************************/
 bool Localizer::readCenter(const string &tag, Vector &center0)

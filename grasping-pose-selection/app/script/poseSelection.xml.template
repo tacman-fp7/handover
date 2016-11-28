@@ -29,4 +29,12 @@
         <protocol>tcp</protocol>
     </connection>
 
+    <connection>
+        <from>/pose-selection/hn:rpc</from>
+        <to>/in-hand-segmentation/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+
+
 </application>

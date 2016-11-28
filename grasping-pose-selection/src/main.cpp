@@ -43,6 +43,7 @@ class poseSelection : public RFModule
     Matrix H_object;
     Matrix H_hand;
     Vector pos, euler_angles, axis;
+    Vector pos_hand, axis_hand;
     vector<Vector> positions;
     vector<Vector> positions_rotated;
     vector<Vector> orientations;
@@ -82,7 +83,7 @@ class poseSelection : public RFModule
         orientationFileName=rf.check("orientationFileName", Value("orientations-right.txt"), "Default orientations file name").asString();
         objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default orientations file name").asString();
         handPoseFileName=rf.check("handPoseFileName", Value("hand-pose.txt"), "Hand pose").asString();
-        online=(rf.check("online", Value("no"), "online or offline processing").asString()== "yes");
+        online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         camera=(rf.check("camera", Value(0), "online or offline processing").asInt());
 
         H_object.resize(4,4);
@@ -90,6 +91,8 @@ class poseSelection : public RFModule
         pos.resize(3,0.0);
         euler_angles.resize(3,0.0);
         axis.resize(4,0.0);
+        pos_hand.resize(3,0.0);
+        axis_hand.resize(4,0.0);
 
         readPoses(positionFileName, orientationFileName);
 
@@ -100,7 +103,7 @@ class poseSelection : public RFModule
             // temporaneo
             Vector tmp(3,0.0);
             H_object.setCol(3,tmp);
-            H_hand=readPoseObjectAndHand(handPoseFileName);
+            //H_hand=readPoseObjectAndHand(handPoseFileName);
         }
         else
         {
@@ -123,7 +126,7 @@ class poseSelection : public RFModule
         if (clientGazeCtrl.isValid())
         {
             clientGazeCtrl.view(igaze);
-        }
+}
 
         return true;
     }
@@ -142,7 +145,7 @@ class poseSelection : public RFModule
         if (online)
         {
             H_object=askForObjectPose();
-            askForHandPose();
+            H_hand=askForHandPose();
         }
 
         changeFrame();
@@ -426,7 +429,7 @@ class poseSelection : public RFModule
         {
             pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2];
         }
-        cout<<"pose"<<pos.toString()<<" "<<euler_angles.toString()<<endl;
+        cout<<"received pose"<<pos.toString()<<" "<<euler_angles.toString()<<endl;
 
         H.resize(4,4);
 
@@ -436,6 +439,8 @@ class poseSelection : public RFModule
         Vector x_aux(4,1.0);
         x_aux.setSubvector(0,pos);
         H.setCol(3,x_aux);
+
+        cout<<"H object "<<H.toString()<<endl;
         return H;
     }
 
@@ -480,9 +485,49 @@ class poseSelection : public RFModule
         return true;
     }
     /*******************************************************************************/
-    bool askForHandPose()
+    Matrix askForHandPose()
     {
-        return true;
+        Matrix H;
+        Bottle cmd,reply;
+        cmd.addString("get_pose");
+
+        if (portHandIn.write(cmd, reply))
+        {         
+            Bottle *bpos0=reply.get(0).asList();  
+            for (size_t i=0; i<bpos0->size();i++)
+            {               
+                Bottle *bpos=bpos0->get(i).asList(); 
+                cout<<"bpos "<<bpos->get(0).toString()<<endl;
+                if (bpos->get(0)=="position")
+                {
+                    pos_hand[0]=bpos->get(1).asDouble();
+                    pos_hand[1]=bpos->get(2).asDouble();
+                    pos_hand[2]=bpos->get(3).asDouble();
+                }
+                else if (bpos->get(0)=="orientation")
+                {
+                    axis_hand[0]=bpos->get(1).asDouble();
+                    axis_hand[1]=bpos->get(2).asDouble();
+                    axis_hand[2]=bpos->get(3).asDouble();
+                    axis_hand[3]=bpos->get(4).asDouble();
+                }    
+            }
+        }
+        else
+        {
+            pos_hand[0]=pos_hand[1]=pos_hand[2]=axis_hand[0]=axis_hand[1]=axis_hand[2]=axis_hand[3];
+        }
+        cout<<"hand pose"<<pos_hand.toString()<<" "<<axis_hand.toString()<<endl;
+
+        H.resize(4,4);
+
+        //cout<<"pos "<<pos.toString()<<endl;
+        H=axis2dcm(axis_hand);
+
+        Vector x_aux(4,1.0);
+        x_aux.setSubvector(0,pos_hand);
+        H.setCol(3,x_aux);
+        return H;
     }
 };
 
