@@ -29,7 +29,7 @@ class localizingModule : public RFModule,
     string algorithm;
     bool pose_computed;
 
-    vector<Vector> points;
+    deque<Vector> points;
 
     RpcServer portRpc;
 
@@ -52,8 +52,6 @@ class localizingModule : public RFModule,
     Matrix solutions;
     Vector error_indices;
     Vector result;
-    deque<Vector> measurements;
-
     Matrix info_recognition;
     Mutex mutex;
 
@@ -179,7 +177,7 @@ public:
                             for(size_t i=0; i<num_trials; i++)
                             {
                                 Localizer *loc5=new UnscentedParticleFilter();
-                                loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch);
+                                loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, points, enabled_touch);
                                 error_indices=loc5->localization();
                                 result=loc5->finalize();
                                 loc5->saveData(error_indices,i,k,l,m);
@@ -194,7 +192,7 @@ public:
                             }
 
                             Localizer *loc5=new UnscentedParticleFilter();
-                            loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, measurements, enabled_touch);
+                            loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, points, enabled_touch);
                             loc5->saveStatisticsData(solutions,j,k,l,m);
 
                             delete loc5;
@@ -234,6 +232,27 @@ public:
     /*******************************************************************************/
     bool askForPoints()
     {
+        Bottle cmd, reply;
+        cmd.addString("get_filtered_points");
+
+        Vector point(3,0.0);
+
+        if (portPointsRpc.write(cmd,reply))
+        {
+            for (size_t i=0; i<reply.size(); i++)
+            {
+                Bottle *blist=reply.get(i).asList();
+                point[0]=blist->get(0).asDouble();
+                point[1]=blist->get(1).asDouble();
+                point[2]=blist->get(2).asDouble();
+                points.push_back(point);
+
+            }
+        }
+
+
+
+
         return true;
     }
 };

@@ -41,6 +41,12 @@
         <protocol>tcp</protocol>
     </connection>
 
+    <connection>
+        <from>/localizer/pnt:i</from>
+        <to>/in-hand-segmentation/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
 
 
 </application>
