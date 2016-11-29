@@ -45,6 +45,7 @@ class poseSelection : public RFModule
     Vector pos, euler_angles, axis;
     Vector pos_hand, axis_hand;
     vector<Vector> positions;
+    Vector index_poses;
     vector<Vector> positions_rotated;
     vector<Vector> orientations;
     vector<Vector> x_axis, y_axis, z_axis;
@@ -92,9 +93,11 @@ class poseSelection : public RFModule
         euler_angles.resize(3,0.0);
         axis.resize(4,0.0);
         pos_hand.resize(3,0.0);
-        axis_hand.resize(4,0.0);
+        axis_hand.resize(4,0.0);        
 
         readPoses(positionFileName, orientationFileName);
+
+        index_poses.resize(positions.size(), 0.0);
 
         if (online)
         {
@@ -456,6 +459,7 @@ class poseSelection : public RFModule
 
         return true;
     }
+
     /*******************************************************************************/
     Matrix askForHandPose()
     {
@@ -499,6 +503,29 @@ class poseSelection : public RFModule
         x_aux.setSubvector(0,pos_hand);
         H.setCol(3,x_aux);
         return H;
+    }
+
+    /*******************************************************************************/
+    void discardPoses()
+    {
+        vector<double> distances(positions_rotated.size(), 0.0);
+        for (size_t i=0; i<positions_rotated.size(); i++)
+        {
+             distances[i]=norm(positions_rotated[i] - pos_hand);
+        }
+
+        sort(distances.begin(), distances.end());
+
+        for (size_t i=0; i<distances.size(); i++)
+        {
+            vector<double>::iterator it=distances.begin();
+            vector<double>::iterator it2=distances.begin()+1;
+
+            if (distances[i]==*it && distances[i]==*it2)
+            {
+                index_poses[i]--;
+            }
+        }
     }
 };
 
