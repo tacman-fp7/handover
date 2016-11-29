@@ -100,14 +100,12 @@ class poseSelection : public RFModule
         {
             portPoseIn.open("/"+module_name+"/ps:rpc");
             portHandIn.open("/"+module_name+"/hn:rpc");
-            // temporaneo
             Vector tmp(3,0.0);
             H_object.setCol(3,tmp);
-            //H_hand=readPoseObjectAndHand(handPoseFileName);
         }
         else
         {
-            //H_object=readPoseObjectAndHand(objectPoseFileName);
+            H_object=readPoseObjectAndHand(objectPoseFileName);
             H_hand=readPoseObjectAndHand(handPoseFileName);
         }
 
@@ -134,14 +132,6 @@ class poseSelection : public RFModule
     /*********************************************************/
     bool updateModule()
     {
-        /**cout<<"positions"<<endl;
-        for (int i=0; i<positions.size(); i++)
-            cout<<positions[i].toString()<<endl;
-
-        cout<<"orientations"<<endl;
-        for (int i=0; i<orientations.size(); i++)
-            cout<<orientations[i].toString()<<endl;*/
-
         if (online)
         {
             H_object=askForObjectPose();
@@ -149,18 +139,6 @@ class poseSelection : public RFModule
         }
 
         changeFrame();
-
-        /**cout<<"rotated positions"<<endl;
-        for (int i=0; i<positions_rotated.size(); i++)
-            cout<<positions_rotated[i].toString()<<endl;
-
-        /**cout<<"rotated orientations"<<endl;
-        for (int i=0; i<orientations.size(); i++)
-        {
-            cout<<x_axis_rotated[i].toString()<<endl;
-            cout<<y_axis_rotated[i].toString()<<endl;
-            cout<<z_axis_rotated[i].toString()<<endl;
-        }*/
 
         showPoses();
 
@@ -290,9 +268,7 @@ class poseSelection : public RFModule
         Vector tmp(4,1.0);
         Vector tmp2(3,0.0);
         H_object.setCol(3,tmp2);
-        /**cout<<"H hand "<<H_hand.toString()<<endl;
-        cout<<"H object "<<H_object.toString()<<endl;
-        cout<<"H hadn + object "<<(H_hand*H_object).toString()<<endl;*/
+
         for (size_t i=0; i<positions.size(); i++)
         {
             tmp.setSubvector(0,positions[i].subVector(0,2));
@@ -325,7 +301,6 @@ class poseSelection : public RFModule
             tmp=H_hand*H_object*tmp;
             z_axis_rotated.push_back(tmp.subVector(0,2));
         }
-
 
         return true;
     }
@@ -393,7 +368,7 @@ class poseSelection : public RFModule
         }
         H.resize(4,4);
 
-        cout<<"pose "<<pos.toString()<<endl;
+        cout<<"pose read in "<<homeContextPath+"/"+fileName<<": "<<pos.toString()<<endl;
         if (euler)
             H=euler2dcm(euler_angles);
         else
@@ -401,7 +376,6 @@ class poseSelection : public RFModule
         Vector x_aux(4,1.0);
         x_aux.setSubvector(0,pos);
         H.setCol(3,x_aux);
-        //H=SE3inv(H);
 
         return H;
     }
@@ -415,7 +389,6 @@ class poseSelection : public RFModule
 
         if (portPoseIn.write(cmd, reply))
         {
-            //portPoseIn.write(cmd, reply);
             Bottle *rec=reply.get(0).asList();
             pos[0]=rec->get(0).asDouble();
             pos[1]=rec->get(1).asDouble();
@@ -429,11 +402,10 @@ class poseSelection : public RFModule
         {
             pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2];
         }
-        cout<<"received pose"<<pos.toString()<<" "<<euler_angles.toString()<<endl;
+        cout<<"received pose: "<<pos.toString()<<" "<<euler_angles.toString()<<endl;
 
         H.resize(4,4);
 
-        //cout<<"pos "<<pos.toString()<<endl;
         H=euler2dcm(euler_angles);
 
         Vector x_aux(4,1.0);
@@ -497,7 +469,7 @@ class poseSelection : public RFModule
             for (size_t i=0; i<bpos0->size();i++)
             {               
                 Bottle *bpos=bpos0->get(i).asList(); 
-                cout<<"bpos "<<bpos->get(0).toString()<<endl;
+
                 if (bpos->get(0)=="position")
                 {
                     pos_hand[0]=bpos->get(1).asDouble();
@@ -517,11 +489,10 @@ class poseSelection : public RFModule
         {
             pos_hand[0]=pos_hand[1]=pos_hand[2]=axis_hand[0]=axis_hand[1]=axis_hand[2]=axis_hand[3];
         }
-        cout<<"hand pose"<<pos_hand.toString()<<" "<<axis_hand.toString()<<endl;
+        cout<<"hand pose: "<<pos_hand.toString()<<" "<<axis_hand.toString()<<endl;
 
         H.resize(4,4);
 
-        //cout<<"pos "<<pos.toString()<<endl;
         H=axis2dcm(axis_hand);
 
         Vector x_aux(4,1.0);
