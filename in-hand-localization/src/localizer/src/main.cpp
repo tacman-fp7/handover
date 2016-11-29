@@ -10,11 +10,11 @@
 #include "../headers/scalingSeries.h"
 #include "../headers/unscentedParticleFilter.h"
 
+#include "../build/include/src/localizer_IDL.h"
+
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
-
-#include "../build/include/src/localizer_IDL.h"
 
 class localizingModule : public RFModule,
                          public localizer_IDL
@@ -27,17 +27,19 @@ class localizingModule : public RFModule,
     string object_name;
     string fileInName;
     string algorithm;
-    bool pose_computed;
 
-    deque<Vector> points;
+    vector<Vector> points;
 
     RpcServer portRpc;
 
     RpcClient portPointsRpc;
+    RpcServer portPoseRpc;
 
     bool online;
     bool saving;
     bool localize;
+    bool acquire;
+    bool pose_computed;
     bool enabled_touch;
 
     int down;
@@ -49,10 +51,11 @@ class localizingModule : public RFModule,
 
     ResourceFinder rf;
 
+    Vector result;
     Matrix solutions;
     Vector error_indices;
-    Vector result;
-    Matrix info_recognition;
+    deque<Vector> measurements;
+
     Mutex mutex;
 
 public:
@@ -70,6 +73,13 @@ public:
     }
 
     /*******************************************************************************/
+    bool go_acquire()
+    {
+        acquire=true;
+        return true;
+    }
+
+    /*******************************************************************************/
     Bottle get_estimated_pose()
     {
         LockGuard lg(mutex);
@@ -83,7 +93,6 @@ public:
 
         return pose;
     }
-
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -105,9 +114,8 @@ public:
         num_Q=rf.check("num_Q", Value(1)).asInt();
         num_trials=rf.check("num_trials", Value(1)).asInt();
 
-        info_recognition.resize(num_objs, num_trials);
-
         pose_computed=false;
+        acquire=false;
 
         if (online)
             localize=false;
@@ -120,6 +128,7 @@ public:
         if (online)
         {
             portPointsRpc.open("/" + module_name + "/pnt:i");
+            portPoseRpc.open("/" + module_name + "/ps:o");
         }
 
         portRpc.open("/" + module_name + "/rpc");
@@ -136,6 +145,7 @@ public:
         if (online)
         {
             portPointsRpc.interrupt();
+            portPoseRpc.interrupt();
         }
 
         portRpc.close();
@@ -149,6 +159,7 @@ public:
         if (online)
         {
             portPointsRpc.close();
+            portPoseRpc.close();
         }
 
         portRpc.interrupt();
@@ -165,7 +176,7 @@ public:
     /*******************************************************************************/
     bool updateModule()
     {
-        if (online)
+        if (online && acquire)
         {
             askForPoints();
         }
@@ -184,48 +195,29 @@ public:
                             for(size_t i=0; i<num_trials; i++)
                             {
                                 Localizer *loc5=new UnscentedParticleFilter();
-                                loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, points, enabled_touch);
+                                loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch);
                                 error_indices=loc5->localization();
-                                result=loc5->finalize();
+                                result=error_indices.subVector(0,5);
                                 loc5->saveData(error_indices,i,k,l,m);
                                 solutions(i,0)=error_indices[6];
                                 solutions(i,1)=error_indices[7];
                                 solutions(i,2)=error_indices[8];
                                 solutions(i,3)=error_indices[9];
-                                info_recognition(j,i)=error_indices[6];
 
                                 delete loc5;
                                 pose_computed=true;
                             }
 
                             Localizer *loc5=new UnscentedParticleFilter();
-                            loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, points, enabled_touch);
+                            loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, measurements, enabled_touch);
                             loc5->saveStatisticsData(solutions,j,k,l,m);
 
                             delete loc5;
                         }
                     }
                 }
-            }           
-        }
-
-        string output_compare="../../outputs/comparison-among-objects.off";
-        ofstream fout(output_compare.c_str());
-        if(fout.is_open())
-        {
-            for (int j=0; j<num_objs;j++)
-            {
-                double sum=0.0;
-                for (int i=0; i<num_trials; i++)
-                    sum+=info_recognition(j,i);
-
-                fout<< "Objects: "<<j<<" "<<"Localization error: "<<sum/num_trials <<endl;
             }
         }
-        else
-            cout<< "problem opening output_data file!";
-
-        fout.close();
 
         if (online)
         {
@@ -243,20 +235,22 @@ public:
         cmd.addString("get_filtered_points");
 
         Vector point(3,0.0);
+        measurements.clear();
 
         if (portPointsRpc.write(cmd,reply))
         {
-            Bottle *bpoint=reply.get(0).asList(); 
+            Bottle *bpoint=reply.get(0).asList();
             for (size_t i=0; i<bpoint->size(); i++)
             {
                 Bottle *blist=bpoint->get(i).asList();
                 point[0]=blist->get(0).asDouble();
                 point[1]=blist->get(1).asDouble();
                 point[2]=blist->get(2).asDouble();
-                points.push_back(point);
+                measurements.push_back(point);
                 cout<<point.toString()<<endl;
 
             }
+            acquire=false;
         }
 
         return true;

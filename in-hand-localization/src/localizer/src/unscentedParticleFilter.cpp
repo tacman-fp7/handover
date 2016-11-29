@@ -19,6 +19,7 @@
 #include <yarp/math/SVD.h>
 #include <yarp/os/ResourceFinder.h>
 
+#include <iCub/ctrl/math.h>
 #include <CGAL/IO/Polyhedron_iostream.h>
 
 #include "../headers/unscentedParticleFilter.h"
@@ -29,11 +30,11 @@ using namespace std;
 using namespace yarp::os;
 using namespace yarp::sig;
 using namespace yarp::math;
-
+using namespace iCub::ctrl;
 
 /*******************************************************************************/
 UnscentedParticleFilter::UnscentedParticleFilter() : GeometryCGAL()
-{   
+{
     parameters=new ParametersUPF;   // owned by GeometryCGAL
 }
 
@@ -50,23 +51,23 @@ void UnscentedParticleFilter::initialRandomize()
     {
         ParticleUPF &particle=x[i];
         ParametersUPF &params=get_parameters();
-        
+
         particle.x_corr[0]=Rand::scalar(params.center0[0]-params.radius0[0],params.center0[0]+params.radius0[0]);
         particle.x_corr[1]=Rand::scalar(params.center0[1]-params.radius0[1],params.center0[1]+params.radius0[1]);
         particle.x_corr[2]=Rand::scalar(params.center0[2]-params.radius0[2],params.center0[2]+params.radius0[2]);
         particle.x_corr[3]=Rand::scalar(0,2*M_PI);
         particle.x_corr[4]=Rand::scalar(0,M_PI);
-        particle.x_corr[5]=Rand::scalar(0,2*M_PI);           
+        particle.x_corr[5]=Rand::scalar(0,2*M_PI);
     }
 }
 
 /*******************************************************************************/
 void UnscentedParticleFilter::init()
-{   
+{
     t0=Time::now();
     GeometryCGAL::init();
     ParametersUPF &params=get_parameters();
-    
+
     t=0;
     n=params.n;
     p=params.p;
@@ -79,14 +80,14 @@ void UnscentedParticleFilter::init()
 
 /*******************************************************************************/
 bool UnscentedParticleFilter::step()
-{   
-    t++;    
+{
+    t++;
     ParametersUPF &params=get_parameters();
-    
+
     cout<<"t "<<t <<"/"<<params.numMeas<<"\n";
 
     if( t>params.numMeas)
-    {	
+    {
         return true;
     }
 
@@ -117,7 +118,7 @@ bool UnscentedParticleFilter::step()
         for(size_t j=0; j<2*n+1; j++)
         {
             for( size_t l=0; l<n; l++)
-            {		
+            {
                 random[l]=prova.RandnScalar::get(0.0, 1.0);
             }
 
@@ -139,12 +140,12 @@ bool UnscentedParticleFilter::step()
             x[i].YsigmaPoints_pred.setCol(j,compute_y(t,i,j));
         }
     }
-     
+
     for(size_t i=0; i<x.size(); i++ )
     {
-     	predictionStep(i);
+        predictionStep(i);
     }
-    
+
     for(size_t i=0; i<x.size(); i++ )
     {
         computePpred(i);
@@ -188,24 +189,24 @@ bool UnscentedParticleFilter::step()
         selectionStep(Neff,sum_squared);
     }
 
-    return false;    
+    return false;
 }
 
 /*******************************************************************************/
 Vector UnscentedParticleFilter::finalize()
-{  
+{
     Vector error_indices;
     error_indices.resize(4,0.0);
     result.resize(10,0.0);
 
     ms_particle4.pos=result4;
     performanceIndex(ms_particle4);
-   
+
     Matrix H=rpr(ms_particle4.pos.subVector(3,5));
     Affine affine(H(0,0),H(0,1),H(0,2),ms_particle4.pos[0],
                   H(1,0),H(1,1),H(1,2),ms_particle4.pos[1],
                   H(2,0),H(2,1),H(2,2),ms_particle4.pos[2]);
-                           
+
     std::transform(model.points_begin(),model.points_end(),
                    model.points_begin(),affine);
     result[0]=result4[0];
@@ -320,7 +321,7 @@ double UnscentedParticleFilter::likelihood(const int &t, const int &k)
     }
 
     return likelihood;
-}	
+}
 
 /*******************************************************************************/
 Vector UnscentedParticleFilter::particleDensity3()
@@ -378,7 +379,7 @@ Vector UnscentedParticleFilter::particleDensity3()
 
 /*******************************************************************************/
 void UnscentedParticleFilter::resampling()
-{	
+{
     std::deque<ParticleUPF> new_x;
     Vector c,u, new_index;
     ParametersUPF &params=get_parameters();
@@ -424,7 +425,7 @@ void UnscentedParticleFilter::resampling()
 
 /*******************************************************************************/
 void UnscentedParticleFilter::performanceIndex( MsParticleUPF &ms_particle)
-{ 
+{
     ms_particle.error_index=0;
 
     Matrix H=rpr(ms_particle.pos.subVector(3,5));
@@ -465,7 +466,7 @@ Matrix UnscentedParticleFilter::rpr(const Vector &particle)
     H(2,1)=sin(theta)*sin(psi) ;
     H(2,2)=cos(theta) ;
 
-    return H;    
+    return H;
 }
 
 /*******************************************************************************/
@@ -727,15 +728,15 @@ bool UnscentedParticleFilter::readMeasurements(ifstream &fin)
     int state=0;
     int nPoints;
     char line[255];
-	params.numMeas=0;
-        
+        params.numMeas=0;
+
     while (!fin.eof())
     {
         fin.getline(line,sizeof(line),'\n');
         Bottle b(line);
         Value firstItem=b.get(0);
         bool isNumber=firstItem.isInt() || firstItem.isDouble();
-            
+
         if (state==0)
         {
             string tmp=firstItem.asString().c_str();
@@ -765,7 +766,7 @@ bool UnscentedParticleFilter::readMeasurements(ifstream &fin)
                 }
             }
         }
-        
+
     return false;
 }
 
@@ -780,6 +781,7 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
 
     while (!fin.eof())
     {
+        cout<<"debug fing "<<endl;
         fin.getline(line,sizeof(line),'\n');
         Bottle b(line);
         Value firstItem=b.get(0);
@@ -787,6 +789,7 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
 
         if (state==0)
         {
+            cout<<"debug fing "<<endl;
             string tmp=firstItem.asString().c_str();
             std::transform(tmp.begin(),tmp.end(),tmp.begin(),::toupper);
             if (tmp=="OFF" || tmp=="COFF")
@@ -794,6 +797,7 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
             }
             else if (state==1)
             {
+            cout<<"debug fing "<<endl;
                 if (isNumber)
                 {
                     nPoints=firstItem.asInt();
@@ -802,8 +806,10 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
             }
             else if (state==2)
             {
+            cout<<"debug fing "<<endl;
                 if (isNumber && (b.size()>=3))
                 {
+                    cout<<"debug fing "<<endl;
                     fingers.push_back(Point(b.get(0).asDouble(),
                                                        b.get(1).asDouble(),
                                                        b.get(2).asDouble()));
@@ -818,7 +824,7 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
     return false;
 }
 
-/*******************************************************************************/    
+/*******************************************************************************/
 
 bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, const int &k, const int &n_m, const int &l, const int &n_N, const int &m, bool online, deque<Vector> &points, bool enabled_touch)
 {
@@ -903,10 +909,9 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         {
             Vector point=points[i];
             measurements.push_back(Point(point[0], point[1], point[2]));
-            get_measurements().push_back(Point(point[0], point[1], point[2]));
         }
 
-    }    
+    }
 
     if (enabled_touch==true)
     {
@@ -930,11 +935,13 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
             return false;
         }
         fingersFile.close();
+
+        measurements.push_back(fingers[0]);
+        measurements.push_back(fingers[1]);
+        measurements.push_back(fingers[2]);
     }
 
-    measurements.push_back(fingers[0]);
-    measurements.push_back(fingers[1]);
-    measurements.push_back(fingers[2]);
+
     for (size_t i=0; i<measurements.size(); i++)
         cout<<measurements[i]<<endl;
 
@@ -1097,22 +1104,22 @@ void UnscentedParticleFilter::saveData(const yarp::sig::Vector &ms_particle, con
      ssQ<<m;
      string str_Q=ssQ.str();
      string outputFileName=this->rf->check("outputFileMUPF",Value("../../outputs/outputMUPF_trial"+str_i+"_object"+str_obj+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
-                       asString().c_str();               
+                       asString().c_str();
 
     ofstream fout(outputFileName.c_str());
     if(fout.is_open())
     {
-        fout<<get_model(); 
+        fout<<get_model();
     }
     else
         cout<< "problem opening output_data file!";
-		
+
     fout.close();
 }
 
 /*******************************************************************************/
 void UnscentedParticleFilter::saveStatisticsData( const yarp::sig::Matrix &solutions, const int &obj, const int &k,  const int &l, const int &m)
-{    
+{
     stringstream ss2;
     ss2 << obj;
     string str_i = ss2.str();
@@ -1153,12 +1160,12 @@ void UnscentedParticleFilter::saveStatisticsData( const yarp::sig::Matrix &solut
         fout2<<"Average Execution Time (over trials): "<<average_time/solutions.rows()<<endl<<endl;
     }
 }
-       
-/*******************************************************************************/      
+
+/*******************************************************************************/
 yarp::sig::Vector UnscentedParticleFilter::localization()
 {
     yarp::sig::Vector result;
-  
+
     init();
     solve();
     return result=finalize();

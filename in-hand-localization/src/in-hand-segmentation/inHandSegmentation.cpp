@@ -409,7 +409,7 @@ protected:
 
         vector<Vector> pointsTobeSent;
 
-        if ((density_filter==true || hand_filter==true || cylinder_filter==true)==true && pointsOut.size()>0)
+        if ((density_filter==true || hand_filter==true || cylinder_filter==true || ellipse_filter==true)==true && pointsOut.size()>0)
             pointsTobeSent=pointsOut;
         else
             pointsTobeSent=pointsIn;
@@ -421,6 +421,7 @@ protected:
                 Vector point=pointsTobeSent[i];
                 Bottle &bpoint=bpoints.addList();
                 bpoint.addDouble(point[0]); bpoint.addDouble(point[1]);bpoint.addDouble(point[2]);
+                cout<<"number of points sent "<<pointsTobeSent.size()<<endl;
             }
         }
         else
@@ -834,6 +835,10 @@ public:
             else
                 false;
         }
+
+        pointsIn.clear();
+
+        return true;
     }
 
     /*******************************************************************************/
