@@ -60,6 +60,7 @@ class poseSelection : public RFModule
     string frame;
 
     bool change_frame;
+    bool new_poses;
     bool online;
     bool euler;
 
@@ -99,6 +100,8 @@ class poseSelection : public RFModule
 
         index_poses.resize(positions.size(), 0.0);
 
+        new_poses=false;
+
         if (online)
         {
             portPoseIn.open("/"+module_name+"/ps:rpc");
@@ -127,7 +130,9 @@ class poseSelection : public RFModule
         if (clientGazeCtrl.isValid())
         {
             clientGazeCtrl.view(igaze);
-}
+        }
+        else
+            cout<<"Gaze NOT OPENED!"<<endl;
 
         return true;
     }
@@ -140,10 +145,10 @@ class poseSelection : public RFModule
             H_object=askForObjectPose();
             H_hand=askForHandPose();
         }
-
+        
         changeFrame();
 
-        showPoses();
+        showPoses();      
 
         if (online)
             return true;
@@ -272,37 +277,46 @@ class poseSelection : public RFModule
         Vector tmp2(3,0.0);
         H_object.setCol(3,tmp2);
 
-        for (size_t i=0; i<positions.size(); i++)
+        //cout<<"H tot "<<(H_hand*H_object).toString()<<endl;
+
+        if (norm(H_object.getCol(3).subVector(0,2))>0.0)
         {
-            tmp.setSubvector(0,positions[i].subVector(0,2));
-            tmp=H_hand*H_object*(tmp);
-            positions_rotated.push_back(tmp.subVector(0,2));
-        }
+            positions_rotated.clear();
+            x_axis_rotated.clear();
+            y_axis_rotated.clear();
+            z_axis_rotated.clear();
+            for (size_t i=0; i<positions.size(); i++)
+            {
+                tmp.setSubvector(0,positions[i].subVector(0,2));
+                tmp=H_hand*H_object*(tmp);
+                positions_rotated.push_back(tmp.subVector(0,2));
+            }
 
-        Vector x(3,0.0), y(3,0.0), z(3,0.0);
-        Vector matrix(9,0.0);
+            Vector x(3,0.0), y(3,0.0), z(3,0.0);
+            Vector matrix(9,0.0);
 
-        for (size_t i=0; i<orientations.size(); i++)
-        {
-            matrix=orientations[i];
-            x[0]=matrix[0]; x[1]=matrix[3]; x[2]=matrix[6];
-            y[0]=matrix[1]; y[1]=matrix[4]; y[2]=matrix[7];
-            z[0]=matrix[2]; z[1]=matrix[5]; z[2]=matrix[8];
-            x_axis.push_back(positions[i].subVector(0,2)+length*x);
-            y_axis.push_back(positions[i].subVector(0,2)+length*y);
-            z_axis.push_back(positions[i].subVector(0,2)+length*z);
+            for (size_t i=0; i<orientations.size(); i++)
+            {
+                matrix=orientations[i];
+                x[0]=matrix[0]; x[1]=matrix[3]; x[2]=matrix[6];
+                y[0]=matrix[1]; y[1]=matrix[4]; y[2]=matrix[7];
+                z[0]=matrix[2]; z[1]=matrix[5]; z[2]=matrix[8];
+                x_axis.push_back(positions[i].subVector(0,2)+length*x);
+                y_axis.push_back(positions[i].subVector(0,2)+length*y);
+                z_axis.push_back(positions[i].subVector(0,2)+length*z);
 
-            tmp.setSubvector(0,x_axis[i]);
-            tmp=H_hand*H_object*tmp;
-            x_axis_rotated.push_back(tmp.subVector(0,2));
+                tmp.setSubvector(0,x_axis[i]);
+                tmp=H_hand*H_object*tmp;
+                x_axis_rotated.push_back(tmp.subVector(0,2));
 
-            tmp.setSubvector(0,y_axis[i]);
-            tmp=H_hand*H_object*tmp;
-            y_axis_rotated.push_back(tmp.subVector(0,2));
+                tmp.setSubvector(0,y_axis[i]);
+                tmp=H_hand*H_object*tmp;
+                y_axis_rotated.push_back(tmp.subVector(0,2));
 
-            tmp.setSubvector(0,z_axis[i]);
-            tmp=H_hand*H_object*tmp;
-            z_axis_rotated.push_back(tmp.subVector(0,2));
+                tmp.setSubvector(0,z_axis[i]);
+                tmp=H_hand*H_object*tmp;
+                z_axis_rotated.push_back(tmp.subVector(0,2));
+            }
         }
 
         return true;
@@ -400,10 +414,13 @@ class poseSelection : public RFModule
             euler_angles[0]=rec->get(3).asDouble();
             euler_angles[1]=rec->get(4).asDouble();
             euler_angles[2]=rec->get(5).asDouble();
+            
+            new_poses=true;
         }
         else
         {
             pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2];
+            new_poses=false;
         }
         cout<<"received pose: "<<pos.toString()<<" "<<euler_angles.toString()<<endl;
 
@@ -431,13 +448,14 @@ class poseSelection : public RFModule
 
         cv::Mat imgInMat=cv::cvarrToMat((IplImage*)imgIn->getIplImage());
         cv::Mat imgOutMat=cv::cvarrToMat((IplImage*)imgOut.getIplImage());
+
         imgInMat.copyTo(imgOutMat);
 
         Vector position_2D(2,0.0);
-        Vector axis_2D(2,0.0);
+        Vector axis_2D(2,0.0);               
 
-        for (size_t i=0; i<positions.size(); i++)
-        {
+        for (size_t i=0; i<positions_rotated.size(); i++)
+        {            
             igaze->get2DPixel(camera, positions_rotated[i],position_2D);
             cv::Point pixel2D(position_2D[0],position_2D[1]);
 
