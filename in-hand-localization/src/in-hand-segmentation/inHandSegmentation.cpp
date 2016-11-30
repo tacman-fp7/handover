@@ -1188,7 +1188,7 @@ public:
     {
         contactPoint.resize(3,0.0);
         Vector joints, enc_from_port;
-        enc_from_port.resize(16,0.0);
+        enc_from_port.resize(10,0.0);
         Matrix tipFrame;
 
         enc->getEncoders(encoders.data());

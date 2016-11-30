@@ -25,18 +25,21 @@
 #include <opencv/cv.h>
 #include <opencv2/highgui/highgui.hpp>
 
+#include <iCub/iKin/iKinFwd.h>
 #include <yarp/os/all.h>
 #include <yarp/sig/all.h>
 #include <yarp/math/Math.h>
 #include <yarp/dev/Drivers.h>
 #include <yarp/dev/PolyDriver.h>
 #include <yarp/dev/GazeControl.h>
+#include <yarp/dev/CartesianControl.h>
 
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::dev;
 using namespace yarp::sig;
 using namespace yarp::math;
+using namespace iCub::iKin;
 
 class poseSelection : public RFModule
 {
@@ -58,6 +61,8 @@ class poseSelection : public RFModule
     string homeContextPath;
     string module_name;
     string frame;
+    string robot;
+    string left_or_right;
 
     bool change_frame;
     bool new_poses;
@@ -66,9 +71,19 @@ class poseSelection : public RFModule
 
     double length;
     int camera;
+    int startup_context_id;
 
+    deque<IControlLimits*> lim_deque;
+
+    iKinChain *chain;
+    iCubArm ikin_arm;
     IGazeControl *igaze;
+    ICartesianControl *icart_arm;
+    IControlLimits* lim;
+
     PolyDriver clientGazeCtrl;
+    PolyDriver robotDevice;
+    PolyDriver robotDevice2;
 
     RpcClient portPoseIn;
     RpcClient portHandIn;
@@ -134,6 +149,57 @@ class poseSelection : public RFModule
         else
             cout<<"Gaze NOT OPENED!"<<endl;
 
+        robot=rf.find("robot").asString().c_str();
+        if(rf.find("robot").isNull())
+            robot="icubSim";
+
+        left_or_right=rf.find("which_hand").asString().c_str();
+        if(rf.find("which_hand").isNull())
+            left_or_right="left";
+
+       //if (online)
+       // {
+            Property option_arm("(device cartesiancontrollerclient)");
+            option_arm.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
+            option_arm.put("local","/"+module_name+"/cartesian/"+left_or_right+"_arm");
+
+            robotDevice.open(option_arm);
+            if (!robotDevice.isValid())
+            {
+                yError("Device index not available!");
+                return false;
+            }
+
+            robotDevice.view(icart_arm);
+            icart_arm->storeContext(&startup_context_id);
+
+            if (left_or_right=="right")
+                ikin_arm=iCubArm("right_v2");
+            else
+                ikin_arm=iCubArm("left_v2");
+
+            Property option_arm2("(device remote_controlboard)");
+            option_arm2.put("remote","/"+robot+"/"+left_or_right+"_arm");
+            option_arm2.put("local","/"+module_name+"/joint/"+left_or_right+"_arm");
+
+            robotDevice2.open(option_arm2);
+            if (!robotDevice2.isValid())
+            {
+                yError("Device 2 not available!");
+                return false;
+            }
+
+            robotDevice2.view(lim);
+
+            lim_deque.push_back(lim);
+            if (!ikin_arm.alignJointsBounds(lim_deque))
+                cout<<"problem in alignJoints!Bounds"<<endl;
+
+            ikin_arm.releaseLink(0);
+            ikin_arm.releaseLink(1);
+            ikin_arm.releaseLink(2);
+       // }
+
         return true;
     }
 
@@ -148,7 +214,11 @@ class poseSelection : public RFModule
         
         changeFrame();
 
-        showPoses();      
+        showPoses();
+
+        distanceFromHand();
+
+        manipulability();
 
         if (online)
             return true;
@@ -524,7 +594,7 @@ class poseSelection : public RFModule
     }
 
     /*******************************************************************************/
-    void discardPoses()
+    void distanceFromHand()
     {
         vector<double> distances(positions_rotated.size(), 0.0);
         for (size_t i=0; i<positions_rotated.size(); i++)
@@ -536,14 +606,62 @@ class poseSelection : public RFModule
 
         for (size_t i=0; i<distances.size(); i++)
         {
-            vector<double>::iterator it=distances.begin();
-            vector<double>::iterator it2=distances.begin()+1;
-
-            if (distances[i]==*it && distances[i]==*it2)
+            int count=0;
+            for (std::vector<double>::iterator it=distances.begin(); it!=distances.end(); ++it)
             {
-                index_poses[i]--;
+                if (norm(positions_rotated[i] - pos_hand)==*it)
+                {
+                    index_poses[i]= count - 8;
+                }
+                count++;
             }
         }
+
+        cout<<"Index poses "<<index_poses.toString()<<endl;
+    }
+
+    /*******************************************************************************/
+    void manipulability()
+    {
+        Vector xdhat(3,0.0);
+        Vector odhat(4,0.0);
+        Vector od(4,0.0);
+        Vector qdhat(10,0.0);
+        vector<double> manip;
+        vector<double> manip_notordered;
+
+        for (size_t i=0; i<positions_rotated.size(); i++)
+        {
+            Matrix orient(3,3);
+            orient.setCol(0,x_axis_rotated[i]);
+            orient.setCol(1,y_axis_rotated[i]);
+            orient.setCol(2,z_axis_rotated[i]);
+
+            od=dcm2axis(orient);
+
+            icart_arm->askForPose(positions_rotated[i], od, xdhat, odhat, qdhat);
+            Matrix J=ikin_arm.AnaJacobian(qdhat, 3);
+
+            manip.push_back(sqrt(det(J*J.transposed())));
+        }
+
+        manip_notordered=manip;
+        sort(manip.begin(), manip.end());
+
+        for (size_t i=0; i<manip_notordered.size(); i++)
+        {
+            int count=0;
+            for (std::vector<double>::iterator it=manip.begin(); it!=manip.end(); ++it)
+            {
+                if (manip_notordered[i]==*it)
+                {
+                    index_poses[i]= count-8;
+                }
+                count++;
+            }
+        }
+
+        cout<<"Index poses "<<index_poses.toString()<<endl;
     }
 };
 
