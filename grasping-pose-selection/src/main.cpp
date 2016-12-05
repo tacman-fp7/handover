@@ -71,19 +71,23 @@ class poseSelection : public RFModule
 
     double length;
     int camera;
+    int index;
     int startup_context_id;
 
     deque<IControlLimits*> lim_deque;
 
     iKinChain *chain;
     iCubArm ikin_arm;
+    iCubTorso ikin_torso;
     IGazeControl *igaze;
     ICartesianControl *icart_arm;
-    IControlLimits* lim;
+    IControlLimits* lim_arm;
+    IControlLimits* lim_torso;
 
     PolyDriver clientGazeCtrl;
     PolyDriver robotDevice;
     PolyDriver robotDevice2;
+    PolyDriver robotDevice3;
 
     RpcClient portPoseIn;
     RpcClient portHandIn;
@@ -109,11 +113,13 @@ class poseSelection : public RFModule
         euler_angles.resize(3,0.0);
         axis.resize(4,0.0);
         pos_hand.resize(3,0.0);
-        axis_hand.resize(4,0.0);        
+        axis_hand.resize(4,0.0);
+        index_poses.resize(positions.size(), 0.0);
 
         readPoses(positionFileName, orientationFileName);
 
-        index_poses.resize(positions.size(), 0.0);
+        index=-1;
+        length=0.06;
 
         new_poses=false;
 
@@ -130,8 +136,6 @@ class poseSelection : public RFModule
             H_hand=readPoseObjectAndHand(handPoseFileName);
         }
 
-        length=0.06;        
-
         portImgIn.open("/" + module_name + "/img:i");
         portImgOut.open("/" + module_name + "/img:o");
 
@@ -147,7 +151,7 @@ class poseSelection : public RFModule
             clientGazeCtrl.view(igaze);
         }
         else
-            cout<<"Gaze NOT OPENED!"<<endl;
+            yError("Gaze NOT OPENED!");
 
         robot=rf.find("robot").asString().c_str();
         if(rf.find("robot").isNull())
@@ -157,7 +161,7 @@ class poseSelection : public RFModule
         if(rf.find("which_hand").isNull())
             left_or_right="left";
 
-       //if (online)
+       // if (online)
        // {
             Property option_arm("(device cartesiancontrollerclient)");
             option_arm.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
@@ -178,6 +182,8 @@ class poseSelection : public RFModule
             else
                 ikin_arm=iCubArm("left_v2");
 
+            ikin_torso=iCubTorso();
+
             Property option_arm2("(device remote_controlboard)");
             option_arm2.put("remote","/"+robot+"/"+left_or_right+"_arm");
             option_arm2.put("local","/"+module_name+"/joint/"+left_or_right+"_arm");
@@ -189,15 +195,30 @@ class poseSelection : public RFModule
                 return false;
             }
 
-            robotDevice2.view(lim);
+            robotDevice2.view(lim_arm);
 
-            lim_deque.push_back(lim);
+            Property option_arm3("(device remote_controlboard)");
+            option_arm3.put("remote","/"+robot+"/torso");
+            option_arm3.put("local","/"+module_name+"/joint/torso");
+
+            robotDevice3.open(option_arm3);
+            if (!robotDevice3.isValid())
+            {
+                yError("Device 2 not available!");
+                return false;
+            }
+
+            robotDevice3.view(lim_torso);
+
+            lim_deque.push_back(lim_torso);
+            lim_deque.push_back(lim_arm);
             if (!ikin_arm.alignJointsBounds(lim_deque))
-                cout<<"problem in alignJoints!Bounds"<<endl;
+                yError("PROBLEMS IN ALIGNJOINTBOUNDS");
 
-            ikin_arm.releaseLink(0);
-            ikin_arm.releaseLink(1);
-            ikin_arm.releaseLink(2);
+            bool rel=ikin_torso.releaseLink(0);
+            rel=rel && ikin_torso.releaseLink(1);
+            rel=rel && ikin_torso.releaseLink(2);
+            yDebug()<<"release link "<<rel;
        // }
 
         return true;
@@ -211,7 +232,7 @@ class poseSelection : public RFModule
             H_object=askForObjectPose();
             H_hand=askForHandPose();
         }
-        
+
         changeFrame();
 
         showPoses();
@@ -219,6 +240,12 @@ class poseSelection : public RFModule
         distanceFromHand();
 
         manipulability();
+
+        showPoses();
+
+        choosePose();
+
+        showPoses();
 
         if (online)
             return true;
@@ -346,8 +373,6 @@ class poseSelection : public RFModule
         Vector tmp(4,1.0);
         Vector tmp2(3,0.0);
         H_object.setCol(3,tmp2);
-
-        //cout<<"H tot "<<(H_hand*H_object).toString()<<endl;
 
         if (norm(H_object.getCol(3).subVector(0,2))>0.0)
         {
@@ -522,11 +547,28 @@ class poseSelection : public RFModule
         imgInMat.copyTo(imgOutMat);
 
         Vector position_2D(2,0.0);
-        Vector axis_2D(2,0.0);               
+        Vector axis_2D(2,0.0);
+
+        int thickness=2;
+        int font=0;
+        double fontScale=0.5;
+        int x_shift, y_shift;
+        Vector num_position(3,0.0);
 
         for (size_t i=0; i<positions_rotated.size(); i++)
-        {            
-            igaze->get2DPixel(camera, positions_rotated[i],position_2D);
+        {
+            cv::Scalar color(0,255,0);
+            color[0]+=-10*index_poses[i];
+            color[1]+= 10*index_poses[i];
+            if (index_poses[i]!=0.0)
+                color[2]=0;
+
+            yDebug()<<"Color of pose "<<i<<" "<<color[0]<< " "<< color[1]<<" "<<color[2];
+
+            stringstream i_string;
+            i_string<<i;
+
+            igaze->get2DPixel(camera, positions_rotated[i],position_2D);            
             cv::Point pixel2D(position_2D[0],position_2D[1]);
 
             igaze->get2DPixel(camera, x_axis_rotated[i],axis_2D);
@@ -541,6 +583,53 @@ class poseSelection : public RFModule
             igaze->get2DPixel(camera, z_axis_rotated[i],axis_2D);
             cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
             cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255));
+
+            num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])+0.60*(z_axis_rotated[i]-positions_rotated[i]);
+            Vector num_position2D(2,0.0);
+            igaze->get2DPixel(camera, num_position,num_position2D);
+            cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
+        }
+
+        if (index>=0)
+        {
+            cv::Scalar color(255,0,0);
+            color[0]=-10*index_poses[index];
+            color[1]=255 + 20*index_poses[index];
+            if (index_poses[index]!=0.0)
+                color[2]=0;
+
+            stringstream i_string;
+            i_string<<index;
+
+            igaze->get2DPixel(camera, positions_rotated[index],position_2D);
+            cv::Point pixel2D(position_2D[0],position_2D[1]);
+
+            igaze->get2DPixel(camera, x_axis_rotated[index],axis_2D);
+            cv::Point pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+            cv::line(imgOutMat,pixel2D,pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+            igaze->get2DPixel(camera, y_axis_rotated[index],axis_2D);
+            cv::Point pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+            cv::line(imgOutMat,pixel2D,pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+            igaze->get2DPixel(camera, z_axis_rotated[index],axis_2D);
+            cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+            cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+
+            num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])+0.60*(z_axis_rotated[index]-positions_rotated[index]);
+            Vector num_position2D(2,0.0);
+            igaze->get2DPixel(camera, num_position,num_position2D);
+            cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
+
+            color[0]=0;
+            color[1]=0;
+            color[2]=255;
+            Vector center_bb(2,0.0);
+            num_position=positions_rotated[index]+0.6*(y_axis_rotated[index]-positions_rotated[index])+0.6*(z_axis_rotated[index]-positions_rotated[index]);
+
+            igaze->get2DPixel(camera, num_position,center_bb);
+            cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
         }
 
         portImgOut.write();
@@ -581,7 +670,8 @@ class poseSelection : public RFModule
         {
             pos_hand[0]=pos_hand[1]=pos_hand[2]=axis_hand[0]=axis_hand[1]=axis_hand[2]=axis_hand[3];
         }
-        cout<<"hand pose: "<<pos_hand.toString()<<" "<<axis_hand.toString()<<endl;
+
+        yDebug()<<"Hand pose: "<<pos_hand.toString()<<" "<<axis_hand.toString();
 
         H.resize(4,4);
 
@@ -611,13 +701,13 @@ class poseSelection : public RFModule
             {
                 if (norm(positions_rotated[i] - pos_hand)==*it)
                 {
-                    index_poses[i]= count - 8;
+                    index_poses[i]= (count - 8);
                 }
                 count++;
             }
         }
 
-        cout<<"Index poses "<<index_poses.toString()<<endl;
+        yDebug()<<"Index poses: "<<index_poses.toString();
     }
 
     /*******************************************************************************/
@@ -627,20 +717,30 @@ class poseSelection : public RFModule
         Vector odhat(4,0.0);
         Vector od(4,0.0);
         Vector qdhat(10,0.0);
+        Vector err_orient;
+        Vector err_pos;
+        bool first_time=true;
         vector<double> manip;
         vector<double> manip_notordered;
 
         for (size_t i=0; i<positions_rotated.size(); i++)
         {
             Matrix orient(3,3);
-            orient.setCol(0,x_axis_rotated[i]);
-            orient.setCol(1,y_axis_rotated[i]);
-            orient.setCol(2,z_axis_rotated[i]);
+            orient.setCol(0,x_axis_rotated[i]-positions_rotated[i]);
+            orient.setCol(1,y_axis_rotated[i]-positions_rotated[i]);
+            orient.setCol(2,z_axis_rotated[i]-positions_rotated[i]);
 
-            od=dcm2axis(orient);
+            od=dcm2axis(orient);            
 
             icart_arm->askForPose(positions_rotated[i], od, xdhat, odhat, qdhat);
-            Matrix J=ikin_arm.AnaJacobian(qdhat, 3);
+            err_orient.push_back(norm(od -odhat));
+            err_pos.push_back(norm(positions_rotated[i]-xdhat));
+            yDebug()<<" Error in orientation for pose "<<i<<" "<<err_orient[i];
+            yDebug()<<" Error in position "<<i<<" "<<err_pos[i];
+
+            yDebug()<<"Qd for pose "<<i<<" "<<qdhat.toString();
+
+            Matrix J=ikin_arm.GeoJacobian(qdhat);
 
             manip.push_back(sqrt(det(J*J.transposed())));
         }
@@ -651,17 +751,38 @@ class poseSelection : public RFModule
         for (size_t i=0; i<manip_notordered.size(); i++)
         {
             int count=0;
+            yDebug()<<"Manipulability for pose "<<i<<" "<<manip_notordered[i];
+            first_time=true;
             for (std::vector<double>::iterator it=manip.begin(); it!=manip.end(); ++it)
-            {
-                if (manip_notordered[i]==*it)
-                {
-                    index_poses[i]= count-8;
+            {                
+                if (manip_notordered[i]==*it && first_time)
+                {                   
+                    index_poses[i] += (count-8)*(err_orient[i]+err_pos[i]);
+                    first_time=false;
                 }
                 count++;
             }
         }
 
-        cout<<"Index poses "<<index_poses.toString()<<endl;
+        yDebug()<<"Index poses after manipulability: "<<index_poses.toString();
+    }
+
+    /*******************************************************************************/
+    bool choosePose()
+    {
+        double tmp=-100.0;
+        int count=0;
+
+        for(size_t i=0; i<index_poses.size(); i++)
+        {
+            if (tmp<index_poses[i])
+            {
+                tmp=index_poses[i];
+                index=count;
+            }
+            count++;
+        }
+        yDebug()<<"Selected pose: "<<index;
     }
 };
 
