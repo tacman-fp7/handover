@@ -421,7 +421,7 @@ protected:
                 Vector point=pointsTobeSent[i];
                 Bottle &bpoint=bpoints.addList();
                 bpoint.addDouble(point[0]); bpoint.addDouble(point[1]);bpoint.addDouble(point[2]);
-                cout<<"number of points sent "<<pointsTobeSent.size()<<endl;
+                yDebug()<<"number of points sent "<<pointsTobeSent.size();
             }
         }
         else
@@ -576,12 +576,12 @@ public:
         a_offset=rf.check("a_offset", Value(0.03)).asDouble();
         b_offset=rf.check("b_offset", Value(0.015)).asDouble();
 
-        cout<<"Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl;
+        cout<<endl<<" Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl<<endl;
 
         fileCount=0;
         down= rf.check("downsampling", Value(1)).asInt();
 
-        cout<<"Opening ports"<<endl;
+        cout<<endl<<" Opening ports"<<endl<<endl;
 
         portDispIn.open("/" + module_name + "/disp:i");
         portImgIn.open("/" + module_name + "/img:i");
@@ -592,7 +592,7 @@ public:
         portSFM.open("/"+module_name+"/SFM:rpc");
         portRpc.open("/"+module_name+"/rpc");
 
-        cout<<"Ports opened"<<endl;
+        cout<<endl<<" Ports opened"<<endl;
 
         attach(portRpc);
 
@@ -618,7 +618,7 @@ public:
             robotDevice.open(option_arm);
             if (!robotDevice.isValid())
             {
-                yError("Device index not available!");
+                yError(" Device index not available!");
                 return false;
             }
 
@@ -631,7 +631,7 @@ public:
             robotDevice2.open(option_arm2);
             if (!robotDevice2.isValid())
             {
-                yError("Device 2 not available!");
+                yError(" Device 2 not available!");
                 return false;
             }
 
@@ -645,11 +645,11 @@ public:
             finger_middle=iCubFinger(left_or_right+"_middle");
 
             if (!finger_thumb.alignJointsBounds(lim_deque))
-                cout<<"problem in alignJoints!Bounds"<<endl;
+                yError(" Problem in alignJoints!Bounds");
             if (!finger_index.alignJointsBounds(lim_deque))
-                cout<<"problem in alignJoints!Bounds"<<endl;
+                yError(" Problem in alignJoints!Bounds");
             if (!finger_middle.alignJointsBounds(lim_deque))
-                cout<<"problem in alignJoints!Bounds"<<endl;
+                yError(" Problem in alignJoints!Bounds");
 
             int jnts;
             enc->getAxes(&jnts);
@@ -665,7 +665,7 @@ public:
             analogDevice.open(option_analog);
             if (!analogDevice.isValid())
             {
-                yError("Device index not available!");
+                yError(" Device index not available!");
                 return false;
             }
 
@@ -726,17 +726,16 @@ public:
             
             if (pointsIn.size()>0 && acquire==true)
             {
-                //H_hand=computePose();
                 if (change_frame)
                     fromRobotTohandFrame(pointsIn);
 
                 if (tactile_on)
                     acquireFingers();
 
-                cout<<pointsIn.size()<<" points coming from vision ";
+                yDebug()<<pointsIn.size()<<" Points coming from vision ";
                 if (tactile_on)
                     cout<<"and touch";
-                cout<<"have been collected"<<endl;
+                cout<<"have been collected"<<endl<<endl;
 
                 acquire=false;
             }
@@ -821,12 +820,11 @@ public:
                 saveNewCloud(colors, pointsOut,info);
             }
 
-            //pointsIn.clear();
             filter=false;
             fileCount++;
 
             if (online)
-                cout<<"All filters have been executed. Ready for new points filtering or acquisition "<<endl;
+                cout<<endl<<" All filters have been executed. Ready for new points filtering or acquisition "<<endl<<endl;
         }
         else
         {
@@ -879,7 +877,7 @@ public:
                 }
             }
 
-            cout<<"Number of points belonging to the blob: "<<blobPoints.size()<<endl;
+            cout<<endl<<" Number of points belonging to the blob: "<<blobPoints.size()<<endl;
 
             LockGuard lg(mutex);
 
@@ -918,7 +916,7 @@ public:
                         }
                         }
 
-                    cout << "Retrieved " << pointsIn.size() << " 3D points" <<endl;
+                    cout <<endl<< "Retrieved " << pointsIn.size() << " 3D points" <<endl<<endl;
                 }
                 else
                 {
@@ -927,7 +925,7 @@ public:
                 }
             }
             else
-                yError()<<"No blob received!";
+                yError()<<" No blob received!";
         }
 
         if (pointsIn.size()>0 && acquire==true)
@@ -963,12 +961,12 @@ public:
         Vector point_tmp;
         point_tmp.resize(6,0.0);
 
-        cout<< "In cloud file "<<homeContextPath+"/"+filename<<endl;
+        cout<< endl<<" In cloud file "<<homeContextPath+"/"+filename<<endl;
 
         ifstream cloudFile((homeContextPath+"/"+filename).c_str());
         if (!cloudFile.is_open())
         {
-            yError()<<"problem opening cloud file!";
+            yError()<<" Problem opening cloud file!";
             return false;
         }
 
@@ -1011,7 +1009,7 @@ public:
                         for( size_t i=0; i<points_tmp.size();i=i+down)
                         {
                             point_tmp=points_tmp[i];
-                            //cout<<"point "<<point_tmp.toString(3,3).c_str()<<endl;
+
                             if (what=="fingers")
                             {
                                 fingers.push_back(point_tmp);
@@ -1033,12 +1031,12 @@ public:
         int state=0;
         char line[255];
 
-        cout<< "In pose file "<<homeContextPath+"/"+poseFileName<<endl;
+        cout<<endl<< " In pose file "<<homeContextPath+"/"+poseFileName<<endl<<endl;
 
         ifstream poseFile((homeContextPath+"/"+poseFileName).c_str());
         if (!poseFile.is_open())
         {
-            yError()<<"problem opening pose file!";
+            yError()<<" Problem opening pose file!";
         }
 
         while (!poseFile.eof())
@@ -1113,11 +1111,11 @@ public:
                 fout<<position.toString()<<endl;
                 fout<<orientation.toString()<<endl;
 
-                cout<<"Pose saved in "<<fileNameFormat<<endl;
+                cout<<endl<<" Pose saved in "<<fileNameFormat<<endl<<endl;
             }
             else
             {
-                cout<<"Problems in opening pose out file!"<<endl;
+                yError(" Problems in opening pose out file!");
             }
         }
 
@@ -1174,11 +1172,11 @@ public:
                 fout<<contactPoint_index.toString()<<" 255 0 0 "<<endl;
                 fout<<contactPoint_middle.toString()<<" 255 0 0 "<<endl;
 
-                cout<<"Tactile data saved in "<<fileNameFormat<<endl;
+                cout<<endl<<" Tactile data saved in "<<fileNameFormat<<endl<<endl;
             }
             else
             {
-                cout<<"Problems in opening pose out file!"<<endl;
+                yError(" Problems in opening pose out file!");
             }
         }
     }
@@ -1196,19 +1194,16 @@ public:
 
         if (finger_str == "thumb")
         {
-            //finger_thumb.getChainJoints(encoders,enc_from_port, joints);
             finger_thumb.getChainJoints(encoders, joints);
             tipFrame=finger_thumb.getH((M_PI/180.0)*joints);
         }
         if (finger_str == "index")
         {
-            //finger_index.getChainJoints(encoders,enc_from_port, joints);
             finger_index.getChainJoints(encoders, joints);
             tipFrame=finger_index.getH((M_PI/180.0)*joints);
         }
         if (finger_str == "middle")
         {
-            //finger_middle.getChainJoints(encoders,enc_from_port, joints);
             finger_middle.getChainJoints(encoders, joints);
             tipFrame=finger_middle.getH((M_PI/180.0)*joints);
         }
@@ -1388,10 +1383,10 @@ public:
         for (size_t i=0; i<pointsIn.size(); i++)
         {
             point=&pointsIn[i];
-            cout<<"point "<<point->subVector(3,5).toString()<<endl;
+            yDebug()<<"point "<<point->subVector(3,5).toString();
             point->setSubvector(3,M_rgb2ycbcr*point->subVector(3,5) + ycbcr);
 
-            cout<<"point computed "<<point->subVector(3,5).toString()<<endl;
+            yDebug()<<"point computed "<<point->subVector(3,5).toString();
         }
     }
 
@@ -1486,7 +1481,7 @@ public:
         if (fileOutFormat == "ply")
         {
             fileNameFormat = fileName.str()+".ply";
-            cout << "Saving as " << fileNameFormat << endl;
+            cout << " Saving as " << fileNameFormat << endl;
             fout.open(fileNameFormat.c_str());
             if (fout.is_open())
             {
@@ -1508,7 +1503,7 @@ public:
                 }
 
                 fout.close();
-                cout << "Points saved as " << fileNameFormat << endl;
+                cout <<endl<< " Points saved as " << fileNameFormat << endl<<endl;
                 fileCount++;
             }
 
@@ -1516,7 +1511,7 @@ public:
         else if (fileOutFormat == "off")
         {
             fileNameFormat = fileName.str()+".off";
-            cout << "Saving as " << fileNameFormat << endl;
+            cout << " Saving as " << fileNameFormat << endl;
             fout.open(fileNameFormat.c_str());
             if (fout.is_open())
             {
@@ -1533,12 +1528,12 @@ public:
             }
 
             fout.close();
-            cout << "Points saved as " << fileNameFormat << endl;
+            cout <<endl<< " Points saved as " << fileNameFormat << endl<<endl;
             fileCount++;
         }
         else if (fileOutFormat == "none")
         {
-            cout << "Points not saved" << endl;
+            yError( " Points not saved" );
         }
         return true;
     }
@@ -1555,7 +1550,7 @@ public:
         if (fileOutFormat == "ply")
         {
             fileNameFormat = fileName.str()+".ply";
-            cout << "Saving as " << fileNameFormat << endl;
+            cout << " Saving as " << fileNameFormat << endl;
             fout.open(fileNameFormat.c_str());
             if (fout.is_open())
             {
@@ -1577,14 +1572,14 @@ public:
                 }
 
                 fout.close();
-                cout << "Points saved as " << fileNameFormat << endl;
+                cout << endl<< " Points saved as " << fileNameFormat << endl<<endl;
             }
 
         }
         else if (fileOutFormat == "off")
         {
             fileNameFormat = fileName.str()+".off";
-            cout << "Saving as " << fileNameFormat << endl;
+            cout << " Saving as " << fileNameFormat << endl;
             fout.open(fileNameFormat.c_str());
             if (fout.is_open())
             {
@@ -1606,11 +1601,11 @@ public:
             }
 
             fout.close();
-            cout << "Points saved as " << fileNameFormat << endl;
+            cout << endl<<" Points saved as " << fileNameFormat << endl<<endl;
         }
         else if (fileOutFormat == "none")
         {
-            cout << "Points not saved" << endl;
+            yError(" Points not saved");
         }
     }
 };
