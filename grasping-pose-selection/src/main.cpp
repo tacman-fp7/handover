@@ -65,7 +65,6 @@ class poseSelection : public RFModule
     string left_or_right;
 
     bool change_frame;
-    bool new_poses;
     bool online;
     bool euler;
 
@@ -113,15 +112,14 @@ class poseSelection : public RFModule
         euler_angles.resize(3,0.0);
         axis.resize(4,0.0);
         pos_hand.resize(3,0.0);
-        axis_hand.resize(4,0.0);
-        index_poses.resize(positions.size(), 0.0);
+        axis_hand.resize(4,0.0);        
 
         readPoses(positionFileName, orientationFileName);
 
+        index_poses.resize(positions.size(), 0.0);
+
         index=-1;
         length=0.06;
-
-        new_poses=false;
 
         if (online)
         {
@@ -161,65 +159,63 @@ class poseSelection : public RFModule
         if(rf.find("which_hand").isNull())
             left_or_right="left";
 
-       // if (online)
-       // {
-            Property option_arm("(device cartesiancontrollerclient)");
-            option_arm.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
-            option_arm.put("local","/"+module_name+"/cartesian/"+left_or_right+"_arm");
+        Property option_arm("(device cartesiancontrollerclient)");
+        option_arm.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
+        option_arm.put("local","/"+module_name+"/cartesian/"+left_or_right+"_arm");
 
-            robotDevice.open(option_arm);
-            if (!robotDevice.isValid())
-            {
-                yError("Device index not available!");
-                return false;
-            }
+        robotDevice.open(option_arm);
+        if (!robotDevice.isValid())
+        {
+            yError("Device index not available!");
+            return false;
+        }
 
-            robotDevice.view(icart_arm);
-            icart_arm->storeContext(&startup_context_id);
+        robotDevice.view(icart_arm);
+        icart_arm->storeContext(&startup_context_id);
 
-            if (left_or_right=="right")
-                ikin_arm=iCubArm("right_v2");
-            else
-                ikin_arm=iCubArm("left_v2");
+        if (left_or_right=="right")
+            ikin_arm=iCubArm("right_v2");
+        else
+            ikin_arm=iCubArm("left_v2");
 
-            ikin_torso=iCubTorso();
+        ikin_torso=iCubTorso();
 
-            Property option_arm2("(device remote_controlboard)");
-            option_arm2.put("remote","/"+robot+"/"+left_or_right+"_arm");
-            option_arm2.put("local","/"+module_name+"/joint/"+left_or_right+"_arm");
+        Property option_arm2("(device remote_controlboard)");
+        option_arm2.put("remote","/"+robot+"/"+left_or_right+"_arm");
+        option_arm2.put("local","/"+module_name+"/joint/"+left_or_right+"_arm");
 
-            robotDevice2.open(option_arm2);
-            if (!robotDevice2.isValid())
-            {
-                yError("Device 2 not available!");
-                return false;
-            }
+        robotDevice2.open(option_arm2);
+        if (!robotDevice2.isValid())
+        {
+            yError("Device 2 not available!");
+            return false;
+        }
 
-            robotDevice2.view(lim_arm);
+        robotDevice2.view(lim_arm);
 
-            Property option_arm3("(device remote_controlboard)");
-            option_arm3.put("remote","/"+robot+"/torso");
-            option_arm3.put("local","/"+module_name+"/joint/torso");
+        Property option_arm3("(device remote_controlboard)");
+        option_arm3.put("remote","/"+robot+"/torso");
+        option_arm3.put("local","/"+module_name+"/joint/torso");
 
-            robotDevice3.open(option_arm3);
-            if (!robotDevice3.isValid())
-            {
-                yError("Device 2 not available!");
-                return false;
-            }
+        robotDevice3.open(option_arm3);
+        if (!robotDevice3.isValid())
+        {
+            yError("Device 2 not available!");
+            return false;
+        }
 
-            robotDevice3.view(lim_torso);
+        robotDevice3.view(lim_torso);
 
-            lim_deque.push_back(lim_torso);
-            lim_deque.push_back(lim_arm);
-            if (!ikin_arm.alignJointsBounds(lim_deque))
-                yError("PROBLEMS IN ALIGNJOINTBOUNDS");
+        lim_deque.push_back(lim_torso);
+        lim_deque.push_back(lim_arm);
+        if (!ikin_arm.alignJointsBounds(lim_deque))
+            yError("PROBLEMS IN ALIGNJOINTBOUNDS");
 
-            bool rel=ikin_torso.releaseLink(0);
-            rel=rel && ikin_torso.releaseLink(1);
-            rel=rel && ikin_torso.releaseLink(2);
-            yDebug()<<"release link "<<rel;
-       // }
+        bool rel=ikin_torso.releaseLink(0);
+        rel=rel && ikin_torso.releaseLink(1);
+        rel=rel && ikin_torso.releaseLink(2);
+        yDebug()<<"release link "<<rel;
+
 
         return true;
     }
@@ -235,7 +231,7 @@ class poseSelection : public RFModule
 
         changeFrame();
 
-        showPoses();
+        //showPoses();
 
         distanceFromHand();
 
@@ -244,6 +240,8 @@ class poseSelection : public RFModule
         showPoses();
 
         choosePose();
+
+        yDebug()<<"debug 7 ";
 
         showPoses();
 
@@ -509,13 +507,10 @@ class poseSelection : public RFModule
             euler_angles[0]=rec->get(3).asDouble();
             euler_angles[1]=rec->get(4).asDouble();
             euler_angles[2]=rec->get(5).asDouble();
-            
-            new_poses=true;
         }
         else
         {
             pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2];
-            new_poses=false;
         }
         cout<<"received pose: "<<pos.toString()<<" "<<euler_angles.toString()<<endl;
 
@@ -558,10 +553,14 @@ class poseSelection : public RFModule
         for (size_t i=0; i<positions_rotated.size(); i++)
         {
             cv::Scalar color(0,255,0);
-            color[0]+=-10*index_poses[i];
-            color[1]+= 10*index_poses[i];
-            if (index_poses[i]!=0.0)
-                color[2]=0;
+            
+            if (norm(index_poses)>0.0)
+            {
+                color[0]+=-10*index_poses[i];
+                color[1]+= 10*index_poses[i];
+                if (index_poses[i]!=0.0)
+                    color[2]=0;
+            }
 
             yDebug()<<"Color of pose "<<i<<" "<<color[0]<< " "<< color[1]<<" "<<color[2];
 
@@ -590,7 +589,7 @@ class poseSelection : public RFModule
             cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
         }
 
-        if (index>=0)
+        if (index>=0 && norm(index_poses)>0.0)
         {
             cv::Scalar color(255,0,0);
             color[0]=-10*index_poses[index];
@@ -687,17 +686,23 @@ class poseSelection : public RFModule
     void distanceFromHand()
     {
         vector<double> distances(positions_rotated.size(), 0.0);
+
+        yDebug()<<"debug 1 dist ";
+
         for (size_t i=0; i<positions_rotated.size(); i++)
         {
              distances[i]=norm(positions_rotated[i] - pos_hand);
         }
+        yDebug()<<"debug 2 dist ";
 
         sort(distances.begin(), distances.end());
+
+        yDebug()<<"debug 3 dist ";
 
         for (size_t i=0; i<distances.size(); i++)
         {
             int count=0;
-            for (std::vector<double>::iterator it=distances.begin(); it!=distances.end(); ++it)
+            for (vector<double>::iterator it=distances.begin(); it!=distances.end(); ++it)
             {
                 if (norm(positions_rotated[i] - pos_hand)==*it)
                 {

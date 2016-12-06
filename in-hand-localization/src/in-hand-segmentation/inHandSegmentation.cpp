@@ -556,7 +556,7 @@ public:
         diff_rgb=rf.check("diff_rgb", Value(25)).asInt();
         diff_ycbcr=rf.check("diff_ycbcr", Value(2)).asInt();
 
-        x_lim_up=rf.check("x_lim_up", Value(0.15)).asDouble();
+        x_lim_up=rf.check("x_lim_up", Value(0.25)).asDouble();
         x_lim_down=rf.check("x_lim_down", Value(-0.1)).asDouble();
         y_lim_up=rf.check("y_lim_up", Value(0.05)).asDouble();
         y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
@@ -592,7 +592,7 @@ public:
         portSFM.open("/"+module_name+"/SFM:rpc");
         portRpc.open("/"+module_name+"/rpc");
 
-        cout<<endl<<" Ports opened"<<endl;
+        cout<<endl<<" Ports opened"<<endl<<endl;
 
         attach(portRpc);
 
@@ -732,10 +732,11 @@ public:
                 if (tactile_on)
                     acquireFingers();
 
-                yDebug()<<pointsIn.size()<<" Points coming from vision ";
+                cout<<" "<<pointsIn.size()<<" Points coming from vision ";
                 if (tactile_on)
-                    cout<<"and touch";
-                cout<<"have been collected"<<endl<<endl;
+                    cout<<" and touch";
+
+                cout<<" have been collected"<<endl<<endl;
 
                 acquire=false;
             }
@@ -834,7 +835,7 @@ public:
                 false;
         }
 
-        pointsIn.clear();
+        return true;
     }
 
     /*******************************************************************************/
@@ -916,7 +917,7 @@ public:
                         }
                         }
 
-                    cout <<endl<< "Retrieved " << pointsIn.size() << " 3D points" <<endl<<endl;
+                    cout <<endl<< " Retrieved " << pointsIn.size() << " 3D points" <<endl<<endl;
                 }
                 else
                 {
@@ -1503,7 +1504,7 @@ public:
                 }
 
                 fout.close();
-                cout <<endl<< " Points saved as " << fileNameFormat << endl<<endl;
+                cout <<endl<< " Points saved as " << fileNameFormat << endl;
                 fileCount++;
             }
 
