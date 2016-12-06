@@ -556,7 +556,7 @@ public:
         diff_rgb=rf.check("diff_rgb", Value(25)).asInt();
         diff_ycbcr=rf.check("diff_ycbcr", Value(2)).asInt();
 
-        x_lim_up=rf.check("x_lim_up", Value(0.25)).asDouble();
+        x_lim_up=rf.check("x_lim_up", Value(0.15)).asDouble();
         x_lim_down=rf.check("x_lim_down", Value(-0.1)).asDouble();
         y_lim_up=rf.check("y_lim_up", Value(0.05)).asDouble();
         y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
