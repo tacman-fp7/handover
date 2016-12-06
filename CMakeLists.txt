@@ -2,9 +2,8 @@
 # Authors: Giulia Vezzani
 # CopyPolicy: Released under the terms of the GNU GPL v2.0.
 
-### TEMPORARY CMAKELISTS FILE
-cmake_minimum_required(VERSION 2.8)
-project(in-hand-localization)
+cmake_minimum_required(VERSION 2.6)
+project(iol)
 
 find_package(ICUBcontrib REQUIRED)
 list(APPEND CMAKE_MODULE_PATH ${ICUBCONTRIB_MODULE_PATH})

@@ -1,0 +1,3 @@
+/usr/local/share/yarp/config/path.d/ICUBcontrib.ini
+/usr/local/bin/inHandSegmentation
+/usr/local/share/ICUBcontrib/contexts/inHandSegmentation/config.ini

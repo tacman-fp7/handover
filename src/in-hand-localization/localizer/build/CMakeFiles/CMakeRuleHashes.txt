@@ -1,0 +1,2 @@
+# Hashes of file build rules.
+c79d7aeb3b2d3e6726651bd664b836b1 src/localizer_IDL.cpp

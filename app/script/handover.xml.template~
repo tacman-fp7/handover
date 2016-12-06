@@ -1,0 +1,112 @@
+<application>
+    <name>handover</name>
+
+    <module>
+        <name>SFM</name>
+        <node>icub21</node>
+    </module>
+
+    <module>
+        <name>dispBlobber</name>
+        <node>icub21</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /matchViewer --x 0</parameters>
+        <node>icubNode</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /dispViewer --x 330</parameters>
+        <node>icubNode</node>
+    </module>
+
+    <module>
+            <name>yarpview</name>
+            <parameters>--name /nearBlobberViewer</parameters>
+            <node>icubNode</node>
+    </module>
+    
+    <module>
+       <name>in-hand-segmentation</name>
+       <node>icub21</node>
+    </module>
+    <module>
+       <name>yarpview</name>
+       <parameters>--name /dispCloud --out /dispBlobs/out --x 1600 --y 370 --w 600 --h 600 --p 200</parameters>
+       <node>icub22</node>
+    </module>
+
+    <connection>
+        <from>/in-hand-segmentation/SFM:rpc</from>
+        <to>/SFM/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/in-hand-segmentation/disp:o</from>
+        <to>/dispCloud</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/icub/camcalib/left/out</from>
+        <to>/in-hand-segmentation/img:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/SFM/disp:o</from>
+        <to>/in-hand-segmentation/disp:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/dispBlobber/opt:o</from>
+        <to>/in-hand-segmentation/blob:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/localizer/pnt:i</from>
+        <to>/in-hand-segmentation/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <module>
+       <name>pose-selection</name>
+       <node>icub21</node>
+    </module>
+    <module>
+       <name>yarpview</name>
+       <parameters>--name /dispPose --out /dispPose/out --x 1600 --y 370 --w 600 --h 600 --p 200</parameters>
+       <node>icub22</node>
+    </module>
+
+    <connection>
+        <from>/pose-selection/ps:rpc</from>
+        <to>/in-hand-localizer/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/pose-selection/img:o</from>
+        <to>/dispPose</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/icub/camcalib/left/out</from>
+        <to>/pose-selection/img:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/pose-selection/hn:rpc</from>
+        <to>/in-hand-segmentation/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+</application>
