@@ -106,7 +106,7 @@
     </connection>
 
     <connection>
-        <from>/localizer/pnt:i</from>
+        <from>/in-hand-localizer/pnt:i</from>
         <to>/in-hand-segmentation/rpc</to>
         <protocol>tcp</protocol>
     </connection>
