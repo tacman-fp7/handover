@@ -20,7 +20,6 @@ class localizingModule : public RFModule,
                          public localizer_IDL
 {
     string module_name;
-    string save_name;
     string homeContextPath;
     string savename;
     string fileOutFormat;
@@ -89,6 +88,26 @@ public:
         {
             pose.addDouble(result[0]);pose.addDouble(result[1]);pose.addDouble(result[2]);
             pose.addDouble(result[3]);pose.addDouble(result[4]);pose.addDouble(result[5]);
+        }
+
+        ofstream fout;
+        stringstream fileName;
+        fileName<<homeContextPath + "/" + savename<<"_"<<fileCount;
+        string fileNameFormat;
+        fileNameFormat=fileName.str()+".txt";
+        fout.open(fileNameFormat.c_str());
+        if (fout.is_open())
+        {
+            fout<<"position"<<endl<<endl;
+            fout<<result.subVector(0,2).toString()<<endl;
+            fout<<"orientation"<<endl<<endl;
+            fout<<result.subVector(3,5).toString()<<endl;
+
+            cout<<endl<<" Pose saved in "<<fileNameFormat<<endl<<endl;
+        }
+        else
+        {
+            yError(" Problems in opening pose out file!");
         }
 
         return pose;

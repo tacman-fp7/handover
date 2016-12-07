@@ -1,9 +1,0 @@
-/usr/local/share/yarp/config/path.d/ICUBcontrib.ini
-/usr/local/bin/localizer
-/usr/local/share/ICUBcontrib/contexts/localizer/config-pringles.ini
-/usr/local/share/ICUBcontrib/contexts/localizer/config-campbell.ini
-/usr/local/share/ICUBcontrib/contexts/localizer/config-5objs.ini
-/usr/local/share/ICUBcontrib/contexts/localizer/config-domino.ini
-/usr/local/share/ICUBcontrib/contexts/localizer/config-tennis.ini
-/usr/local/share/ICUBcontrib/contexts/localizer/config-spam.ini
-/usr/local/share/ICUBcontrib/contexts/localizer/config-mustard.ini

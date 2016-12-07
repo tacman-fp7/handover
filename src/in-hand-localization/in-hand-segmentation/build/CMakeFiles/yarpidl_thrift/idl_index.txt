@@ -1,2 +1,0 @@
-Bottle.h
-inHandSegmentation_IDL.h

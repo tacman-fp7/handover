@@ -583,7 +583,10 @@ class poseSelection : public RFModule
             cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
             cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255));
 
-            num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])+0.60*(z_axis_rotated[i]-positions_rotated[i]);
+            if (left_or_right=="left")
+                num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])+0.60*(z_axis_rotated[i]-positions_rotated[i]);
+            else
+                num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])-0.60*(z_axis_rotated[i]-positions_rotated[i]);
             Vector num_position2D(2,0.0);
             igaze->get2DPixel(camera, num_position,num_position2D);
             cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
@@ -616,7 +619,11 @@ class poseSelection : public RFModule
             cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
             cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255), 2);
 
-            num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])+0.60*(z_axis_rotated[index]-positions_rotated[index]);
+            if (left_or_right=="left")
+                num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])+0.60*(z_axis_rotated[index]-positions_rotated[index]);
+            else
+                num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])-0.60*(z_axis_rotated[index]-positions_rotated[index]);
+
             Vector num_position2D(2,0.0);
             igaze->get2DPixel(camera, num_position,num_position2D);
             cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
@@ -625,7 +632,7 @@ class poseSelection : public RFModule
             color[1]=0;
             color[2]=255;
             Vector center_bb(2,0.0);
-            num_position=positions_rotated[index]+0.6*(y_axis_rotated[index]-positions_rotated[index])+0.6*(z_axis_rotated[index]-positions_rotated[index]);
+            //num_position=positions_rotated[index]+0.6*(y_axis_rotated[index]-positions_rotated[index])+0.6*(z_axis_rotated[index]-positions_rotated[index]);
 
             igaze->get2DPixel(camera, num_position,center_bb);
             cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );

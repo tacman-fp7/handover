@@ -1,2 +1,0 @@
-inHandSegmentation_IDL.h
-inHandSegmentation_IDL.cpp

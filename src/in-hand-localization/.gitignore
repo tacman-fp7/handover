@@ -6,8 +6,8 @@
 #Build folder
 ./*/build/
 /build/
-/src/in-hand-segmentation/build/
-/src/localizer/build/
+/in-hand-segmentation/build/
+/localizer/build/
 
 # Linux temp files
 *~
