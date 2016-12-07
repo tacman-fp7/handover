@@ -41,7 +41,10 @@ using namespace yarp::sig;
 using namespace yarp::math;
 using namespace iCub::iKin;
 
-class poseSelection : public RFModule
+#include "src/poseSelection_IDL.h"
+
+class poseSelection : public RFModule,
+                      public poseSelection_IDL
 {
     Matrix H_object;
     Matrix H_hand;
@@ -65,6 +68,7 @@ class poseSelection : public RFModule
     string left_or_right;
 
     bool change_frame;
+    bool update_pose;
     bool online;
     bool euler;
 
@@ -91,8 +95,23 @@ class poseSelection : public RFModule
     RpcClient portPoseIn;
     RpcClient portHandIn;
 
+    RpcServer portRpc;
+
     BufferedPort<ImageOf<PixelRgb> > portImgIn;
     BufferedPort<ImageOf<PixelRgb> > portImgOut;
+
+    /************************************************************************/
+    bool attach(RpcServer &source)
+    {
+        return this->yarp().attachAsServer(source);
+    }
+
+    /************************************************************************/
+    bool ask_new_pose()
+    {
+        update_pose=true;
+        return true;
+    }
 
     /*********************************************************/
     bool configure(ResourceFinder &rf)
@@ -120,6 +139,7 @@ class poseSelection : public RFModule
 
         index=-1;
         length=0.06;
+        update_pose=false;
 
         if (online)
         {
@@ -134,8 +154,11 @@ class poseSelection : public RFModule
             H_hand=readPoseObjectAndHand(handPoseFileName);
         }
 
+        portRpc.open("/"+module_name+"/rpc");
         portImgIn.open("/" + module_name + "/img:i");
         portImgOut.open("/" + module_name + "/img:o");
+
+        attach(portRpc);
 
         Property optionG;
         optionG.put("device","gazecontrollerclient");
@@ -225,7 +248,8 @@ class poseSelection : public RFModule
     {
         if (online)
         {
-            H_object=askForObjectPose();
+            if (update_pose)
+                H_object=askForObjectPose();
             H_hand=askForHandPose();
         }
 
@@ -236,12 +260,10 @@ class poseSelection : public RFModule
         distanceFromHand();
 
         manipulability();
-
+        
         showPoses();
 
         choosePose();
-
-        yDebug()<<"debug 7 ";
 
         showPoses();
 
@@ -256,6 +278,7 @@ class poseSelection : public RFModule
     {
         portPoseIn.close();
         portHandIn.close();
+        portRpc.close();
         portImgIn.close();
         portImgOut.close();
         return true;
@@ -266,6 +289,7 @@ class poseSelection : public RFModule
     {
         portPoseIn.interrupt();
         portHandIn.interrupt();
+        portRpc.interrupt();
         portImgIn.close();
         portImgOut.close();
         return true;
@@ -550,46 +574,50 @@ class poseSelection : public RFModule
         int x_shift, y_shift;
         Vector num_position(3,0.0);
 
-        for (size_t i=0; i<positions_rotated.size(); i++)
+        if ( norm(pos)>0.0)
         {
-            cv::Scalar color(0,255,0);
-            
-            if (norm(index_poses)>0.0)
+
+            for (size_t i=0; i<positions_rotated.size(); i++)
             {
-                color[0]+=-10*index_poses[i];
-                color[1]+= 10*index_poses[i];
-                if (index_poses[i]!=0.0)
-                    color[2]=0;
+                cv::Scalar color(0,255,0);
+                
+                if (norm(index_poses)>0.0)
+                {
+                    color[0]+=-10*index_poses[i];
+                    color[1]+= 10*index_poses[i];
+                    if (index_poses[i]!=0.0)
+                        color[2]=0;
+                }
+
+                yDebug()<<"Color of pose "<<i<<" "<<color[0]<< " "<< color[1]<<" "<<color[2];
+
+                stringstream i_string;
+                i_string<<i;
+
+                igaze->get2DPixel(camera, positions_rotated[i],position_2D);            
+                cv::Point pixel2D(position_2D[0],position_2D[1]);
+
+                igaze->get2DPixel(camera, x_axis_rotated[i],axis_2D);
+                cv::Point pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+                cv::line(imgOutMat,pixel2D,pixel_axis_x2D,cv::Scalar(255,0,0));
+
+                igaze->get2DPixel(camera, y_axis_rotated[i],axis_2D);
+                cv::Point pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+                cv::line(imgOutMat,pixel2D,pixel_axis_y2D,cv::Scalar(0,255,0));
+
+                igaze->get2DPixel(camera, z_axis_rotated[i],axis_2D);
+                cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+                cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255));
+
+                if (left_or_right=="left")
+                    num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])+0.60*(z_axis_rotated[i]-positions_rotated[i]);
+                else
+                    num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])-0.60*(z_axis_rotated[i]-positions_rotated[i]);
+                Vector num_position2D(2,0.0);
+                igaze->get2DPixel(camera, num_position,num_position2D);
+                cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
             }
-
-            yDebug()<<"Color of pose "<<i<<" "<<color[0]<< " "<< color[1]<<" "<<color[2];
-
-            stringstream i_string;
-            i_string<<i;
-
-            igaze->get2DPixel(camera, positions_rotated[i],position_2D);            
-            cv::Point pixel2D(position_2D[0],position_2D[1]);
-
-            igaze->get2DPixel(camera, x_axis_rotated[i],axis_2D);
-            cv::Point pixel_axis_x2D(axis_2D[0],axis_2D[1]);
-
-            cv::line(imgOutMat,pixel2D,pixel_axis_x2D,cv::Scalar(255,0,0));
-
-            igaze->get2DPixel(camera, y_axis_rotated[i],axis_2D);
-            cv::Point pixel_axis_y2D(axis_2D[0],axis_2D[1]);
-            cv::line(imgOutMat,pixel2D,pixel_axis_y2D,cv::Scalar(0,255,0));
-
-            igaze->get2DPixel(camera, z_axis_rotated[i],axis_2D);
-            cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
-            cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255));
-
-            if (left_or_right=="left")
-                num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])+0.60*(z_axis_rotated[i]-positions_rotated[i]);
-            else
-                num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])-0.60*(z_axis_rotated[i]-positions_rotated[i]);
-            Vector num_position2D(2,0.0);
-            igaze->get2DPixel(camera, num_position,num_position2D);
-            cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
         }
 
         if (index>=0 && norm(index_poses)>0.0)

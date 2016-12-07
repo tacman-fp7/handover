@@ -49,6 +49,7 @@ protected:
     string visionFileName;
     string fingersFileName;
     string poseFileName;
+    string handPoseFileName;
     string poseOutFileName;
     string fingersOutFileName;
     string robot;
@@ -261,6 +262,25 @@ protected:
         Bottle &handb=poseInfo.addList();
         handb.addString("hand");
         handb.addString(left_or_right);
+
+        ofstream fout;
+        stringstream fileName;
+        string fileNameFormat;
+        fileName<<homeContextPath + "/" +savename+ "_recorded_hand_pose"+"_"+left_or_right+"_"<<fileCount;
+        fileNameFormat= fileName.str()+".off";
+        fout.open(fileNameFormat.c_str());
+        if (fout.is_open())
+        {
+            fout<<"position"<<endl;
+            fout<<position.toString()<<endl<<endl;
+            fout<<"orientation"<<endl;
+            fout<<orientation.toString()<<endl;
+            cout<<endl<<" Hand pose data saved in "<<fileNameFormat<<endl<<endl;
+        }
+        else
+        {
+            yError(" Problems in opening pose out file!");
+        }
 
         return poseInfo;
     }
@@ -531,6 +551,7 @@ public:
         visionFileName=rf.check("fileInName", Value("cloud.off"), "Default cloud name").asString();
         poseFileName=rf.check("poseFileName", Value("hand_pose.off"), "Default pose file name").asString();
         fingersFileName=rf.check("fingersFileName", Value("tactile_hand_pose.off"), "Default fingers positions file name").asString();
+        handPoseFileName=rf.check("handPoseFileName", Value("recorded_hand_pose.off"), "Default pose file name").asString();
 
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         tactile_on=(rf.check("tactile_on", Value("yes"), "use or not finger positions").asString()== "yes");

@@ -38,6 +38,7 @@ class localizingModule : public RFModule,
     bool saving;
     bool localize;
     bool acquire;
+    bool pose_saved;
     bool pose_computed;
     bool enabled_touch;
 
@@ -88,26 +89,28 @@ public:
         {
             pose.addDouble(result[0]);pose.addDouble(result[1]);pose.addDouble(result[2]);
             pose.addDouble(result[3]);pose.addDouble(result[4]);pose.addDouble(result[5]);
-        }
+        
 
-        ofstream fout;
-        stringstream fileName;
-        fileName<<homeContextPath + "/" + savename<<"_"<<fileCount;
-        string fileNameFormat;
-        fileNameFormat=fileName.str()+".txt";
-        fout.open(fileNameFormat.c_str());
-        if (fout.is_open())
-        {
-            fout<<"position"<<endl<<endl;
-            fout<<result.subVector(0,2).toString()<<endl;
-            fout<<"orientation"<<endl<<endl;
-            fout<<result.subVector(3,5).toString()<<endl;
+            ofstream fout;
+            stringstream fileName;
+            fileName<<homeContextPath + "/" + savename<<"_"<<fileCount;
+            string fileNameFormat;
+            fileNameFormat=fileName.str()+".txt";
+            fout.open(fileNameFormat.c_str());
+            if (fout.is_open() && pose_saved==false)
+            {
+                fout<<"position"<<endl<<endl;
+                fout<<result.subVector(0,2).toString()<<endl;
+                fout<<"orientation"<<endl<<endl;
+                fout<<result.subVector(3,5).toString()<<endl;
+                pose_saved=true;
 
-            cout<<endl<<" Pose saved in "<<fileNameFormat<<endl<<endl;
-        }
-        else
-        {
-            yError(" Problems in opening pose out file!");
+                cout<<endl<<" Pose saved in "<<fileNameFormat<<endl<<endl;
+            }
+            else
+            {
+                pose_saved=false;
+            }
         }
 
         return pose;
@@ -135,6 +138,7 @@ public:
 
         pose_computed=false;
         acquire=false;
+        pose_saved=false;
 
         if (online)
             localize=false;
@@ -225,6 +229,7 @@ public:
 
                                 delete loc5;
                                 pose_computed=true;
+                                pose_saved=false;
                             }
 
                             Localizer *loc5=new UnscentedParticleFilter();
