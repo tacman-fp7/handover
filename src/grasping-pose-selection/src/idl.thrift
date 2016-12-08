@@ -29,4 +29,21 @@ service poseSelection_IDL
     */
     bool ask_new_pose();
 
+    /**
+    * Set boolean variable move equal to true
+    * @return true/false on success/failure
+    */
+    bool reach_pose();
+
+    /**
+    * Set boolean variable select_new_pose equal to true
+    * @return true/false on success/failure
+    */
+    bool choose_new_pose();
+
+    /**
+    * go home the moving arm
+    * @return true/false on success/failure
+    */
+    bool go_home();
 }

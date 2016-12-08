@@ -250,7 +250,8 @@ protected:
     /***********************************************************************/
     Bottle get_pose()
     {
-        icart_arm->getPose(position,orientation);
+        if (online)
+            icart_arm->getPose(position,orientation);
 
         Bottle poseInfo;
         Bottle &positionInfo=poseInfo.addList();
@@ -288,9 +289,18 @@ protected:
     /***********************************************************************/
     Bottle get_tactile_data()
     {
-        giveContactPoint(contactPoint_thumb, "thumb");
-        giveContactPoint(contactPoint_index, "index");
-        giveContactPoint(contactPoint_middle, "middle");
+        if (online)
+        {
+            giveContactPoint(contactPoint_thumb, "thumb");
+            giveContactPoint(contactPoint_index, "index");
+            giveContactPoint(contactPoint_middle, "middle");
+        }
+        else
+        {
+            contactPoint_thumb=fingers[0];
+            contactPoint_index=fingers[1];
+            contactPoint_middle=fingers[2];
+        }
 
         if (frame == "hand")
         {
@@ -597,7 +607,7 @@ public:
         a_offset=rf.check("a_offset", Value(0.03)).asDouble();
         b_offset=rf.check("b_offset", Value(0.015)).asDouble();
 
-        cout<<endl<<" Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl<<endl;
+        cout<<endl<<" Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl;
 
         fileCount=0;
         down= rf.check("downsampling", Value(1)).asInt();
@@ -613,7 +623,7 @@ public:
         portSFM.open("/"+module_name+"/SFM:rpc");
         portRpc.open("/"+module_name+"/rpc");
 
-        cout<<endl<<" Ports opened"<<endl<<endl;
+        cout<<endl<<" Ports opened"<<endl;
 
         attach(portRpc);
 
@@ -703,14 +713,23 @@ public:
     /*******************************************************************************/
     bool interruptModule()
     {
-        portDispIn.interrupt();
-        portImgIn.interrupt();
-        portBlobIn.interrupt();
+        if (!portDispIn.isClosed())
+            portDispIn.interrupt();
 
-        portDispOut.interrupt();
+        if (!portImgIn.isClosed())
+            portImgIn.interrupt();
 
-        portSFM.interrupt();
-        portRpc.interrupt();
+        if (!portBlobIn.isClosed())
+            portBlobIn.interrupt();
+
+        if (!portImgIn.isClosed())
+            portDispOut.interrupt();
+
+        if (portSFM.asPort().isOpen())
+            portSFM.interrupt();
+
+        if (portRpc.asPort().isOpen())
+            portRpc.interrupt();
 
         return true;
     }
@@ -718,14 +737,23 @@ public:
     /*******************************************************************************/
     bool close()
     {
-        portDispIn.close();
-        portImgIn.close();
-        portBlobIn.close();
+        if (!portDispIn.isClosed())
+            portDispIn.close();
 
-        portDispOut.close();
+        if (!portImgIn.isClosed())
+            portImgIn.close();
 
-        portSFM.close();
-        portRpc.close();
+        if (!portBlobIn.isClosed())
+            portBlobIn.close();
+
+        if (!portImgIn.isClosed())
+            portDispOut.close();
+
+        if (portSFM.asPort().isOpen())
+            portSFM.close();
+
+        if (portRpc.asPort().isOpen())
+            portRpc.close();
 
         return true;
     }
@@ -762,7 +790,7 @@ public:
                 acquire=false;
             }
         }
-        else
+        else if (pointsIn.size()==0)
         {
             readPoints(visionFileName, "points");
             H_hand=readPose();
@@ -1053,7 +1081,7 @@ public:
         int state=0;
         char line[255];
 
-        cout<<endl<< " In pose file "<<homeContextPath+"/"+poseFileName<<endl<<endl;
+        cout<<endl<< " In pose file "<<homeContextPath+"/"+poseFileName<<endl;
 
         ifstream poseFile((homeContextPath+"/"+poseFileName).c_str());
         if (!poseFile.is_open())
@@ -1503,7 +1531,6 @@ public:
         if (fileOutFormat == "ply")
         {
             fileNameFormat = fileName.str()+".ply";
-            cout << " Saving as " << fileNameFormat << endl;
             fout.open(fileNameFormat.c_str());
             if (fout.is_open())
             {
@@ -1533,7 +1560,6 @@ public:
         else if (fileOutFormat == "off")
         {
             fileNameFormat = fileName.str()+".off";
-            cout << " Saving as " << fileNameFormat << endl;
             fout.open(fileNameFormat.c_str());
             if (fout.is_open())
             {
@@ -1550,7 +1576,7 @@ public:
             }
 
             fout.close();
-            cout <<endl<< " Points saved as " << fileNameFormat << endl<<endl;
+            cout <<endl<< " Points saved as " << fileNameFormat << endl;
             fileCount++;
         }
         else if (fileOutFormat == "none")
@@ -1572,7 +1598,6 @@ public:
         if (fileOutFormat == "ply")
         {
             fileNameFormat = fileName.str()+".ply";
-            cout << " Saving as " << fileNameFormat << endl;
             fout.open(fileNameFormat.c_str());
             if (fout.is_open())
             {
@@ -1594,14 +1619,13 @@ public:
                 }
 
                 fout.close();
-                cout << endl<< " Points saved as " << fileNameFormat << endl<<endl;
+                cout << endl<< " Points saved as " << fileNameFormat << endl;
             }
 
         }
         else if (fileOutFormat == "off")
         {
             fileNameFormat = fileName.str()+".off";
-            cout << " Saving as " << fileNameFormat << endl;
             fout.open(fileNameFormat.c_str());
             if (fout.is_open())
             {
@@ -1623,7 +1647,7 @@ public:
             }
 
             fout.close();
-            cout << endl<<" Points saved as " << fileNameFormat << endl<<endl;
+            cout << endl<<" Points saved as " << fileNameFormat << endl;
         }
         else if (fileOutFormat == "none")
         {
