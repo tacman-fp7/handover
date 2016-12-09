@@ -46,4 +46,10 @@ service poseSelection_IDL
     * @return true/false on success/failure
     */
     bool go_home();
+
+    /**
+    * select the pose
+    * @return true/false on success/failure
+    */
+    bool select_pose(1:i32 entry);
 }

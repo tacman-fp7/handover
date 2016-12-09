@@ -143,11 +143,22 @@ class poseSelection : public RFModule,
     {
         icart_arm_move->goToPose(x_init_moving_arm, o_init_moving_arm);
         icart_arm_move->waitMotionDone(2.0);
-
-//        icart_arm_rest->goToPose(x_init_resting_arm, o_init_resting_arm);
-//        icart_arm_rest->waitMotionDone(1.0);
-
         return true;
+    }
+
+    /************************************************************************/
+    bool select_pose(int entry)
+    {
+        if (entry>=0 && entry<positions.size())
+        {
+            Vector qdhat(10,0.0);
+            index=entry;
+            icart_arm_move->askForPose(positions_rotated[index], od[index], xd_h, od_h, qdhat);
+            select_new_pose=false;
+            return true;
+        }
+        else
+            return false;
     }
 
     /*********************************************************/
@@ -850,14 +861,14 @@ class poseSelection : public RFModule,
 
         for (size_t i=0; i<distances.size(); i++)
         {
-            int count=0;
+            double count=-1;
             for (vector<double>::iterator it=distances.begin(); it!=distances.end(); ++it)
             {
+                count++;
                 if (norm(positions_rotated[i] - pos_hand)==*it)
                 {
-                    index_poses[i]= (count - 8);
+                    index_poses[i]= (count - 8);                    
                 }
-                count++;
             }
         }
 
@@ -888,7 +899,18 @@ class poseSelection : public RFModule,
             od.push_back(dcm2axis(orient));
 
             icart_arm_move->askForPose(positions_rotated[i], od[i], xdhat, odhat, qdhat);
-            err_orient.push_back(norm(od[i] -odhat));
+//            Vector euled, euledhat;
+//            euled.resize(3,0.0);
+//            euledhat.resize(3,0.0);
+//            euled=dcm2euler(orient);
+//            Matrix orienthat=axis2dcm(odhat);
+//            euledhat=dcm2euler(orienthat);
+//            Vector diff(3,0.0);
+//            diff[0]=fmod(euled[0]-euledhat[0], 3.14);
+//            diff[1]=fmod(euled[1]-euledhat[1], 1.57);
+//            diff[2]=fmod(euled[2]-euledhat[2], 3.14);
+//            err_orient.push_back(norm(diff));
+            err_orient.push_back(norm(od[i].subVector(0,2)-odhat.subVector(0,2)+ abs(fmod(od[i][3]-odhat[3], 6.28))));
             err_pos.push_back(norm(positions_rotated[i]-xdhat));
             yDebug()<<" Error in orientation for pose "<<i<<": "<<err_orient[i];
             yDebug()<<" Error in position "<<i<<": "<<err_pos[i];

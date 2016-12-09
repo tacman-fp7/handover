@@ -567,12 +567,12 @@ public:
         tactile_on=(rf.check("tactile_on", Value("yes"), "use or not finger positions").asString()== "yes");
         frame=rf.check("frame", Value("hand"), "in which frame save finger positions").asString();
 
-        density_filter=(rf.check("density_filter", Value("no")).asString()=="yes");
+        density_filter=(rf.check("density_filter", Value("yes")).asString()=="yes");
         hand_filter=(rf.check("hand_filter", Value("yes")).asString()=="yes");
         change_frame=(rf.check("change_frame", Value("yes")).asString()=="yes");
-        coarse_filter=(rf.check("coarse_filter", Value("no")).asString()=="yes");
+        coarse_filter=(rf.check("coarse_filter", Value("yes")).asString()=="yes");
         cylinder_filter=(rf.check("cylinder_filter", Value("no")).asString()=="yes");
-        ellipse_filter=(rf.check("ellipse_filter", Value("no")).asString()=="yes");
+        ellipse_filter=(rf.check("ellipse_filter", Value("yes")).asString()=="yes");
         color_space=rf.check("color_code", Value("rgb")).asString();
 
         if (tactile_on==false)
@@ -1509,13 +1509,20 @@ public:
         vector<Vector> pointsTmp=points;
         pointsOut.clear();
 
-        graspableEllips(fingers);
-
-        for (size_t i=0;i<pointsTmp.size(); i++)
+        if (fingers.size()>0)
         {
-            Vector point=pointsTmp[i];
-            if ((point[0]-center_ellips[0])*(point[0]-center_ellips[0])*(b+b_offset)*(b+b_offset) + (point[2]-center_ellips[1])*(point[2]-center_ellips[1])*(a+a_offset)*(a+a_offset) - (a+a_offset)*(a+a_offset)*(b+b_offset)*(b+b_offset)<0 )
-                pointsOut.push_back(point);
+            graspableEllips(fingers);
+            for (size_t i=0;i<pointsTmp.size(); i++)
+            {
+                Vector point=pointsTmp[i];
+                if ((point[0]-center_ellips[0])*(point[0]-center_ellips[0])*(b+b_offset)*(b+b_offset) + (point[2]-center_ellips[1])*(point[2]-center_ellips[1])*(a+a_offset)*(a+a_offset) - (a+a_offset)*(a+a_offset)*(b+b_offset)*(b+b_offset)<0 )
+                    pointsOut.push_back(point);
+            }
+        }
+        else
+        {
+            cout<<endl;
+            yError()<<" Please, provide fingers positions";
         }
     }
 
