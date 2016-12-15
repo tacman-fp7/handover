@@ -566,6 +566,7 @@ public:
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         tactile_on=(rf.check("tactile_on", Value("yes"), "use or not finger positions").asString()== "yes");
         frame=rf.check("frame", Value("hand"), "in which frame save finger positions").asString();
+	acquire=(rf.check("acquire", Value("no")).asString()=="yes");
 
         density_filter=(rf.check("density_filter", Value("yes")).asString()=="yes");
         hand_filter=(rf.check("hand_filter", Value("yes")).asString()=="yes");
