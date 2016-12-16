@@ -830,7 +830,7 @@ public:
                 saveNewCloud(colors, pointsOut, info);
             }
 
-            if (density_filter && pointsIn.size()>0)
+            if (density_filter && pointsIn.size()>0 && pointsOut.size()>0)
             {
                 colors[0]=255;
                 colors[2]=0;
@@ -842,7 +842,7 @@ public:
                 saveNewCloud(colors, pointsOut, info);
             }
 
-            if (cylinder_filter && pointsIn.size()>0 )
+            if (cylinder_filter && pointsIn.size()>0 && pointsOut.size()>0)
             {
                 colors[1]=255;
                 if ((density_filter==true || hand_filter==true)==true)
@@ -853,7 +853,7 @@ public:
 
                 saveNewCloud(colors, pointsOut,info);
             }
-            else if (ellipse_filter && pointsIn.size()>0 )
+            else if (ellipse_filter && pointsIn.size()>0 && pointsOut.size()>0)
             {
                 colors[1]=255;
                 if ((density_filter==true || hand_filter==true)==true)
