@@ -18,6 +18,14 @@ The modules are located under the `src` directory:
 
 ## How to compile
 
+### Prerequisities
+
+- [YARP](http://www.yarp.it/install.html)
+- [icub-main and icub-contrib](http://wiki.icub.org/wiki/ICub_Software_Installation)
+- [CGAL 4.7](https://github.com/CGAL/cgal)
+
+### Compiling the code
+
 Currently, the code for pose selection and for object segmentation has to be compiled separatly. An example for Linux system is following. 
 
 In `grasping-pose-selection`, in `in-hand-localization/in-hand-segmentation` and `in-hand-localization/in-hand-localizer` directories:
