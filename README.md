@@ -40,7 +40,7 @@ The developed code can be run both on the **iCub simulator** and on the **real r
 ### Running the modules
 
 1. launch `pose-selection`, `in-hand-segmentation` and `in-hand-localizer` (the three binaries obtained after compilation)
-2. make all the connections (by using the [`handover.xml.template`](https://github.com/tacman-fp7/handover/blob/master/app/script/handover.xml.template) file)
+2. make all the connections (see the [`handover.xml.template`](https://github.com/tacman-fp7/handover/blob/master/app/script/handover.xml.template) file)
 
 You can play with the modules by using 3 rpc ports. Several commands are available,  but the most important ones are:
 
