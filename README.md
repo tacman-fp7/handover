@@ -20,7 +20,7 @@ The modules are located under the `src` directory:
 
 Currently, the code for pose selection and for object segmentation has to be compiled separatly. An example for Linux system is following. 
 
-In `grasping-pose-selection`, in `in-hand-localization/src/in-hand-segmentation` and `in-hand-localization/src/in-hand-localizer` directories:
+In `grasping-pose-selection`, in `in-hand-localization/in-hand-segmentation` and `in-hand-localization/in-hand-localizer` directories:
 ```
  mkdir build
  cd build
