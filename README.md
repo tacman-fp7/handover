@@ -1,7 +1,7 @@
 # handover
 Code and project activities to deal with Task 4.4.
 
-## Final Goal and Methodology
+## Final Goal
 
 The final goal consists of making the robot able to transfer objects from one hand to the other. In particular:
 - the robot is given an object in one of its hand (names as _first hand_)
@@ -20,7 +20,7 @@ The modules are located under the `src` directory:
 
 Currently, the code for pose selection and for object segmentation has to be compiled separatly. An example for Linux system is following. 
 
-In the `grasping-pose-selection` and in `in-hand-localization` directories:
+In `grasping-pose-selection` and in `in-hand-localization` directories:
 ```
  mkdir build
  cd build
