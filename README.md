@@ -42,9 +42,9 @@ The developed code can be run both on the **iCub simulator** and on the **real r
 1. launch `pose-selection`, `in-hand-segmentation` and `in-hand-localizer` (the three binaries obtained after compilation)
 2. make all the connections (by using the [`handover.xml.template`](https://github.com/tacman-fp7/handover/blob/master/app/script/handover.xml.template) file)
 
-You can play with the modules by using 3 rpc ports:
+You can play with the modules by using 3 rpc ports. Several commands are available,  but the most important ones are:
 
-- `/in-hand-segmentation/rpc`. Several commands are available,  but the most important ones are:
+- `/in-hand-segmentation/rpc`:
       - `go_acquire` to acquire in-hand object point cloud
       - `go_filter` to filter it
 - `/in-hand-localizer/rpc`:
@@ -52,6 +52,11 @@ You can play with the modules by using 3 rpc ports:
       - `go_localize` to localize the object
 - `/pose-selection/rpc`:
      - `ask_new_pose`: to get the estimated object pose and select a good pose for the _second hand_
+
+What you can see on  yarpviews is the blob selected for point cloud extraction and the selected pose on the object.
+Here, you can find an example of [the selected blob](https://github.com/tacman-fp7/handover/issues/17#issuecomment-267567631) and [the selected pose](https://github.com/tacman-fp7/handover/issues/15#issuecomment-265692371).
+
+
 
 
 
