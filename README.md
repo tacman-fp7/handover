@@ -20,7 +20,7 @@ The modules are located under the `src` directory:
 
 Currently, the code for pose selection and for object segmentation has to be compiled separatly. An example for Linux system is following. 
 
-In `grasping-pose-selection` and in `in-hand-localization` directories:
+In `grasping-pose-selection`, in `in-hand-localization/src/in-hand-segmentation` and `in-hand-localization/src/in-hand-localizer` directories:
 ```
  mkdir build
  cd build
@@ -30,10 +30,28 @@ In `grasping-pose-selection` and in `in-hand-localization` directories:
 
 ## How to run 
 
-A description on how to play with the two modules is provided at the following links:
+The developed code can be run both on the **iCub simulator** and on the **real robot**.
 
-- [**`grasping-pose-selection`**](https://github.com/tacman-fp7/handover/tree/master/src/grasping-pose-selection/app)
-- [**`in-hand-localization`**](https://github.com/tacman-fp7/handover/tree/master/src/in-hand-localization/in-hand-segmentation/app)
+### Prerequisities
+
+1. [`CalibCameras`](http://wiki.icub.org/brain/group__icub__camCalib.html)
+2. `iCubStartup` (in particular [`iKinCartesianSolver`](http://wiki.icub.org/brain/group__iKinCartesianSolver.html) for both arms,[`iKinGazeCtrl`](http://eris.liralab.it/iCub/main/dox/html/group__iKinGazeCtrl.html) )
+
+### Running the modules
+
+1. launch `pose-selection`, `in-hand-segmentation` and `in-hand-localizer` (the three binaries obtained after compilation)
+2. make all the connections (by using the [`handover.xml.template`](https://github.com/tacman-fp7/handover/blob/master/app/script/handover.xml.template) file)
+
+You can play with the modules by using 3 rpc ports:
+
+- `/in-hand-segmentation/rpc`. Several commands are available,  but the most important ones are:
+      - `go_acquire` to acquire in-hand object point cloud
+      - `go_filter` to filter it
+- `/in-hand-localizer/rpc`:
+      - `go_acquire` to get the  filtered object point cloud
+      - `go_localize` to localize the object
+- `/pose-selection/rpc`:
+     - `ask_new_pose`: to get the estimated object pose and select a good pose for the _second hand_
 
 
 
