@@ -107,6 +107,7 @@ class poseSelection : public RFModule,
 
     RpcServer portRpc;
 
+    ImageOf<PixelRgb> *imgIn;
     BufferedPort<ImageOf<PixelRgb> > portImgIn;
     BufferedPort<ImageOf<PixelRgb> > portImgOut;
 
@@ -326,6 +327,8 @@ class poseSelection : public RFModule,
         bool rel=ikin_torso.releaseLink(0);
         rel=rel && ikin_torso.releaseLink(1);
         rel=rel && ikin_torso.releaseLink(2);
+
+        imgIn=NULL;
 
         return true;
     }
@@ -668,9 +671,17 @@ class poseSelection : public RFModule,
     /*******************************************************************************/
     bool showPoses()
     {
-        ImageOf<PixelRgb> *imgIn=portImgIn.read();
         if (imgIn==NULL)
-            return false;
+        {
+            imgIn=portImgIn.read(false);
+            if (imgIn==NULL)
+            {
+                yError()<<" Please, connect the cameras!";
+                return true;
+            }
+        }
+        else
+            imgIn=portImgIn.read();
 
         ImageOf<PixelRgb> &imgOut=portImgOut.prepare();
         imgOut.resize(imgIn->width(),imgIn->height());
@@ -723,10 +734,10 @@ class poseSelection : public RFModule,
                 cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
                 cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255));
 
-                if (left_or_right=="left")
-                    num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])+0.60*(z_axis_rotated[i]-positions_rotated[i]);
+                if (left_or_right=="right")
+                    num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])-0.40*(z_axis_rotated[i]-positions_rotated[i]);
                 else
-                    num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])-0.60*(z_axis_rotated[i]-positions_rotated[i]);
+                    num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])+0.40*(z_axis_rotated[i]-positions_rotated[i]);
                 Vector num_position2D(2,0.0);
                 igaze->get2DPixel(camera, num_position,num_position2D);
                 cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
@@ -760,10 +771,10 @@ class poseSelection : public RFModule,
             cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
             cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255), 2);
 
-            if (left_or_right=="left")
-                num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])+0.60*(z_axis_rotated[index]-positions_rotated[index]);
+            if (left_or_right=="right")
+                num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])-0.40*(z_axis_rotated[index]-positions_rotated[index]);
             else
-                num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])-0.60*(z_axis_rotated[index]-positions_rotated[index]);
+                num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])+0.40*(z_axis_rotated[index]-positions_rotated[index]);
 
             Vector num_position2D(2,0.0);
             igaze->get2DPixel(camera, num_position,num_position2D);
@@ -910,7 +921,8 @@ class poseSelection : public RFModule,
 //            diff[1]=fmod(euled[1]-euledhat[1], 1.57);
 //            diff[2]=fmod(euled[2]-euledhat[2], 3.14);
 //            err_orient.push_back(norm(diff));
-            err_orient.push_back(norm(od[i].subVector(0,2)-odhat.subVector(0,2)+ abs(fmod(od[i][3]-odhat[3], 6.28))));
+            yDebug()<<" od "<<od[i].toString() ;
+            err_orient.push_back(norm(od[i].subVector(0,2)-odhat.subVector(0,2)+ abs(fmod(od[i][3]-odhat[3], 2*M_PI))));
             err_pos.push_back(norm(positions_rotated[i]-xdhat));
             yDebug()<<" Error in orientation for pose "<<i<<": "<<err_orient[i];
             yDebug()<<" Error in position "<<i<<": "<<err_pos[i];
