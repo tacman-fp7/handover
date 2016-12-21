@@ -1245,17 +1245,17 @@ public:
 
         if (finger_str == "thumb")
         {
-            finger_thumb.getChainJoints(encoders, joints);
+            finger_thumb.getChainJoints(encoders,enc_from_port, joints);
             tipFrame=finger_thumb.getH((M_PI/180.0)*joints);
         }
         if (finger_str == "index")
         {
-            finger_index.getChainJoints(encoders, joints);
+            finger_index.getChainJoints(encoders, enc_from_port,joints);
             tipFrame=finger_index.getH((M_PI/180.0)*joints);
         }
         if (finger_str == "middle")
         {
-            finger_middle.getChainJoints(encoders, joints);
+            finger_middle.getChainJoints(encoders, enc_from_port,joints);
             tipFrame=finger_middle.getH((M_PI/180.0)*joints);
         }
 
