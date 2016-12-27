@@ -13,6 +13,7 @@
 #include <yarp/math/Math.h>
 #include <yarp/dev/Drivers.h>
 #include <iCub/iKin/iKinFwd.h>
+#include <yarp/dev/GazeControl.h>
 
 #include <yarp/dev/CartesianControl.h>
 #include <yarp/dev/PolyDriver.h>
@@ -80,6 +81,7 @@ protected:
     bool saving;
     bool acquire;
     bool online;
+    bool fixate;
     bool tactile_on;
     bool filter;
     bool change_frame;
@@ -92,9 +94,11 @@ protected:
     PolyDriver robotDevice;
     PolyDriver robotDevice2;
     PolyDriver analogDevice;
+    PolyDriver clientGazeCtrl;
 
     ICartesianControl *icart_arm;
     ICartesianControl *icart_arm2;
+    IGazeControl *igaze;
     IEncoders *enc;
     IAnalogSensor *analog;
     Vector encoders;
@@ -567,6 +571,7 @@ public:
         tactile_on=(rf.check("tactile_on", Value("yes"), "use or not finger positions").asString()== "yes");
         frame=rf.check("frame", Value("hand"), "in which frame save finger positions").asString();
 	acquire=(rf.check("acquire", Value("no")).asString()=="yes");
+        fixate=(rf.check("fixate", Value("no")).asString()=="yes");
 
         density_filter=(rf.check("density_filter", Value("yes")).asString()=="yes");
         hand_filter=(rf.check("hand_filter", Value("yes")).asString()=="yes");
@@ -704,6 +709,20 @@ public:
             analogDevice.view(analog);
 
             H_hand=computePose();
+
+            Property optionG;
+            optionG.put("device","gazecontrollerclient");
+            optionG.put("remote","/iKinGazeCtrl");
+            optionG.put("local","/client/gaze");
+
+            clientGazeCtrl.open(optionG);
+            igaze=NULL;
+            if (clientGazeCtrl.isValid())
+            {
+                clientGazeCtrl.view(igaze);
+            }
+            else
+                yError(" Gaze NOT OPENED!");
         }
         else
             filter=true;
@@ -772,6 +791,9 @@ public:
 
         if (online)
         {
+            if (fixate)
+                lookHand();
+
             acquirePoints();
             
             if (pointsIn.size()>0 && acquire==true)
@@ -1661,5 +1683,12 @@ public:
         {
             yError(" Points not saved");
         }
+    }
+
+    /*******************************************************************************/
+    void lookHand()
+    {
+        igaze->lookAtFixationPoint(position);
+        igaze->waitMotionDone();
     }
 };
