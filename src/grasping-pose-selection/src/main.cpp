@@ -74,7 +74,9 @@ class poseSelection : public RFModule,
     bool select_new_pose;
     bool torso_enabled;
     bool change_frame;
-    bool update_pose;    
+    bool closed_chain;
+    bool update_pose;
+    bool go_to_home;
     bool online;
     bool euler;
     bool move;
@@ -139,9 +141,8 @@ class poseSelection : public RFModule,
 
     /************************************************************************/
     bool go_home()
-    {
-        icart_arm_move->goToPose(x_init_moving_arm, o_init_moving_arm);
-        icart_arm_move->waitMotionDone(2.0);
+   {
+        go_to_home=true;
         return true;
     }
 
@@ -174,6 +175,7 @@ class poseSelection : public RFModule,
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         camera=(rf.check("camera", Value(0), "online or offline processing").asInt());
         torso_enabled=(rf.check("torso_enabled", Value("no")).asString()== "yes");
+        closed_chain=(rf.check("closed_chain", Value("no")).asString()== "yes");
 
         robot=rf.check("robot", Value("icubSim")).asString();
         left_or_right=rf.check("which_hand", Value("left")).asString();
@@ -339,9 +341,6 @@ class poseSelection : public RFModule,
         }
 
         showPoses();
-
-//        if (move)
-//            reachPose();
 
         if (online)
             return true;
@@ -984,20 +983,6 @@ class poseSelection : public RFModule,
 
             select_new_pose=false;
         }
-        return true;
-    }
-
-    /*******************************************************************************/
-    bool reachPose()
-    {
-        bool test1;
-        yDebug()<<" Positions to be reached "<<positions_rotated[index].toString()<<" "<<od[index].toString();
-        icart_arm_move->goToPose(positions_rotated[index],od[index]);
-
-        icart_arm_move->checkMotionDone(&test1);
-        if (test1)
-            move=false;
-
         return true;
     }
 };
