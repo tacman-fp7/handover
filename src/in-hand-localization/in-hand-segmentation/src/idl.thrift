@@ -201,4 +201,11 @@ service inHandSegmentation_IDL
 `   */
     double get_parameter_ellipse_filter(1: string entry);
 
+    /**
+    * Set a new initial pose for the first hand
+    * @param entry is a bottle cointaning position and orientation
+    * @return true
+    */
+    bool new_hand_pose(1: Bottle entry);
+
 }

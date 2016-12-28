@@ -32,61 +32,70 @@ class inHandSegmentation : public RFModule,
                            public inHandSegmentation_IDL
 {
 protected:
-    vector<cv::Point> blobPoints;
+
+    vector<Vector> fingers;
     vector<Vector> pointsIn;
     vector<Vector> pointsOut;
-    vector<Vector> fingers;
-    Vector tip_x_init, tip_o_init;
-    Vector orientation;
-    Vector position;
+    vector<cv::Point> blobPoints;
     Matrix H_hand;
+    Vector encoders;
+    Vector position;
+    Vector orientation;
+    Vector center_ellips;
+    Vector center_volume;
+    Vector contactPoint_index;
+    Vector contactPoint_thumb;
+    Vector contactPoint_middle;
+    Vector tip_x_init, tip_o_init;
+    Vector pos_to_reach, orient_to_reach;
 
     Mutex mutex;
 
-    string module_name;
-    string homeContextPath;
-    string savename;
-    string fileOutFormat;
-    string visionFileName;
-    string fingersFileName;
-    string poseFileName;
-    string handPoseFileName;
-    string poseOutFileName;
-    string fingersOutFileName;
-    string robot;
-    string left_or_right;
-    string frame;
     string info;
+    string frame;
+    string robot;
+    string savename;
+    string module_name;    
     string color_space;
+    string poseFileName;
+    string left_or_right;
+    string fileOutFormat;    
+    string visionFileName;
+    string poseOutFileName;
+    string fingersFileName;
+    string homeContextPath;
+    string handPoseFileName;    
+    string fingersOutFileName;    
 
-    int fileCount;
-    int startup_context_id;
     int down;
-
+    int diff_rgb;
+    int fileCount;
+    int diff_ycbcr;
     int nnThreshold;
     int numVertices;
     int nnThreshold_color;
-    int diff_rgb;
-    int diff_ycbcr;
+    int startup_context_id; 
+
+    double a,b;
     double radius;
     double radius_color;
-    double x_lim_up, x_lim_down, y_lim_up, y_lim_down, z_lim_up, z_lim_down;
     double radius_volume;
-    double a,b;
-    double radius_volume_offset;
     double a_offset, b_offset;
-    Vector center_ellips;
-    Vector center_volume;
+    double x_lim_up, x_lim_down;
+    double y_lim_up, y_lim_down;
+    double z_lim_up, z_lim_down;
+    double radius_volume_offset;
 
-    bool saving;
-    bool acquire;
+    bool filter;
+    bool saving;    
     bool online;
     bool fixate;
+    bool acquire;
     bool tactile_on;
-    bool filter;
-    bool change_frame;
-    bool coarse_filter;
     bool hand_filter;
+    bool prepare_hand;
+    bool change_frame;
+    bool coarse_filter;        
     bool density_filter;
     bool cylinder_filter;
     bool ellipse_filter;
@@ -98,26 +107,20 @@ protected:
 
     ICartesianControl *icart_arm;
     ICartesianControl *icart_arm2;
+    IAnalogSensor *analog;
     IGazeControl *igaze;
     IEncoders *enc;
-    IAnalogSensor *analog;
-    Vector encoders;
 
     Bottle limits;
-
-    Vector contactPoint_index;
-    Vector contactPoint_middle;
-    Vector contactPoint_thumb;
 
     IControlLimits* lim;
     deque<IControlLimits*> lim_deque;
 
     iCubFinger finger_thumb, finger_index, finger_middle;
 
+    BufferedPort<ImageOf<PixelRgb> > portImgIn;
     BufferedPort<ImageOf<PixelMono> > portDispIn;
     BufferedPort<ImageOf<PixelMono> > portBlobIn;
-    BufferedPort<ImageOf<PixelRgb> > portImgIn;
-
     BufferedPort<ImageOf<PixelRgb> > portDispOut;
 
     RpcClient portSFM;
@@ -337,7 +340,6 @@ protected:
         handb.addString("hand");
         handb.addString(left_or_right);
 
-
         return tactileData;
     }
 
@@ -356,7 +358,6 @@ protected:
             filters+=" CyF";
         if (ellipse_filter)
             filters+=" EF";
-
 
         return filters;
     }
@@ -551,51 +552,85 @@ protected:
             return b_offset;
     }
 
+    /***********************************************************************/
+    bool new_hand_pose(const Bottle &entry)
+    {
+        for (size_t i=0; i<entry.size();i++)
+        {
+            Bottle *position=entry.get(0).asList();
+            if (position->get(0).asString()=="position")
+            {
+                pos_to_reach[0]=position->get(1).asDouble();
+                pos_to_reach[1]=position->get(2).asDouble();
+                pos_to_reach[2]=position->get(3).asDouble();
+            }
+            else if (position->get(0).asString()=="orientation")
+            {
+                orient_to_reach[0]=position->get(1).asDouble();
+                orient_to_reach[1]=position->get(2).asDouble();
+                orient_to_reach[2]=position->get(3).asDouble();
+                orient_to_reach[3]=position->get(4).asDouble();
+            }
+        }
+
+        moveHand(pos_to_reach, orient_to_reach);
+        if (online)
+            computePose();
+
+        lookHand();
+        return true;
+    }
+
 public:
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
-        module_name=rf.check("module_name", Value("in-hand-segmentation"), "Getting module name").asString();
         homeContextPath=rf.getHomeContextPath().c_str();
+        module_name=rf.check("module_name", Value("in-hand-segmentation"), "Getting module name").asString();
 
-        savename=rf.check("savename", Value("in-hand-point-cloud"), "Default file savename").asString();
         saving=(rf.check("saving", Value("yes"), "Toggle save clouds as file").asString()== "yes");
+        savename=rf.check("savename", Value("in-hand-point-cloud"), "Default file savename").asString();
 
         fileOutFormat=rf.check("format", Value("off"), "Default file format").asString();
         visionFileName=rf.check("fileInName", Value("cloud.off"), "Default cloud name").asString();
         poseFileName=rf.check("poseFileName", Value("hand_pose.off"), "Default pose file name").asString();
-        fingersFileName=rf.check("fingersFileName", Value("tactile_hand_pose.off"), "Default fingers positions file name").asString();
         handPoseFileName=rf.check("handPoseFileName", Value("recorded_hand_pose.off"), "Default pose file name").asString();
+        fingersFileName=rf.check("fingersFileName", Value("tactile_hand_pose.off"), "Default fingers positions file name").asString();
 
+        fixate=(rf.check("fixate", Value("no")).asString()=="yes");
+        acquire=(rf.check("acquire", Value("no")).asString()=="yes");
+        prepare_hand=(rf.check("prepare_hand", Value("no")).asString()=="yes");
+        frame=rf.check("frame", Value("hand"), "in which frame save finger positions").asString();
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         tactile_on=(rf.check("tactile_on", Value("yes"), "use or not finger positions").asString()== "yes");
-        frame=rf.check("frame", Value("hand"), "in which frame save finger positions").asString();
-	acquire=(rf.check("acquire", Value("no")).asString()=="yes");
-        fixate=(rf.check("fixate", Value("no")).asString()=="yes");
 
-        density_filter=(rf.check("density_filter", Value("yes")).asString()=="yes");
+        robot=rf.check("robot", Value("icubSim")).asString();
+        left_or_right=rf.check("which_hand", Value("left")).asString();
+
+        down=rf.check("downsampling", Value(1)).asInt();
+        color_space=rf.check("color_code", Value("rgb")).asString();
         hand_filter=(rf.check("hand_filter", Value("yes")).asString()=="yes");
         change_frame=(rf.check("change_frame", Value("yes")).asString()=="yes");
         coarse_filter=(rf.check("coarse_filter", Value("yes")).asString()=="yes");
-        cylinder_filter=(rf.check("cylinder_filter", Value("no")).asString()=="yes");
         ellipse_filter=(rf.check("ellipse_filter", Value("yes")).asString()=="yes");
-        color_space=rf.check("color_code", Value("rgb")).asString();
+        density_filter=(rf.check("density_filter", Value("yes")).asString()=="yes");
+        cylinder_filter=(rf.check("cylinder_filter", Value("no")).asString()=="yes");
 
         if (tactile_on==false)
         {
             cylinder_filter=ellipse_filter=false;
         }
 
+        diff_rgb=rf.check("diff_rgb", Value(25)).asInt();
+        diff_ycbcr=rf.check("diff_ycbcr", Value(2)).asInt();
         radius=rf.check("radius", Value(0.0002)).asDouble();
         nnThreshold=rf.check("nn-threshold", Value(40)).asInt();
         radius_color=rf.check("radius_color", Value(0.0003)).asDouble();
         nnThreshold_color=rf.check("nn-threshold_color", Value(10)).asInt();
-        diff_rgb=rf.check("diff_rgb", Value(25)).asInt();
-        diff_ycbcr=rf.check("diff_ycbcr", Value(2)).asInt();
 
-        x_lim_up=rf.check("x_lim_up", Value(0.15)).asDouble();
-        x_lim_down=rf.check("x_lim_down", Value(-0.1)).asDouble();
+        x_lim_up=rf.check("x_lim_up", Value(0.15)).asDouble();        
         y_lim_up=rf.check("y_lim_up", Value(0.05)).asDouble();
+        x_lim_down=rf.check("x_lim_down", Value(-0.1)).asDouble();
         y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
 
         if (left_or_right == "right")
@@ -609,14 +644,16 @@ public:
             z_lim_down=rf.check("z_lim_down", Value(-0.25)).asDouble();
         }
 
-        radius_volume_offset=rf.check("radius_volume_offset", Value(0.03)).asDouble();
+        pos_to_reach.resize(3,0.0);
+        orient_to_reach.resize(4,0.0);
+
         a_offset=rf.check("a_offset", Value(0.03)).asDouble();
         b_offset=rf.check("b_offset", Value(0.015)).asDouble();
+        radius_volume_offset=rf.check("radius_volume_offset", Value(0.03)).asDouble();
 
         cout<<endl<<" Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl;
 
         fileCount=0;
-        down= rf.check("downsampling", Value(1)).asInt();
 
         cout<<endl<<" Opening ports"<<endl<<endl;
 
@@ -638,29 +675,40 @@ public:
         center_volume.resize(2,0.0);
         center_ellips.resize(2,0.0);
 
-        robot=rf.find("robot").asString().c_str();
-        if(rf.find("robot").isNull())
-            robot="icub";
+        Property optionG;
+        optionG.put("device","gazecontrollerclient");
+        optionG.put("remote","/iKinGazeCtrl");
+        optionG.put("local","/"+module_name+"gaze");
 
-        left_or_right=rf.find("which_hand").asString().c_str();
-        if(rf.find("which_hand").isNull())
-            left_or_right="right";
+        clientGazeCtrl.open(optionG);
+        igaze=NULL;
+        if (clientGazeCtrl.isValid())
+        {
+            clientGazeCtrl.view(igaze);
+        }
+        else
+            yError(" Gaze NOT OPENED!");
+
+        Property option_arm("(device cartesiancontrollerclient)");
+        option_arm.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
+        option_arm.put("local","/"+module_name+"/cartesian/"+left_or_right+"_arm");
+
+        robotDevice.open(option_arm);
+        if (!robotDevice.isValid())
+        {
+            yError(" Device index not available!");
+            return false;
+        }
+
+        robotDevice.view(icart_arm);
+
+        icart_arm->getPose(pos_to_reach, orient_to_reach);
+        pos_to_reach[0]=-0.35;
+        pos_to_reach[2]=0.2;
+        pos_to_reach[1]=0.0;
 
         if (online)
         {
-            Property option_arm("(device cartesiancontrollerclient)");
-            option_arm.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
-            option_arm.put("local","/"+module_name+"/cartesian/"+left_or_right+"_arm");
-
-            robotDevice.open(option_arm);
-            if (!robotDevice.isValid())
-            {
-                yError(" Device index not available!");
-                return false;
-            }
-
-            robotDevice.view(icart_arm);
-
             Property option_arm2("(device remote_controlboard)");
             option_arm2.put("remote","/"+robot+"/"+left_or_right+"_arm");
             option_arm2.put("local","/"+module_name+"/joint/"+left_or_right+"_arm");
@@ -708,21 +756,7 @@ public:
 
             analogDevice.view(analog);
 
-            H_hand=computePose();
-
-            Property optionG;
-            optionG.put("device","gazecontrollerclient");
-            optionG.put("remote","/iKinGazeCtrl");
-            optionG.put("local","/client/gaze");
-
-            clientGazeCtrl.open(optionG);
-            igaze=NULL;
-            if (clientGazeCtrl.isValid())
-            {
-                clientGazeCtrl.view(igaze);
-            }
-            else
-                yError(" Gaze NOT OPENED!");
+            H_hand=computePose();            
         }
         else
             filter=true;
@@ -757,6 +791,18 @@ public:
     /*******************************************************************************/
     bool close()
     {
+        if (robotDevice.isValid())
+            robotDevice.close();
+
+        if (robotDevice2.isValid())
+            robotDevice2.close();
+
+        if (analogDevice.isValid())
+            analogDevice.close();
+
+        if (clientGazeCtrl.isValid())
+            clientGazeCtrl.close();
+
         if (!portDispIn.isClosed())
             portDispIn.close();
 
@@ -791,6 +837,9 @@ public:
 
         if (online)
         {
+            if (prepare_hand)
+                moveHand(pos_to_reach, orient_to_reach);
+
             if (fixate)
                 lookHand();
 
@@ -817,6 +866,12 @@ public:
         {
             readPoints(visionFileName, "points");
             H_hand=readPose();
+
+            if (prepare_hand)
+                moveHand(position, orientation);
+
+            if (fixate)
+                lookHand();
 
             if (change_frame)
                 fromRobotTohandFrame(pointsIn);
@@ -1452,14 +1507,13 @@ public:
         ycbcr[1]=128;
         ycbcr[2]=128;
 
-
         for (size_t i=0; i<pointsIn.size(); i++)
         {
             point=&pointsIn[i];
-            yDebug()<<"point "<<point->subVector(3,5).toString();
+            yDebug()<<" point: "<<point->subVector(3,5).toString();
             point->setSubvector(3,M_rgb2ycbcr*point->subVector(3,5) + ycbcr);
 
-            yDebug()<<"point computed "<<point->subVector(3,5).toString();
+            yDebug()<<" Point computed: "<<point->subVector(3,5).toString();
         }
     }
 
@@ -1688,7 +1742,16 @@ public:
     /*******************************************************************************/
     void lookHand()
     {
-        igaze->lookAtFixationPoint(position);
+        Vector shift(3,0.0);
+        shift[2]=0.1;
+        igaze->lookAtFixationPoint(position+ shift);
         igaze->waitMotionDone();
+    }
+
+    /*******************************************************************************/
+    void moveHand(Vector &pos, Vector &orient)
+    {
+        icart_arm->goToPose(pos,orient);
+        icart_arm->waitMotionDone();
     }
 };

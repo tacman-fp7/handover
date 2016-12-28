@@ -46,8 +46,7 @@ using namespace iCub::iKin;
 class poseSelection : public RFModule,
                       public poseSelection_IDL
 {
-    Matrix H_object;
-    Matrix H_hand;
+    Matrix H_object, H_hand;
     Vector xd_h, od_h;
     Vector index_poses;
     Vector pos_hand, axis_hand;
@@ -57,8 +56,8 @@ class poseSelection : public RFModule,
 
     vector<Vector> od;
     vector<Vector> positions;
-    vector<Vector> positions_rotated;
     vector<Vector> orientations;
+    vector<Vector> positions_rotated;    
     vector<Vector> x_axis, y_axis, z_axis;
     vector<Vector> x_axis_rotated, y_axis_rotated, z_axis_rotated;
 
@@ -69,32 +68,32 @@ class poseSelection : public RFModule,
     string homeContextPath;
     string left_or_right;
     string module_name;
-    string rest_arm;
     string frame;
     string robot;
 
     bool select_new_pose;
-    bool change_frame;
-    bool update_pose;
     bool torso_enabled;
+    bool change_frame;
+    bool update_pose;    
     bool online;
     bool euler;
     bool move;
 
     double length;
-    int camera;
+
     int index;
+    int camera;
     int startup_context_id;
 
     deque<IControlLimits*> lim_deque;
 
-    iKinChain *chain;
     iCubArm ikin_arm;
     iCubTorso ikin_torso;
-    IGazeControl *igaze;
-    ICartesianControl *icart_arm_move;
+    iKinChain *chain;
+    IGazeControl *igaze;    
     IControlLimits* lim_arm;
     IControlLimits* lim_torso;
+    ICartesianControl *icart_arm_move;
 
     PolyDriver clientGazeCtrl;
     PolyDriver robotDevice_move;
@@ -164,25 +163,30 @@ class poseSelection : public RFModule,
     /*********************************************************/
     bool configure(ResourceFinder &rf)
     {
-        module_name=rf.check("module_name", Value("pose-selection"), "Getting module name").asString();
         homeContextPath=rf.getHomeContextPath().c_str();
-        positionFileName=rf.check("positionFileName", Value("positions.off"), "Default positions file name").asString();
-        orientationFileName=rf.check("orientationFileName", Value("orientations-right.txt"), "Default orientations file name").asString();
-        objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default orientations file name").asString();
+        module_name=rf.check("module_name", Value("pose-selection"), "Getting module name").asString();
+
         handPoseFileName=rf.check("handPoseFileName", Value("hand-pose.txt"), "Hand pose").asString();
+        positionFileName=rf.check("positionFileName", Value("positions.off"), "Default positions file name").asString();        
+        objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default object pose file name").asString();
+        orientationFileName=rf.check("orientationFileName", Value("orientations-right.txt"), "Default orientations file name").asString();
+
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         camera=(rf.check("camera", Value(0), "online or offline processing").asInt());
         torso_enabled=(rf.check("torso_enabled", Value("no")).asString()== "yes");
 
-        H_object.resize(4,4);
-        H_hand.resize(4,4);
+        robot=rf.check("robot", Value("icubSim")).asString();
+        left_or_right=rf.check("which_hand", Value("left")).asString();
+
         pos.resize(3,0.0);
-        euler_angles.resize(3,0.0);
-        axis.resize(4,0.0);
-        pos_hand.resize(3,0.0);
-        axis_hand.resize(4,0.0);
         xd_h.resize(3,0.0);
         od_h.resize(4,0.0);
+        axis.resize(4,0.0);
+        H_hand.resize(4,4);
+        H_object.resize(4,4);
+        pos_hand.resize(3,0.0);
+        axis_hand.resize(4,0.0);
+        euler_angles.resize(3,0.0);       
         x_init_moving_arm.resize(3,0.0);
         o_init_moving_arm.resize(4,0.0);
         x_init_resting_arm.resize(3,0.0);
@@ -194,6 +198,7 @@ class poseSelection : public RFModule,
 
         index=-1;
         length=0.06;
+
         select_new_pose=true;
         update_pose=false;
         move=false;
@@ -202,6 +207,7 @@ class poseSelection : public RFModule,
         {
             portPoseIn.open("/"+module_name+"/ps:rpc");
             portHandIn.open("/"+module_name+"/hn:rpc");
+
             Vector tmp(3,0.0);
             H_object.setCol(3,tmp);
         }
@@ -220,29 +226,17 @@ class poseSelection : public RFModule,
         Property optionG;
         optionG.put("device","gazecontrollerclient");
         optionG.put("remote","/iKinGazeCtrl");
-        optionG.put("local","/client/gaze");
+        optionG.put("local","/"+module_name+"/gaze");
 
         clientGazeCtrl.open(optionG);
         igaze=NULL;
+
         if (clientGazeCtrl.isValid())
         {
             clientGazeCtrl.view(igaze);
         }
         else
             yError(" Gaze NOT OPENED!");
-
-        robot=rf.find("robot").asString().c_str();
-        if(rf.find("robot").isNull())
-            robot="icubSim";
-
-        left_or_right=rf.find("which_hand").asString().c_str();
-        if(rf.find("which_hand").isNull())
-            left_or_right="left";
-
-        if (left_or_right=="left")
-            rest_arm="right";
-        else
-            rest_arm="left";
 
         Property option_arm_move("(device cartesiancontrollerclient)");
         option_arm_move.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
@@ -358,16 +352,16 @@ class poseSelection : public RFModule,
     /*********************************************************/
     bool close()
     {
-        if (!clientGazeCtrl.isValid())
+        if (clientGazeCtrl.isValid())
             clientGazeCtrl.close();
 
-        if (!robotDevice_move.isValid())
+        if (robotDevice_move.isValid())
             robotDevice_move.close();
 
-        if (!robotDevice2.isValid())
-
+        if (robotDevice2.isValid())
             robotDevice2.close();
-        if (!robotDevice3.isValid())
+
+        if (robotDevice3.isValid())
             robotDevice3.close();
 
         if (portPoseIn.asPort().isOpen())
@@ -423,11 +417,14 @@ class poseSelection : public RFModule,
         int nPoints;
         char line[255];
         vector<Vector> points_tmp;
+
         if (tag=="positions")
             positions.clear();
         else if (tag=="orientations")
             orientations.clear();
+
         Vector point_tmp;
+
         if (tag=="positions")
             point_tmp.resize(6,0.0);
         else if (tag=="orientations")
@@ -438,7 +435,7 @@ class poseSelection : public RFModule,
         ifstream cloudFile((homeContextPath+"/"+filename).c_str());
         if (!cloudFile.is_open())
         {
-            yError()<<"problem opening cloud file!";
+            yError()<<" Problem opening cloud file!";
             return false;
         }
 
@@ -509,11 +506,12 @@ class poseSelection : public RFModule,
         H_object.setCol(3,tmp2);
 
         if (norm(H_object.getCol(3).subVector(0,2))>0.0)
-        {
-            positions_rotated.clear();
+        {            
             x_axis_rotated.clear();
             y_axis_rotated.clear();
             z_axis_rotated.clear();
+            positions_rotated.clear();
+
             for (size_t i=0; i<positions.size(); i++)
             {
                 tmp.setSubvector(0,positions[i].subVector(0,2));
@@ -612,13 +610,16 @@ class poseSelection : public RFModule,
                 state=3;
             }
         }
+
         H.resize(4,4);
 
         cout<<" Pose read in "<<homeContextPath+"/"+fileName<<": "<<pos.toString()<<endl;
+
         if (euler)
             H=euler2dcm(euler_angles);
         else
             H=axis2dcm(axis);
+
         Vector x_aux(4,1.0);
         x_aux.setSubvector(0,pos);
         H.setCol(3,x_aux);
@@ -905,8 +906,8 @@ class poseSelection : public RFModule,
             orient.setCol(1,(y_axis_rotated[i]-positions_rotated[i])/norm(y_axis_rotated[i]-positions_rotated[i]));
             orient.setCol(2,(z_axis_rotated[i]-positions_rotated[i])/norm(z_axis_rotated[i]-positions_rotated[i]));
 
-            cout<<"orient"<<endl;
-            cout<<orient.toString()<<endl;
+            yDebug()<<" Desired rotation matrix";
+            cout<<orient.toString()<<endl<<endl;
 
             od.push_back(dcm2axis(orient));
 
@@ -915,7 +916,7 @@ class poseSelection : public RFModule,
             Matrix orient_hat(4,4);
             orient_hat=axis2dcm(odhat);
 
-            cout<<"orient hat "<<endl;
+            yDebug()<<" Computed rotation matrix ";
             cout<<orient_hat.toString()<<endl<<endl;
 
             //err_orient.push_back(norm(od[i].subVector(0,2)-odhat.subVector(0,2)+ abs(fmod(od[i][3]-odhat[3], 2*M_PI))));
@@ -924,9 +925,9 @@ class poseSelection : public RFModule,
                                            norm(orient_hat.getCol(2).subVector(0,2)-orient.getCol(2).subVector(0,2)));
 
             err_pos.push_back(norm(positions_rotated[i]-xdhat));
+
             yDebug()<<" Error in orientation for pose "<<i<<": "<<err_orient[i];
             yDebug()<<" Error in position "<<i<<": "<<err_pos[i];
-
             yDebug()<<" Qd for pose "<<i<<": "<<qdhat.toString();
             cout<<endl;
 
@@ -992,10 +993,6 @@ class poseSelection : public RFModule,
         bool test1;
         yDebug()<<" Positions to be reached "<<positions_rotated[index].toString()<<" "<<od[index].toString();
         icart_arm_move->goToPose(positions_rotated[index],od[index]);
-//        icart_arm_move->waitMotionDone(2.0);
-
-//        pos_h=H_hand.getCol(3).subVector(0,2);
-//        o_h=dcm2axis(H_hand);
 
         icart_arm_move->checkMotionDone(&test1);
         if (test1)
