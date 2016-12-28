@@ -26,7 +26,7 @@ using namespace yarp::dev;
 using namespace yarp::math;
 using namespace iCub::iKin;
 
-#include "inHandSegmentation_IDL.h"
+#include "src/inHandSegmentation_IDL.h"
 
 class inHandSegmentation : public RFModule,
                            public inHandSegmentation_IDL
