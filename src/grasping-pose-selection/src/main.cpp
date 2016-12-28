@@ -75,7 +75,8 @@ class poseSelection : public RFModule,
 
     bool select_new_pose;
     bool change_frame;
-    bool update_pose;    
+    bool update_pose;
+    bool torso_enabled;
     bool online;
     bool euler;
     bool move;
@@ -92,13 +93,11 @@ class poseSelection : public RFModule,
     iCubTorso ikin_torso;
     IGazeControl *igaze;
     ICartesianControl *icart_arm_move;
-    ICartesianControl *icart_arm_rest;
     IControlLimits* lim_arm;
     IControlLimits* lim_torso;
 
     PolyDriver clientGazeCtrl;
     PolyDriver robotDevice_move;
-    PolyDriver robotDevice_rest;
     PolyDriver robotDevice2;
     PolyDriver robotDevice3;
 
@@ -173,6 +172,7 @@ class poseSelection : public RFModule,
         handPoseFileName=rf.check("handPoseFileName", Value("hand-pose.txt"), "Hand pose").asString();
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         camera=(rf.check("camera", Value(0), "online or offline processing").asInt());
+        torso_enabled=(rf.check("torso_enabled", Value("no")).asString()== "yes");
 
         H_object.resize(4,4);
         H_hand.resize(4,4);
@@ -262,29 +262,14 @@ class poseSelection : public RFModule,
         Vector curDof;
         icart_arm_move->getDOF(curDof);
         Vector newDof(3);
-        newDof[0]=1;
-        newDof[1]=1;
-        newDof[2]=1;
-        icart_arm_move->setDOF(newDof,curDof);
-
-        Property option_arm_rest("(device cartesiancontrollerclient)");
-        option_arm_rest.put("remote","/"+robot+"/cartesianController/"+rest_arm+"_arm");
-        option_arm_rest.put("local","/"+module_name+"/cartesian/"+rest_arm+"_arm");
-
-        robotDevice_rest.open(option_arm_rest);
-        if (!robotDevice_rest.isValid())
+        newDof.resize(3,0);
+        if (torso_enabled)
         {
-            yError(" Device index not available!");
-            return false;
+            newDof[0]=1;
+            newDof[1]=1;
+            newDof[2]=1;
         }
-
-        robotDevice_rest.view(icart_arm_rest);
-        icart_arm_rest->storeContext(&startup_context_id);
-        icart_arm_rest->getPose(x_init_resting_arm, o_init_resting_arm);
-
-        icart_arm_rest->getDOF(curDof);
-
-        icart_arm_rest->setDOF(newDof,curDof);
+        icart_arm_move->setDOF(newDof,curDof);
 
         if (left_or_right=="right")
             ikin_arm=iCubArm("right_v2");
@@ -321,6 +306,7 @@ class poseSelection : public RFModule,
 
         lim_deque.push_back(lim_torso);
         lim_deque.push_back(lim_arm);
+
         if (!ikin_arm.alignJointsBounds(lim_deque))
             yError(" Problems in alignJointsBounds()");
 
@@ -372,6 +358,18 @@ class poseSelection : public RFModule,
     /*********************************************************/
     bool close()
     {
+        if (!clientGazeCtrl.isValid())
+            clientGazeCtrl.close();
+
+        if (!robotDevice_move.isValid())
+            robotDevice_move.close();
+
+        if (!robotDevice2.isValid())
+
+            robotDevice2.close();
+        if (!robotDevice3.isValid())
+            robotDevice3.close();
+
         if (portPoseIn.asPort().isOpen())
             portPoseIn.close();
 
@@ -903,26 +901,28 @@ class poseSelection : public RFModule,
         for (size_t i=0; i<positions_rotated.size(); i++)
         {
             Matrix orient(3,3);
-            orient.setCol(0,x_axis_rotated[i]-positions_rotated[i]);
-            orient.setCol(1,y_axis_rotated[i]-positions_rotated[i]);
-            orient.setCol(2,z_axis_rotated[i]-positions_rotated[i]);
+            orient.setCol(0,(x_axis_rotated[i]-positions_rotated[i])/norm(x_axis_rotated[i]-positions_rotated[i]));
+            orient.setCol(1,(y_axis_rotated[i]-positions_rotated[i])/norm(y_axis_rotated[i]-positions_rotated[i]));
+            orient.setCol(2,(z_axis_rotated[i]-positions_rotated[i])/norm(z_axis_rotated[i]-positions_rotated[i]));
+
+            cout<<"orient"<<endl;
+            cout<<orient.toString()<<endl;
 
             od.push_back(dcm2axis(orient));
 
             icart_arm_move->askForPose(positions_rotated[i], od[i], xdhat, odhat, qdhat);
-//            Vector euled, euledhat;
-//            euled.resize(3,0.0);
-//            euledhat.resize(3,0.0);
-//            euled=dcm2euler(orient);
-//            Matrix orienthat=axis2dcm(odhat);
-//            euledhat=dcm2euler(orienthat);
-//            Vector diff(3,0.0);
-//            diff[0]=fmod(euled[0]-euledhat[0], 3.14);
-//            diff[1]=fmod(euled[1]-euledhat[1], 1.57);
-//            diff[2]=fmod(euled[2]-euledhat[2], 3.14);
-//            err_orient.push_back(norm(diff));
-            yDebug()<<" od "<<od[i].toString() ;
-            err_orient.push_back(norm(od[i].subVector(0,2)-odhat.subVector(0,2)+ abs(fmod(od[i][3]-odhat[3], 2*M_PI))));
+
+            Matrix orient_hat(4,4);
+            orient_hat=axis2dcm(odhat);
+
+            cout<<"orient hat "<<endl;
+            cout<<orient_hat.toString()<<endl<<endl;
+
+            //err_orient.push_back(norm(od[i].subVector(0,2)-odhat.subVector(0,2)+ abs(fmod(od[i][3]-odhat[3], 2*M_PI))));
+            err_orient.push_back(norm(orient_hat.getCol(0).subVector(0,2)-orient.getCol(0).subVector(0,2))+
+                                      norm(orient_hat.getCol(1).subVector(0,2)-orient.getCol(1).subVector(0,2))+
+                                           norm(orient_hat.getCol(2).subVector(0,2)-orient.getCol(2).subVector(0,2)));
+
             err_pos.push_back(norm(positions_rotated[i]-xdhat));
             yDebug()<<" Error in orientation for pose "<<i<<": "<<err_orient[i];
             yDebug()<<" Error in position "<<i<<": "<<err_pos[i];
@@ -989,18 +989,16 @@ class poseSelection : public RFModule,
     /*******************************************************************************/
     bool reachPose()
     {
-        bool test1, test2;
+        bool test1;
         yDebug()<<" Positions to be reached "<<positions_rotated[index].toString()<<" "<<od[index].toString();
         icart_arm_move->goToPose(positions_rotated[index],od[index]);
 //        icart_arm_move->waitMotionDone(2.0);
 
 //        pos_h=H_hand.getCol(3).subVector(0,2);
 //        o_h=dcm2axis(H_hand);
-        icart_arm_rest->goToPose(x_init_resting_arm, o_init_resting_arm);
-//        icart_arm_rest->waitMotionDone(2.0);
+
         icart_arm_move->checkMotionDone(&test1);
-        icart_arm_rest->checkMotionDone(&test2);
-        if (test1==true && test2==true)
+        if (test1)
             move=false;
 
         return true;
