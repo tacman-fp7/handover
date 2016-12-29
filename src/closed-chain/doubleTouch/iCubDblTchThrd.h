@@ -1,23 +1,3 @@
-/* 
- * Copyright (C) 2010 RobotCub Consortium, European Commission FP6 Project IST-004370
- * Author: Alessandro Roncone
- * email:  alessandro.roncone@iit.it
- * website: www.robotcub.org
- * Permission is granted to copy, distribute, and/or modify this program
- * under the terms of the GNU General Public License, version 2 or any
- * later version published by the Free Software Foundation.
- *
- * A copy of the license can be found at
- * http://www.robotcub.org/icub/license/gpl.txt
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details
- * This thread detects a touched taxel on the skin (through readings from the
- * skinContactList port), and it moves the "controlateral" limb toward
- * the affected taxel.
-*/
 
 #ifndef __DOUBLETOUCHTHREAD_H__
 #define __DOUBLETOUCHTHREAD_H__
@@ -26,6 +6,7 @@
 #include <yarp/os/RateThread.h>
 #include <yarp/os/BufferedPort.h>
 #include <yarp/os/Log.h>
+#include <yarp/os/RpcClient.h>
 
 #include <yarp/sig/Vector.h>
 #include <yarp/sig/Matrix.h>
@@ -38,9 +19,6 @@
 #include <yarp/dev/all.h>
 
 #include <gsl/gsl_math.h>
-
-#include <iCub/skinDynLib/skinContact.h>
-#include <iCub/skinDynLib/skinContactList.h>
 
 #include <iostream>
 #include <string>
@@ -56,7 +34,6 @@ using namespace yarp::os;
 using namespace yarp::sig;
 using namespace yarp::math;
 using namespace yarp::dev;
-using namespace iCub::skinDynLib;
 using namespace iCub::iKin;
 
 using namespace std;
@@ -67,42 +44,23 @@ protected:
     int verbosity;
     string name;
     string robot;
-    // Type of the chain (either "LtoR", "RtoL", or "both")
     string type;
     string curTaskType;
     int record;
     string filename;
-    // Color of the robot (to identify which one is which)
+    string moving_arm;
     string color;
-    // Flag used to know if the doubleTouch should automatically connect to the skinManager
-    bool autoconnect;
-    // Flag used to know if the doubleTouch should go back after the first movement or not
     bool dontgoback;
     Vector handPossMaster; //hand configuration for "master" arm - 9 joints
     Vector handPossSlave; //hand configuration for "slave" arm - 9 joints
 
-    // You must get rid of all these variables
-    Vector cntctPosLink;    // Position in i-th link RF
-    Vector cntctPosWRF;     // Position in WRF
-    Vector cntctPosEE;      // Position in end-eff RF
-    Vector cntctNormDir;    // Normal Direction
-    Matrix cntctH0;         // RT matrix located in the contact with the 
-                            // x axis normal to the cover
-    int cntctLinkNum;       // Link number
-    double cntctPressure;   // Pressure
-    skinContact cntctSkin;  // SkinContact
-    SkinPart cntctSkinPart;   // SkinPart (verbose form)
-
+    Vector pos, orient;
+    Matrix Hpose;
 
     int        step; // Flag to know in which step the thread is
     bool    recFlag; // Flag to know if the recording module has to record
     int        iter; // Iterator to keep track of the recording steps
     double jnt_vels; // Joint velocities during the double touch
-
-    // You must get rid of all these variables
-    std::vector<SkinPart> skinParts;
-    BufferedPort<iCub::skinDynLib::skinContactList> *skinPort;
-    BufferedPort<Bottle> *outPort;
 
     PolyDriver       ddR; // right arm device driver
     PolyDriver       ddL; // left arm  device driver
@@ -164,6 +122,8 @@ protected:
     Vector oldEEL;
     Vector oldEER;
 
+    RpcClient portPoseIn;
+
     /**
     * Aligns joint bounds according to the actual limits of the robot
     */
@@ -174,19 +134,6 @@ protected:
     * (the old version is not available any more because of the changes)
     */
     bool checkMotionDone();
-
-    // Remove
-    /**
-    * Reads the contact from either /skinManager/skin_events:o or
-    * /wholeBodyDynamics/contacts:o , and handles the skinContacts
-    */
-    bool detectContact(skinContactList *_sCL);
-
-    /**
-    * Finds the proper H0 for the limb
-    * @param sc is the skinContact for which the H0 has to be computed
-    */
-    Matrix findH0(skinContact &sc);
 
     /**
     * Moves arms to starting (home) position
@@ -207,24 +154,17 @@ protected:
     */
     void solveIK();
 
-    //REMOVE (taxel)
     /**
     * Goes to the configuration found by solveIK()
     */
-    void goToTaxel();
-    void goToTaxelMaster();
-    void goToTaxelSlave();
+    void goToPose();
+    void goToPoseMaster();
+    void goToPoseSlave();
 
     /**
     * Sends the output to the port
     */
     void sendOutput();
-
-    // REMOVE
-    /**
-    * Locates the contact in World Reference Frame's coordinates
-    */
-    Vector locateContact();
 
     /**
     * Find the final configuration for the gaze interface to look at.
@@ -243,22 +183,14 @@ protected:
     */
     void testAchievement();
 
-    // REMOVE
-    /**
-    * Verify if the skin is touched. If so, it stores data.
-    */
-    bool testAchievement2(skinContactList *_sCL);
+    void askMovingArm();
 
-    /**
-    * If testAchievement2 fails, we need a way to come back to the starting point!
-    * This way will be a touch in the forearm :)
-    */
-    bool exitFromDeadlock(skinContactList *_sCL);
+    void receivePose();
 
 public:
     doubleTouchThread(int _rate, const string &_name, const string &_robot,
                       int _v, double _jnt_vels,
-                      int _record, string _filename, string _color, bool _autoconnect,
+                      int _record, string _filename, string _color,
                       bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave);
 
     virtual bool threadInit();

@@ -36,15 +36,12 @@ private:
 
     int verbosity,rate,record;
 
-    bool autoconnect, dontgoback;
+    bool dontgoback;
 
     double jnt_vels;
     
     Vector handPossM; //hand configuration for "master" arm
-    // I don't want to change the slave (it holds the object!)
     Vector handPossS; //hand configuration for "slave" arm
-
-    std::vector<SkinPart> _sPs;
 
 public:
     doubleTouch()
@@ -53,7 +50,7 @@ public:
 
         robot    = "icubSim";
         name     = "double-touch";
-        type     = "LtoR";
+        type     = "LHtoR";
         filename = ".txt";
         color    = " ";
 
@@ -62,21 +59,20 @@ public:
         record    =    0;    // record data
         jnt_vels  = 10.0;    // joint speed for the double touch
 
-        autoconnect = false;
         dontgoback  = false;
         
         handPossM.resize(9,0.0);
         //default parameters correspond to master hand totally open
-        handPossM[0]=40.0; handPossM[1]=0.0;
+        handPossM[0]=80.0; handPossM[1]=0.0;
         handPossM[2]=0.0; handPossM[3]=0.0;
         handPossM[4]=0.0;  handPossM[5]=0.0;
         handPossM[6]=0.0; handPossM[7]=0.0;
         handPossM[8]=0.0;
         
-        // I don't want to change fingers positions
+        // I don't want to change fingers positions -> you have to communicate the first hand which is
         handPossS.resize(9,0.0);
-        handPossS[0]=40.0;  handPossS[1]=10.0;  
-        handPossS[2]=60.0;  handPossS[3]=70.0;  
+        handPossS[0]=40.0;  handPossS[1]=0.0;
+        handPossS[2]=0.0;   handPossS[3]=0.0;
         handPossS[4]=0.0;   handPossS[5]=0.0;
         handPossS[6]=0.0;   handPossS[7]=0.0;
         handPossS[8]=0.0;
@@ -91,21 +87,11 @@ public:
         {
             switch (command.get(0).asVocab())
             {
-                case VOCAB4('c','o','n','n'):
-                {
-                    Network yarpNetwork;
-                    if (yarpNetwork.connect("/skinManager/skin_events:o",("/"+name+"/contacts:i").c_str()))
-                        reply.addVocab(ack);
-                    else
-                        reply.addVocab(nack);
-                    return true;
-                }
-
                 case VOCAB4('s','t','a','r'):
                 {
-                    doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity, _sPs,
+                    doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
                                                        jnt_vels, record, filename, color,
-                                                       autoconnect, dontgoback, handPossM, handPossS);
+                                                        dontgoback, handPossM, handPossS);
                     bool strt = doubleTouch_Thrd -> start();
                     if (!strt)
                     {
@@ -116,16 +102,6 @@ public:
                     }
                     else
                         reply.addVocab(ack);
-                    return true;
-                }
-
-                case VOCAB4('d','i','s','c'):
-                {
-                    Network yarpNetwork;
-                    if (yarpNetwork.disconnect("/skinManager/skin_events:o",("/"+name+"/contacts:i").c_str()))
-                        reply.addVocab(ack);
-                    else
-                        reply.addVocab(nack);
                     return true;
                 }
 
@@ -155,7 +131,6 @@ public:
     bool configure(ResourceFinder &rf)
     {
         bool alignEyes = rf.check("alignEyes");
-        autoconnect    = rf.check("autoconnect");
         dontgoback     = rf.check("dontgoback");
 
         if (dontgoback)
@@ -163,75 +138,16 @@ public:
             yInfo("[doubleTouch] Dontgoback flag set to ON");
         }
 
-        if (autoconnect)
-        {
-            yInfo("[doubleTouch] Autoconnect flag set to ON");
-        }
-
-        if (rf.check("name"))
-        {
-            name = rf.find("name").asString();
-            yInfo("[doubleTouch] Module name set to %s", name.c_str());
-        }
-        else
-            yInfo("[doubleTouch] Module name set to default, i.e. %s", name.c_str());
+        name = rf.check("name", Value("double-touch")).asString();
+        yInfo("[doubleTouch] Module name set to %s", name.c_str());
 
         setName(name.c_str());
 
         robot = rf.check("robot", Value("icubSim")).asString();
         yInfo("[doubleTouch] Robot is: %s", robot.c_str());
 
-        type = rf.check("type", Value("RtoL")).asString();
+        type = rf.check("type", Value("RHtoL")).asString();
         yInfo("[doubleTouch] Type is: %s", type.c_str());
-
-        if (type=="RtoL")
-        {
-            _sPs.push_back(SKIN_RIGHT_FOREARM);
-        }
-        else if (type=="RHtoL")
-        {
-            _sPs.push_back(SKIN_RIGHT_HAND);
-        }
-        else if (type=="LtoR")
-        {
-            _sPs.push_back(SKIN_LEFT_FOREARM);
-        }
-        else if (type=="LHtoR")
-        {
-            _sPs.push_back(SKIN_LEFT_HAND);
-        }
-        else if (type=="all_RtoL")
-        {
-            _sPs.push_back(SKIN_RIGHT_FOREARM);
-            _sPs.push_back(SKIN_RIGHT_HAND);
-        }
-        else if (type=="all_LtoR")
-        {
-            _sPs.push_back(SKIN_LEFT_FOREARM);
-            _sPs.push_back(SKIN_LEFT_HAND);
-        }
-        else if (type=="all_12DoF")
-        {
-            _sPs.push_back(SKIN_LEFT_FOREARM);
-            _sPs.push_back(SKIN_RIGHT_FOREARM);
-        }
-        else if (type=="all_14DoF")
-        {
-            _sPs.push_back(SKIN_LEFT_HAND);
-            _sPs.push_back(SKIN_RIGHT_HAND);
-        }
-        else if (type=="all")
-        {
-            _sPs.push_back(SKIN_LEFT_FOREARM);
-            _sPs.push_back(SKIN_RIGHT_FOREARM);
-            _sPs.push_back(SKIN_LEFT_HAND);
-            _sPs.push_back(SKIN_RIGHT_HAND);
-        }
-        else
-        {
-            yError("[doubleTouch] ERROR: type option was not among the admissible values!");
-            return false;
-        }
 
         verbosity = rf.check("verbosity", Value(0)).asInt();
         yInfo("[doubleTouch] verbosity set to %i", verbosity);
@@ -251,36 +167,36 @@ public:
         color = rf.check("color", Value("white")).asString();
         yInfo("[doubleTouch] Robot color set to %s", color.c_str());
 
-        Bottle &bHandConf=rf.findGroup("hand_configuration");
+//        Bottle &bHandConf=rf.findGroup("hand_configuration");
 
 
-        // PAY ATTENTION HERE //
-        if (!bHandConf.isNull())
-        {
-            bHandConf.setMonitor(rf.getMonitor());
+//        // PAY ATTENTION HERE //
+//        if (!bHandConf.isNull())
+//        {
+//            bHandConf.setMonitor(rf.getMonitor());
             
-            if (bHandConf.check("master"))
-            {
-                Bottle *bottleMaster=bHandConf.find("master").asList();
-                handPossM = iCub::skinDynLib::vectorFromBottle(*bottleMaster,0,9);
-                yInfo("[doubleTouch] Initializing master hand configuration: %s",
-                        handPossM.toString(3,3).c_str());
-            }
-            else yInfo("[doubleTouch] Could not find [master] option in the config file; set to default.");
+//            if (bHandConf.check("master"))
+//            {
+//                Bottle *bottleMaster=bHandConf.find("master").asList();
+//                handPossM = iCub::skinDynLib::vectorFromBottle(*bottleMaster,0,9);
+//                yInfo("[doubleTouch] Initializing master hand configuration: %s",
+//                        handPossM.toString(3,3).c_str());
+//            }
+//            else yInfo("[doubleTouch] Could not find [master] option in the config file; set to default.");
 
-            if (bHandConf.check("slave"))
-            {
-                Bottle *bottleSlave=bHandConf.find("slave").asList();
-                handPossS = iCub::skinDynLib::vectorFromBottle(*bottleSlave,0,9);
-                yInfo("[doubleTouch] Initializing slave hand configuration: %s",
-                        handPossS.toString(3,3).c_str());
-            }
-            else yInfo("[doubleTouch] Could not find [slave] option in the config file; set to default.");
-        }
-        else
-        {
-            yInfo("[doubleTouch] Could not find [hand_configuration] group in the config file; set all to default."); 
-        }   
+//            if (bHandConf.check("slave"))
+//            {
+//                Bottle *bottleSlave=bHandConf.find("slave").asList();
+//                handPossS = iCub::skinDynLib::vectorFromBottle(*bottleSlave,0,9);
+//                yInfo("[doubleTouch] Initializing slave hand configuration: %s",
+//                        handPossS.toString(3,3).c_str());
+//            }
+//            else yInfo("[doubleTouch] Could not find [slave] option in the config file; set to default.");
+//        }
+//        else
+//        {
+//            yInfo("[doubleTouch] Could not find [hand_configuration] group in the config file; set all to default.");
+//        }
             
         time_t now = time(0);
         tm *ltm = localtime(&now);
@@ -288,7 +204,6 @@ public:
                       int_to_string(ltm->tm_mday)+"_"+int_to_string(1+ltm->tm_hour)+"_"+
                       int_to_string(1+ltm->tm_min)+"_";
 
-        // check if file are important or not
         if (record==2)
         {
             filename = "../calibration_data/"+time+filename;
@@ -312,7 +227,7 @@ public:
         else
         {
             doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
-                        _sPs, jnt_vels, record, filename, color, autoconnect, dontgoback, handPossM, handPossS);
+                               jnt_vels, record, filename, color, dontgoback, handPossM, handPossS);
             bool strt = doubleTouch_Thrd -> start();
             if (!strt)
             {
@@ -375,13 +290,9 @@ int main(int argc, char * argv[])
         yInfo("   --dontgoback  flag: nothing is recorded. The double touch is executed once.");
         yInfo("                       The robot does not come back to a resting position.");
         yInfo("   --color       color: robot color (black or white - MANDATORY!)");
-        yInfo("   --type        type:  the type of task (default 'LtoR').");
-        yInfo("                        Allowed type names: 'RtoL','LtoR','RHtoL','LHtoR'");
-        yInfo("                        Combinations: 'all','all_LtoR','all_RtoL','all_12DoF','all_14DoF'");
         yInfo("   --filename    file:  the name of the file to be saved in case of");
         yInfo("                        a recording session. Default 'calibration.txt'.");
         yInfo("                        A date is appended at the beginning for completeness.");
-        yInfo("   --autoconnect flag: if or not to autoconnect to the skinManager");
         yInfo("   --jnt_vels    double: specify the joint level speed during the double touch. Default 4[deg/s].");
         yInfo("   --alignEyes   flag: if or not to use the rpc-thing and sync with alignEyes module.");
         yInfo(" ");

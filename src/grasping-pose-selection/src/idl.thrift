@@ -52,4 +52,22 @@ service poseSelection_IDL
     * @return true/false on success/failure
     */
     bool select_pose(1:i32 entry);
+
+    /**
+    * get one random pose [TEMPORARY]
+    * @return bottle containing the pose
+    */
+    Bottle get_pose();
+
+    /**
+    * get moving arm
+    * @return string of the moving arm
+    */
+    string get_moving_arm();
+
+    /**
+    * update hand pose
+    * @return true/false on success/failure
+    */
+    bool update_pose_hand();
 }

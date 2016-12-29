@@ -71,6 +71,7 @@ class poseSelection : public RFModule,
     string frame;
     string robot;
 
+    bool update_hand_pose;
     bool select_new_pose;
     bool torso_enabled;
     bool change_frame;
@@ -161,6 +162,48 @@ class poseSelection : public RFModule,
             return false;
     }
 
+    /************************************************************************/
+    Bottle get_pose()
+    {
+        Bottle reply;
+        int i=index;
+        Vector pos_in_hand(4,1.0);
+        pos_in_hand.setSubvector(0,positions_rotated[i]);
+        pos_in_hand=SE3inv(H_hand)*pos_in_hand;
+        reply.addDouble(-pos_in_hand[0]); reply.addDouble(-pos_in_hand[1]); reply.addDouble(-pos_in_hand[2]);
+//      reply.addDouble(-0.0); reply.addDouble(0.0); reply.addDouble(0.0);
+
+        Vector od_in_hand(4,0.0);
+        Matrix aux=-1*eye(4);
+        aux(3,3)=1;
+//      Matrix orient(4,4);
+//      orient(0,0)=1; orient(1,2)=-1; orient(2,1)=1;
+//      orient(0,0)=orientations[i][0]; orient(0,1)=orientations[i][1]; orient(0,2)=orientations[i][2];
+//      orient(1,0)=orientations[i][3]; orient(1,1)=orientations[i][4]; orient(1,2)=orientations[i][5];
+//      orient(2,0)=orientations[i][6]; orient(2,1)=orientations[i][7]; orient(2,2)=orientations[i][8];
+//      od_in_hand=dcm2axis(H_object*orient);
+        //od_in_hand=od[i];
+        od_in_hand=dcm2axis(SE3inv(H_hand)*axis2dcm(od[i]));
+        //od_in_hand=dcm2axis(orient);
+        od_in_hand[0]=1.0;
+        reply.addDouble(-od_in_hand[0]); reply.addDouble(-od_in_hand[1]); reply.addDouble(-od_in_hand[2]); reply.addDouble(-od_in_hand[3]);
+
+        return reply;
+    }
+
+    /************************************************************************/
+    string get_moving_arm()
+    {
+        return left_or_right;
+    }
+
+    /************************************************************************/
+    bool update_pose_hand()
+    {
+        update_hand_pose=true;
+        return true;
+    }
+
     /*********************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -173,6 +216,7 @@ class poseSelection : public RFModule,
         orientationFileName=rf.check("orientationFileName", Value("orientations-right.txt"), "Default orientations file name").asString();
 
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
+        update_hand_pose=(rf.check("update_hand_pose", Value("no")).asString()== "yes");
         camera=(rf.check("camera", Value(0), "online or offline processing").asInt());
         torso_enabled=(rf.check("torso_enabled", Value("no")).asString()== "yes");
         closed_chain=(rf.check("closed_chain", Value("no")).asString()== "yes");
@@ -325,6 +369,9 @@ class poseSelection : public RFModule,
                 H_object=askForObjectPose();
                 H_hand=askForHandPose();
             }
+
+            if (update_hand_pose)
+                H_hand=askForHandPose();
         }
 
         if (select_new_pose)
@@ -514,6 +561,8 @@ class poseSelection : public RFModule,
             for (size_t i=0; i<positions.size(); i++)
             {
                 tmp.setSubvector(0,positions[i].subVector(0,2));
+                cout<<endl;
+                yDebug()<<"positions in hand frame: "<<(H_object*tmp).toString();
                 tmp=H_hand*H_object*(tmp);
                 positions_rotated.push_back(tmp.subVector(0,2));
             }
@@ -544,6 +593,8 @@ class poseSelection : public RFModule,
                 z_axis_rotated.push_back(tmp.subVector(0,2));
             }
         }
+
+        update_hand_pose=false;
 
         return true;
     }
@@ -701,6 +752,9 @@ class poseSelection : public RFModule,
 
         if ( norm(pos)>0.0)
         {
+            if (update_hand_pose)
+                changeFrame();
+
             for (size_t i=0; i<positions_rotated.size(); i++)
             {
                 cv::Scalar color(0,255,0);

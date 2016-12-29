@@ -86,6 +86,7 @@ protected:
     double z_lim_up, z_lim_down;
     double radius_volume_offset;
 
+    bool test;
     bool filter;
     bool saving;    
     bool online;
@@ -257,7 +258,7 @@ protected:
     /***********************************************************************/
     Bottle get_pose()
     {
-        if (online)
+        if (test)
             icart_arm->getPose(position,orientation);
 
         Bottle poseInfo;
@@ -597,6 +598,7 @@ public:
         handPoseFileName=rf.check("handPoseFileName", Value("recorded_hand_pose.off"), "Default pose file name").asString();
         fingersFileName=rf.check("fingersFileName", Value("tactile_hand_pose.off"), "Default fingers positions file name").asString();
 
+        test=(rf.check("test", Value("no")).asString()=="yes");
         fixate=(rf.check("fixate", Value("no")).asString()=="yes");
         acquire=(rf.check("acquire", Value("no")).asString()=="yes");
         prepare_hand=(rf.check("prepare_hand", Value("no")).asString()=="yes");
