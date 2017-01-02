@@ -54,10 +54,16 @@ service poseSelection_IDL
     bool select_pose(1:i32 entry);
 
     /**
-    * get one random pose [TEMPORARY]
+    * get the selected pose
     * @return bottle containing the pose
     */
     Bottle get_pose();
+
+    /**
+    * get pose of the moving arm
+    * @return bottle containing the pose
+    */
+    Bottle get_pose_moving_arm();
 
     /**
     * get moving arm

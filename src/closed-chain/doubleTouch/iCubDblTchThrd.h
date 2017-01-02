@@ -56,6 +56,7 @@ protected:
 
     Vector pos, orient;
     Matrix Hpose;
+    Matrix HIndex;
 
     int        step; // Flag to know in which step the thread is
     bool    recFlag; // Flag to know if the recording module has to record
@@ -185,7 +186,7 @@ protected:
 
     void askMovingArm();
 
-    void receivePose();
+    Matrix receivePose(const string &what);
 
 public:
     doubleTouchThread(int _rate, const string &_name, const string &_robot,

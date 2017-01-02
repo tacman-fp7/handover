@@ -1629,6 +1629,7 @@ using namespace iCub::ctrl;
         string limb;
         double version;
         size_t underscore=getType().find('_');
+
         if (underscore!=string::npos)
         {
             limb=getType().substr(0,underscore);
@@ -1640,6 +1641,8 @@ using namespace iCub::ctrl;
             version=1.0;
         }
 
+        version=2.0;
+
         if (_part == "left_arm_reversed_5DOF")
         {
             if (version<1.7)
@@ -1650,6 +1653,8 @@ using namespace iCub::ctrl;
             pushLink(new iKinInvertedLink(  -0.015, -0.15228,  M_PI/2.0, -75.0*CTRL_DEG2RAD, -100.0*CTRL_DEG2RAD,  37.0*CTRL_DEG2RAD));
             pushLink(new iKinInvertedLink(     0.0,      0.0, -M_PI/2.0,           M_PI/2.0, -160.8*CTRL_DEG2RAD,   0.0*CTRL_DEG2RAD));
             pushLink(new iKinInvertedLink(     0.0, -0.10774,  M_PI/2.0,          -M_PI/2.0,   -5.0*CTRL_DEG2RAD,  95.5*CTRL_DEG2RAD));
+
+
         }
         else if (_part == "left_arm_reversed_7DOF")
         {
@@ -1677,8 +1682,9 @@ using namespace iCub::ctrl;
             if (version<2.0)
             pushLink(new iKinInvertedLink(  -0.0625,   -0.016,       0.0,              -M_PI,  -25.0*CTRL_DEG2RAD,  25.0*CTRL_DEG2RAD));
             else
-            pushLink(new iKinInvertedLink(  -0.0625, -0.02598,       0.0,              -M_PI,  -25.0*CTRL_DEG2RAD,  25.0*CTRL_DEG2RAD));
+            pushLink(new iKinInvertedLink(  -0.0625, -0.02598,       0.0,              -M_PI,  -25.0*CTRL_DEG2RAD,  25.0*CTRL_DEG2RAD));           
             pushLink(new iKinInvertedLink(      0.0,      0.0, -M_PI/2.0,          -M_PI/2.0,  -10.0*CTRL_DEG2RAD,  65.0*CTRL_DEG2RAD));
+
 
             append("right_arm_reversed_5DOF");
         }

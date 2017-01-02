@@ -123,6 +123,8 @@ bool doubleTouchThread::threadInit()
 
     askMovingArm();
 
+    //HIndex=receivePose("arm");
+
     return true;
 }
 
@@ -136,7 +138,7 @@ void doubleTouchThread::run()
                 step++;
                 break;                
             case 1:
-                receivePose();
+                Hpose=receivePose("pose");
                 selectTask();
                 step++;
                 break;
@@ -281,11 +283,12 @@ bool doubleTouchThread::selectTask()
         return false;
     }
 
-    Vector joints;
-    //iencsM->getEncoders(encsM->data());
-    //slv->probl->index.getChainJoints(*encsM,joints);
-    //Matrix HIndex=slv->probl->index.getH(joints*iCub::ctrl::CTRL_DEG2RAD);
-    Matrix HIndex=eye(4,4);
+//    Vector joints;
+//    iencsM->getEncoders(encsM->data());
+//    slv->probl->index.getChainJoints(*encsM,joints);
+//    HIndex=slv->probl->index.getH(joints*iCub::ctrl::CTRL_DEG2RAD);
+
+    HIndex=eye(4);
     slv->probl->limb.setHN(HIndex);
     testLimb->setHN(HIndex);
     printMessage(1,"Index type: %s \t HIndex:\n%s\n", slv->probl->index.getType().c_str(),
@@ -365,13 +368,14 @@ void doubleTouchThread::testAchievement()
 
     testLimb->setAng((*encsS)*iCub::ctrl::CTRL_DEG2RAD,(*encsM)*iCub::ctrl::CTRL_DEG2RAD);
     printMessage(0,"Final end effector :          %s\n", testLimb->EndEffPosition().toString(3,3).c_str());
+    printMessage(0,"Final end effector :          %s\n", testLimb->EndEffPose(true).toString(3,3).c_str());
     printMessage(2,"Final Joint configuration:    %s\n",(testLimb->getAng()*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
 }
 
 void doubleTouchThread::solveIK()
 {
     printMessage(2,"H0: \n%s\n",Hpose.toString(3,3).c_str());
-//   slv->probl->limb.setH0(SE3inv(Hpose));
+ //  slv->probl->limb.setH0(SE3inv(Hpose));
 //   testLimb->setH0(SE3inv(Hpose));
 
     slv->probl->limb.setH0(Hpose);
@@ -558,10 +562,14 @@ void doubleTouchThread::threadRelease()
         clearTask();
 }
 
-void doubleTouchThread::receivePose()
+Matrix doubleTouchThread::receivePose(const string &what)
 {
+    Matrix H(4,4);
     Bottle cmd, reply;
-    cmd.addString("get_pose");
+    if (what=="pose")
+        cmd.addString("get_pose");
+    else if (what=="arm")
+        cmd.addString("get_pose_moving_arm");
 
     if (portPoseIn.write(cmd,reply))
     {
@@ -578,9 +586,13 @@ void doubleTouchThread::receivePose()
 
     yDebug()<<" Received pose: "<<pos.toString()<<" "<<orient.toString();
 
-    Hpose=axis2dcm(orient);
-    Hpose.setSubcol(pos, 0, 3);
-    Hpose(3,3)=1;
+    H=axis2dcm(orient);
+    H.setSubcol(pos, 0, 3);
+    H(3,3)=1;
+
+    cout<<endl<<"Hpose "<<Hpose.toString()<<endl<<endl;
+
+    return H;
 }
 
 void doubleTouchThread::askMovingArm()

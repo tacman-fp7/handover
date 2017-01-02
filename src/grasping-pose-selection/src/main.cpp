@@ -55,6 +55,7 @@ class poseSelection : public RFModule,
     Vector x_init_resting_arm, o_init_resting_arm;
 
     vector<Vector> od;
+    vector<Vector> odhat;
     vector<Vector> positions;
     vector<Vector> orientations;
     vector<Vector> positions_rotated;    
@@ -71,9 +72,10 @@ class poseSelection : public RFModule,
     string frame;
     string robot;
 
-    bool update_hand_pose;
+    bool update_hand_pose;   
     bool select_new_pose;
     bool torso_enabled;
+    bool to_be_sent;
     bool change_frame;
     bool closed_chain;
     bool update_pose;
@@ -107,6 +109,8 @@ class poseSelection : public RFModule,
     RpcClient portHandIn;
 
     RpcServer portRpc;
+
+    Bottle reply;
 
     ImageOf<PixelRgb> *imgIn;
     BufferedPort<ImageOf<PixelRgb> > portImgIn;
@@ -165,28 +169,60 @@ class poseSelection : public RFModule,
     /************************************************************************/
     Bottle get_pose()
     {
-        Bottle reply;
         int i=index;
-        Vector pos_in_hand(4,1.0);
-        pos_in_hand.setSubvector(0,positions_rotated[i]);
-        pos_in_hand=SE3inv(H_hand)*pos_in_hand;
-        reply.addDouble(-pos_in_hand[0]); reply.addDouble(-pos_in_hand[1]); reply.addDouble(-pos_in_hand[2]);
-//      reply.addDouble(-0.0); reply.addDouble(0.0); reply.addDouble(0.0);
 
-        Vector od_in_hand(4,0.0);
-        Matrix aux=-1*eye(4);
-        aux(3,3)=1;
-//      Matrix orient(4,4);
-//      orient(0,0)=1; orient(1,2)=-1; orient(2,1)=1;
-//      orient(0,0)=orientations[i][0]; orient(0,1)=orientations[i][1]; orient(0,2)=orientations[i][2];
-//      orient(1,0)=orientations[i][3]; orient(1,1)=orientations[i][4]; orient(1,2)=orientations[i][5];
-//      orient(2,0)=orientations[i][6]; orient(2,1)=orientations[i][7]; orient(2,2)=orientations[i][8];
-//      od_in_hand=dcm2axis(H_object*orient);
-        //od_in_hand=od[i];
-        od_in_hand=dcm2axis(SE3inv(H_hand)*axis2dcm(od[i]));
-        //od_in_hand=dcm2axis(orient);
-        od_in_hand[0]=1.0;
-        reply.addDouble(-od_in_hand[0]); reply.addDouble(-od_in_hand[1]); reply.addDouble(-od_in_hand[2]); reply.addDouble(-od_in_hand[3]);
+        if (to_be_sent=true)
+        {
+            Vector pos_in_hand(4,1.0);
+
+            pos_in_hand.setSubvector(0,positions_rotated[i]);
+            pos_in_hand=SE3inv(H_hand)*pos_in_hand;
+
+            Matrix H_corr=eye(4);
+            H_corr(0,0)=H_corr(1,1)=H_corr(2,2)=-1;
+
+            pos_in_hand=H_corr*pos_in_hand;
+            reply.addDouble(pos_in_hand[0]); reply.addDouble(pos_in_hand[1]); reply.addDouble(pos_in_hand[2]);
+    //        reply.addDouble(0.0); reply.addDouble(0.0); reply.addDouble(0.0);
+
+            //sono quelli ideali
+    //        Matrix orient(4,4);
+    //        orient.setCol(0,(x_axis_rotated[i]-positions_rotated[i])/norm(x_axis_rotated[i]-positions_rotated[i]));
+    //        orient.setCol(1,(y_axis_rotated[i]-positions_rotated[i])/norm(y_axis_rotated[i]-positions_rotated[i]));
+    //        orient.setCol(2,(z_axis_rotated[i]-positions_rotated[i])/norm(z_axis_rotated[i]-positions_rotated[i]));
+    //        orient(3,3)=1;
+
+    //        Matrix orient_hand(4,4);
+    //        orient_hand.setCol(0, SE3inv(H_hand)*orient.getCol(0));
+    //        orient_hand.setCol(1, SE3inv(H_hand)*orient.getCol(1));
+    //        orient_hand.setCol(2, SE3inv(H_hand)*orient.getCol(2));
+    //        orient_hand(3,3)=1;
+            Vector od_in_hand(4,0.0);
+            od_in_hand=dcm2axis(H_corr*SE3inv(H_hand)*axis2dcm(odhat[i]));
+//            od_in_hand=dcm2axis(orient_hand);
+
+//            od_in_hand=dcm2axis(H_corr*axis2dcm(od_in_hand));
+//            od_in_hand[0]=1.0;
+
+            reply.addDouble(od_in_hand[0]); reply.addDouble(od_in_hand[1]); reply.addDouble(od_in_hand[2]); reply.addDouble(od_in_hand[3]);
+        }
+
+        return reply;
+    }
+
+    /************************************************************************/
+    Bottle get_pose_moving_arm()
+    {
+        Bottle reply;
+        Vector pos(4,1.0);
+        Vector pos_aux(3,0.0);
+        Vector orie(4,0.0);
+
+        icart_arm_move->getPose(pos_aux,orie);
+        pos.setSubvector(0,pos_aux);
+
+        reply.addDouble(pos[0]); reply.addDouble(pos[1]); reply.addDouble(pos[2]);
+        reply.addDouble(orie[0]); reply.addDouble(orie[1]); reply.addDouble(orie[2]); reply.addDouble(orie[3]);
 
         return reply;
     }
@@ -201,6 +237,7 @@ class poseSelection : public RFModule,
     bool update_pose_hand()
     {
         update_hand_pose=true;
+        to_be_sent=false;
         return true;
     }
 
@@ -216,7 +253,6 @@ class poseSelection : public RFModule,
         orientationFileName=rf.check("orientationFileName", Value("orientations-right.txt"), "Default orientations file name").asString();
 
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
-        update_hand_pose=(rf.check("update_hand_pose", Value("no")).asString()== "yes");
         camera=(rf.check("camera", Value(0), "online or offline processing").asInt());
         torso_enabled=(rf.check("torso_enabled", Value("no")).asString()== "yes");
         closed_chain=(rf.check("closed_chain", Value("no")).asString()== "yes");
@@ -245,8 +281,10 @@ class poseSelection : public RFModule,
         index=-1;
         length=0.06;
 
+        update_hand_pose=false;
+        to_be_sent=true;
         select_new_pose=true;
-        update_pose=false;
+        update_pose=false;        
         move=false;
 
         if (online)
@@ -942,7 +980,7 @@ class poseSelection : public RFModule,
     void manipulability()
     {
         Vector xdhat(3,0.0);
-        Vector odhat(4,0.0);
+        Vector odhat_tmp(4,0.0);
         Vector qdhat(10,0.0);
         Vector err_orient;
         Vector err_pos;
@@ -964,10 +1002,12 @@ class poseSelection : public RFModule,
 
             od.push_back(dcm2axis(orient));
 
-            icart_arm_move->askForPose(positions_rotated[i], od[i], xdhat, odhat, qdhat);
+            icart_arm_move->askForPose(positions_rotated[i], od[i], xdhat, odhat_tmp, qdhat);
+
+            odhat.push_back(odhat_tmp);
 
             Matrix orient_hat(4,4);
-            orient_hat=axis2dcm(odhat);
+            orient_hat=axis2dcm(odhat[i]);
 
             yDebug()<<" Computed rotation matrix ";
             cout<<orient_hat.toString()<<endl<<endl;
