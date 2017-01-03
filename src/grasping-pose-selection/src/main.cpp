@@ -79,10 +79,8 @@ class poseSelection : public RFModule,
     bool change_frame;
     bool closed_chain;
     bool update_pose;
-    bool go_to_home;
     bool online;
     bool euler;
-    bool move;
 
     double length;
 
@@ -131,23 +129,9 @@ class poseSelection : public RFModule,
     }
 
     /************************************************************************/
-    bool reach_pose()
-    {
-        move=true;
-        return true;
-    }
-
-    /************************************************************************/
     bool choose_new_pose()
     {
         select_new_pose=true;
-        return true;
-    }
-
-    /************************************************************************/
-    bool go_home()
-   {
-        go_to_home=true;
         return true;
     }
 
@@ -177,32 +161,14 @@ class poseSelection : public RFModule,
 
             pos_in_hand.setSubvector(0,positions_rotated[i]);
             pos_in_hand=SE3inv(H_hand)*pos_in_hand;
-
-            Matrix H_corr=eye(4);
-            H_corr(0,0)=H_corr(1,1)=H_corr(2,2)=-1;
-
-            pos_in_hand=H_corr*pos_in_hand;
             reply.addDouble(pos_in_hand[0]); reply.addDouble(pos_in_hand[1]); reply.addDouble(pos_in_hand[2]);
-    //        reply.addDouble(0.0); reply.addDouble(0.0); reply.addDouble(0.0);
 
-            //sono quelli ideali
-    //        Matrix orient(4,4);
-    //        orient.setCol(0,(x_axis_rotated[i]-positions_rotated[i])/norm(x_axis_rotated[i]-positions_rotated[i]));
-    //        orient.setCol(1,(y_axis_rotated[i]-positions_rotated[i])/norm(y_axis_rotated[i]-positions_rotated[i]));
-    //        orient.setCol(2,(z_axis_rotated[i]-positions_rotated[i])/norm(z_axis_rotated[i]-positions_rotated[i]));
-    //        orient(3,3)=1;
-
-    //        Matrix orient_hand(4,4);
-    //        orient_hand.setCol(0, SE3inv(H_hand)*orient.getCol(0));
-    //        orient_hand.setCol(1, SE3inv(H_hand)*orient.getCol(1));
-    //        orient_hand.setCol(2, SE3inv(H_hand)*orient.getCol(2));
-    //        orient_hand(3,3)=1;
             Vector od_in_hand(4,0.0);
-            od_in_hand=dcm2axis(H_corr*SE3inv(H_hand)*axis2dcm(odhat[i]));
-//            od_in_hand=dcm2axis(orient_hand);
-
-//            od_in_hand=dcm2axis(H_corr*axis2dcm(od_in_hand));
-//            od_in_hand[0]=1.0;
+            Matrix aux(4,4);
+            aux.zero();
+            aux(2,0)=aux(1,2)=-1.0;
+            aux(0,1)=1.0;
+            od_in_hand=dcm2axis(aux*SE3inv(H_hand)*axis2dcm(odhat[i]));
 
             reply.addDouble(od_in_hand[0]); reply.addDouble(od_in_hand[1]); reply.addDouble(od_in_hand[2]); reply.addDouble(od_in_hand[3]);
         }
@@ -285,7 +251,6 @@ class poseSelection : public RFModule,
         to_be_sent=true;
         select_new_pose=true;
         update_pose=false;        
-        move=false;
 
         if (online)
         {
@@ -423,6 +388,15 @@ class poseSelection : public RFModule,
             showPoses();
 
             choosePose();
+        }
+
+        if (update_hand_pose)
+        {
+            changeFrame();
+
+            choosePose();
+
+            showPoses();
         }
 
         showPoses();
@@ -790,9 +764,6 @@ class poseSelection : public RFModule,
 
         if ( norm(pos)>0.0)
         {
-            if (update_hand_pose)
-                changeFrame();
-
             for (size_t i=0; i<positions_rotated.size(); i++)
             {
                 cv::Scalar color(0,255,0);

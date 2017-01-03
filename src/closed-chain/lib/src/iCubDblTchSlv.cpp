@@ -279,6 +279,9 @@ using namespace std;
                 x_u[i]=(*chain)(i).getMax();
             }
 
+            x_l[6]=(*chain)(6).getMin()+40.0*CTRL_DEG2RAD;
+            x_u[7]=(*chain)(7).getMax()-40.0*CTRL_DEG2RAD;
+
             int lenLower=mLIC->getlB().length();
             Ipopt::Index offs=1;
 

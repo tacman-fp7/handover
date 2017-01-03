@@ -375,11 +375,11 @@ void doubleTouchThread::testAchievement()
 void doubleTouchThread::solveIK()
 {
     printMessage(2,"H0: \n%s\n",Hpose.toString(3,3).c_str());
- //  slv->probl->limb.setH0(SE3inv(Hpose));
-//   testLimb->setH0(SE3inv(Hpose));
+    slv->probl->limb.setH0(SE3inv(Hpose));
+    testLimb->setH0(SE3inv(Hpose));
 
-    slv->probl->limb.setH0(Hpose);
-    testLimb->setH0(Hpose);
+//    slv->probl->limb.setH0(Hpose);
+//    testLimb->setH0(Hpose);
 
     slv->probl->limb.setAng(sol->joints);
     slv->setInitialGuess(*sol);
@@ -591,6 +591,10 @@ Matrix doubleTouchThread::receivePose(const string &what)
     H(3,3)=1;
 
     cout<<endl<<"Hpose "<<Hpose.toString()<<endl<<endl;
+
+    cout<<endl<<"Determinant of Rpose: "<<det(Hpose.submatrix(0,2,0,2))<<endl<<endl;
+
+    cout<<endl<<"Hpose inverted "<<(SE3inv(Hpose)).toString()<<endl<<endl;
 
     return H;
 }
