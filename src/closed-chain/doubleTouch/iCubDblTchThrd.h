@@ -28,6 +28,8 @@
 #include <iCub/periPersonalSpace/iCubDblTchSlv.h>
 #include <iCub/periPersonalSpace/utils.h>
 
+#include "closedChain_IDL.h"
+
 
 using namespace yarp;
 using namespace yarp::os;
@@ -38,7 +40,8 @@ using namespace iCub::iKin;
 
 using namespace std;
 
-class doubleTouchThread: public RateThread
+class doubleTouchThread: public RateThread,
+                         public closedChain_IDL
 {
 protected:
     int verbosity;
@@ -57,11 +60,21 @@ protected:
     Vector pos, orient;
     Matrix Hpose;
     Matrix HIndex;
+    Matrix H_hand;
+
+    Bottle manip;
+
+    vector<Vector> positions;
+    vector<Vector> orientations;
+    vector<Vector> pos_in_hand;
+    vector<Vector> orie_in_hand;
+    vector<Vector> joints_sol;
 
     int        step; // Flag to know in which step the thread is
     bool    recFlag; // Flag to know if the recording module has to record
     int        iter; // Iterator to keep track of the recording steps
     double jnt_vels; // Joint velocities during the double touch
+    bool         go;
 
     PolyDriver       ddR; // right arm device driver
     PolyDriver       ddL; // left arm  device driver
@@ -125,6 +138,8 @@ protected:
 
     RpcClient portPoseIn;
 
+    RpcServer portRpc;
+
     /**
     * Aligns joint bounds according to the actual limits of the robot
     */
@@ -186,19 +201,29 @@ protected:
 
     void askMovingArm();
 
+    void askHhand();
+
     Matrix receivePose(const string &what);
 
 public:
     doubleTouchThread(int _rate, const string &_name, const string &_robot,
                       int _v, double _jnt_vels,
                       int _record, string _filename, string _color,
-                      bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave);
+                      bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave, const bool &go);
 
     virtual bool threadInit();
 
     virtual void run();
 
+    void computeManip();
+
     virtual void threadRelease();
+
+    bool attach(RpcServer &source);
+
+    Bottle compute_manipulability(Bottle entry);
+
+    string ciao(string entry);
 };
 
 #endif

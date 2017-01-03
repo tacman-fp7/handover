@@ -35,8 +35,8 @@ private:
     string color;
 
     int verbosity,rate,record;
-
     bool dontgoback;
+    bool go;
 
     double jnt_vels;
     
@@ -91,7 +91,7 @@ public:
                 {
                     doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
                                                        jnt_vels, record, filename, color,
-                                                        dontgoback, handPossM, handPossS);
+                                                        dontgoback, handPossM, handPossS, go);
                     bool strt = doubleTouch_Thrd -> start();
                     if (!strt)
                     {
@@ -167,6 +167,8 @@ public:
         color = rf.check("color", Value("white")).asString();
         yInfo("[doubleTouch] Robot color set to %s", color.c_str());
 
+        go=(rf.check("closed_chain", Value("no")).asString()== "no");
+
 //        Bottle &bHandConf=rf.findGroup("hand_configuration");
 
 
@@ -227,7 +229,7 @@ public:
         else
         {
             doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
-                               jnt_vels, record, filename, color, dontgoback, handPossM, handPossS);
+                               jnt_vels, record, filename, color, dontgoback, handPossM, handPossS,go);
             bool strt = doubleTouch_Thrd -> start();
             if (!strt)
             {

@@ -8,7 +8,7 @@
 
 doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const string &_robot, int _v,
                                      double _jnt_vels, int _record, string _filename, string _color,
-                                     bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave) :
+                                     bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave, const bool &go) :
                                      RateThread(_rate), name(_name), robot(_robot),verbosity(_v), record(_record),
                                      filename(_filename), color(_color), jnt_vels(_jnt_vels), dontgoback(_dontgoback),
                                      handPossMaster(_hand_poss_master),handPossSlave(_hand_poss_slave)
@@ -37,7 +37,10 @@ doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const strin
 
 bool doubleTouchThread::threadInit()
 {
-    portPoseIn.open("/"+name+"/ps:rpc");
+    portPoseIn.open("/"+name+"/ps:rpc");    
+    portRpc.open("/"+name+"/rpc");
+
+    attach(portRpc);
 
     Network::connect("/"+name+"/ps:rpc","/pose-selection/rpc");
 
@@ -65,7 +68,8 @@ bool doubleTouchThread::threadInit()
         return false;
     }
 
-    bool ok = 1;
+    bool ok = true;
+
     // Left arm is the master, right arm is the slave
     if (ddR.isValid())
     {
@@ -120,6 +124,7 @@ bool doubleTouchThread::threadInit()
     pos.resize(3,0.0);
     orient.resize(4,0.0);
     Hpose.resize(4,4);
+    H_hand.resize(4,4);
 
     askMovingArm();
 
@@ -135,12 +140,16 @@ void doubleTouchThread::run()
         switch (step)
         {
             case 0:
-                step++;
+                if (go)
+                    step++;
                 break;                
             case 1:
                 Hpose=receivePose("pose");
-                selectTask();
-                step++;
+                if (!(Hpose(0,0)==1.0 &&  Hpose(1,1)==1.0 && Hpose(2,2)==1.0 && Hpose(3,3)==1.0))
+                {
+                    selectTask();
+                    step++;
+                }
                 break;
             case 2:
                 solveIK();
@@ -608,4 +617,115 @@ void doubleTouchThread::askMovingArm()
         moving_arm=reply.get(0).asString();
 }
 
-// empty line to make gcc happy
+void doubleTouchThread::askHhand()
+{
+    Bottle cmd, reply;
+    cmd.addString("get_Hhand");
+
+    if (portPoseIn.write(cmd, reply))
+    {
+        Bottle *rec=reply.get(0).asList();
+        H_hand(0,0)=rec->get(0).asDouble(); H_hand(0,1)=rec->get(1).asDouble(); H_hand(0,2)=rec->get(2).asDouble(); H_hand(0,3)=rec->get(3).asDouble();
+        H_hand(1,0)=rec->get(4).asDouble(); H_hand(1,1)=rec->get(5).asDouble(); H_hand(1,2)=rec->get(6).asDouble(); H_hand(1,3)=rec->get(7).asDouble();
+        H_hand(2,0)=rec->get(8).asDouble(); H_hand(2,1)=rec->get(9).asDouble(); H_hand(2,2)=rec->get(10).asDouble(); H_hand(2,3)=rec->get(11).asDouble();
+    }
+
+    H_hand(3,3)=1.0;
+}
+
+/************************************************************************/
+void doubleTouchThread::computeManip()
+{
+    pos_in_hand.clear();
+
+    Vector tmp(4,1.0);
+    Vector tmp_pos(3,0.0);
+
+    Matrix aux(4,4);
+    aux.zero();
+    aux(2,0)=aux(1,2)=-1.0;
+    aux(0,1)=1.0;
+
+    for (size_t i=0; i<positions.size(); i++)
+    {
+        tmp.setSubvector(0, positions[i]);
+        tmp=SE3inv(H_hand)*tmp;
+        tmp_pos=tmp.subVector(0,2);
+        pos_in_hand.push_back(tmp_pos);
+
+        tmp=dcm2axis(aux*SE3inv(H_hand)*axis2dcm(orientations[i]));
+        orie_in_hand.push_back(tmp);
+    }
+
+    for (size_t i=0; i<positions.size(); i++)
+    {
+        Hpose=axis2dcm(orie_in_hand[i]);
+        Hpose.setSubcol(pos_in_hand[i], 0, 3);
+        selectTask();
+        solveIK();
+
+        printMessage(1,"Desired joint configuration:  %s\n",(sol->joints*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
+        joints_sol.push_back(sol->joints);
+
+        Matrix J=slv->probl->limb.asChainMod()->GeoJacobian(joints_sol[i]);
+
+        manip.addDouble(sqrt(det(J*J.transposed())));
+    }
+}
+
+/************************************************************************/
+bool doubleTouchThread::attach(RpcServer &source)
+{
+    return this->yarp().attachAsServer(source);
+}
+
+/************************************************************************/
+Bottle doubleTouchThread::compute_manipulability(Bottle entry)
+{
+    Bottle *lst=entry.get(0).asList();
+
+    cout<<"debug "<<endl;
+    Vector tmp(3,0.0);
+    Vector tmp_o(3,0.0);
+
+    positions.clear();
+    orientations.clear();
+
+    if (lst->get(0).asString()=="positions")
+    {
+        for (size_t i=1; i<lst->size();i++)
+        {
+            Bottle *pos=lst->get(i).asList();
+            tmp[0]=pos->get(0).asDouble();
+            tmp[1]=pos->get(1).asDouble();
+            tmp[2]=pos->get(2).asDouble();
+        }
+        positions.push_back(tmp);
+    }
+    else if (lst->get(0).asString()=="orientations")
+    {
+        for (size_t i=1; i<lst->size();i++)
+        {
+            Bottle *ori=lst->get(i).asList();
+            tmp_o[0]=ori->get(0).asDouble();
+            tmp_o[1]=ori->get(1).asDouble();
+            tmp_o[2]=ori->get(2).asDouble();
+            tmp_o[3]=ori->get(3).asDouble();
+        }
+        orientations.push_back(tmp_o);
+    }
+
+    for (size_t i=0; i<positions.size(); i++)
+        computeManip();
+
+    go=true;
+
+    return manip;
+}
+
+string doubleTouchThread::ciao(string entry)
+{
+    return entry;
+}
+
+

@@ -4,16 +4,20 @@
 
 project(doubleTouch)
 
+include(YarpIDL)
+
 file(GLOB source *.cpp)
 file(GLOB header *.h)
+yarp_add_idl(IDL_GEN_FILES idl.thrift)
 
 source_group("Source Files" FILES ${source})
 source_group("Header Files" FILES ${header})
+source_group("IDL Files" FILES idl.thrift)
 
 include_directories(${YARP_INCLUDE_DIRS})
 include_directories(${periPersonalSpace_INCLUDE_DIRS})
 
-add_executable(${PROJECT_NAME} ${source} ${header} )
+add_executable(${PROJECT_NAME} ${source} ${header} idl.thrift ${IDL_GEN_FILES} )
 
 target_link_libraries(${PROJECT_NAME} periPersonalSpace ${YARP_LIBRARIES} ${IPOPT_LIBRARIES})
 
