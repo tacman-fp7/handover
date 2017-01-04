@@ -60,7 +60,7 @@ The developed code can be run both on the **iCub simulator** and on the **real r
 
 ### Running the modules
 
-4. launch `pose-selection`, `in-hand-segmentation`,`in-hand-localizer` and `closed-chain` binaries with suitable configuration files
+4. launch `pose-selection`, `in-hand-segmentation`,`localizer` and `closed-chain` binaries with suitable configuration files
 5. launch the two `yarpviews` necessary for blob and pose selection visualization
 6. make all the connections (see the [`handover.xml.template`](https://github.com/tacman-fp7/handover/blob/master/app/script/handover.xml.template) file)
 
