@@ -30,6 +30,10 @@ service closedChain_IDL
     */
     Bottle compute_manipulability(1: Bottle entry);
 
-    string ciao(1: string entry);
+/**
+    * Get computed joints
+    * @return a Bottle with all joints solutions
+    */
+    Bottle get_solutions();
   
 }

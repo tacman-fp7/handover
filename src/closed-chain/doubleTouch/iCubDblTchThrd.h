@@ -221,9 +221,9 @@ public:
 
     bool attach(RpcServer &source);
 
-    Bottle compute_manipulability(Bottle entry);
+    Bottle compute_manipulability(const Bottle &entry);
 
-    string ciao(string entry);
+    Bottle get_solutions();
 };
 
 #endif

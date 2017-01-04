@@ -175,7 +175,7 @@ void doubleTouchThread::run()
                 break;
             case 5:
                 recFlag = 0;
-                
+
                 bool flag;
                 if (record == 0)
                 {
@@ -189,8 +189,7 @@ void doubleTouchThread::run()
                 }
                 else
                 {
-                    testAchievement();
-                    printMessage(0,"Waiting for the event to go back.\n");
+                    testAchievement();                    
                     step++;
                 }
                 break;
@@ -224,6 +223,8 @@ bool doubleTouchThread::selectTask()
         curTaskType = "LHtoR";
     else if (moving_arm=="left")
         curTaskType = "RHtoL";
+
+    yDebug()<<"moving arm "<<moving_arm;
 
 
     slv = new doubleTouch_Solver(curTaskType);
@@ -615,6 +616,8 @@ void doubleTouchThread::askMovingArm()
 
     if (portPoseIn.write(cmd,reply))
         moving_arm=reply.get(0).asString();
+    else
+        yError()<<" Moving arm name not received!!";
 }
 
 void doubleTouchThread::askHhand()
@@ -637,30 +640,36 @@ void doubleTouchThread::askHhand()
 void doubleTouchThread::computeManip()
 {
     pos_in_hand.clear();
-
-    Vector tmp(4,1.0);
-    Vector tmp_pos(3,0.0);
-
     Matrix aux(4,4);
     aux.zero();
     aux(2,0)=aux(1,2)=-1.0;
     aux(0,1)=1.0;
 
+    yDebug()<<" positions size"<<positions.size();
+    askHhand();
+
     for (size_t i=0; i<positions.size(); i++)
     {
+        Vector tmp(4,1.0);
+        Vector tmp_pos(3,0.0);
+        cout<<"pos in world "<<positions[i].toString()<<endl;
         tmp.setSubvector(0, positions[i]);
         tmp=SE3inv(H_hand)*tmp;
         tmp_pos=tmp.subVector(0,2);
         pos_in_hand.push_back(tmp_pos);
 
+        cout<<"position in hand frame "<<tmp_pos.toString()<<endl;
+
         tmp=dcm2axis(aux*SE3inv(H_hand)*axis2dcm(orientations[i]));
         orie_in_hand.push_back(tmp);
+        cout<<"orientation in hand frame "<<tmp.toString()<<endl;
     }
 
     for (size_t i=0; i<positions.size(); i++)
     {
         Hpose=axis2dcm(orie_in_hand[i]);
         Hpose.setSubcol(pos_in_hand[i], 0, 3);
+        askMovingArm();
         selectTask();
         solveIK();
 
@@ -680,52 +689,76 @@ bool doubleTouchThread::attach(RpcServer &source)
 }
 
 /************************************************************************/
-Bottle doubleTouchThread::compute_manipulability(Bottle entry)
+Bottle doubleTouchThread::compute_manipulability(const Bottle &entry)
 {
-    Bottle *lst=entry.get(0).asList();
+    Bottle *lstpos=entry.get(0).asList();
+    Bottle *lstorie=entry.get(1).asList();
 
-    cout<<"debug "<<endl;
     Vector tmp(3,0.0);
-    Vector tmp_o(3,0.0);
+    Vector tmp_o(4,0.0);
 
     positions.clear();
     orientations.clear();
 
-    if (lst->get(0).asString()=="positions")
+    if (lstpos->get(0).asString()=="positions")
     {
-        for (size_t i=1; i<lst->size();i++)
+        for (size_t i=1; i<lstpos->size();i++)
         {
-            Bottle *pos=lst->get(i).asList();
+            Bottle *pos=lstpos->get(i).asList();
             tmp[0]=pos->get(0).asDouble();
             tmp[1]=pos->get(1).asDouble();
             tmp[2]=pos->get(2).asDouble();
-        }
-        positions.push_back(tmp);
+            positions.push_back(tmp);
+            yDebug()<<" Position received: "<<tmp.toString();
+        }        
     }
-    else if (lst->get(0).asString()=="orientations")
+
+    if (lstorie->get(0).asString()=="orientations")
     {
-        for (size_t i=1; i<lst->size();i++)
+        for (size_t i=1; i<lstorie->size();i++)
         {
-            Bottle *ori=lst->get(i).asList();
+            Bottle *ori=lstorie->get(i).asList();
             tmp_o[0]=ori->get(0).asDouble();
             tmp_o[1]=ori->get(1).asDouble();
             tmp_o[2]=ori->get(2).asDouble();
             tmp_o[3]=ori->get(3).asDouble();
+
+            orientations.push_back(tmp_o);
+            yDebug()<<" Orientation received: "<<tmp_o.toString();
         }
-        orientations.push_back(tmp_o);
     }
 
-    for (size_t i=0; i<positions.size(); i++)
-        computeManip();
+    computeManip();
 
     go=true;
 
     return manip;
 }
 
-string doubleTouchThread::ciao(string entry)
+/************************************************************************/
+Bottle doubleTouchThread::get_solutions()
 {
-    return entry;
+    Bottle reply;
+
+    yDebug()<<"joints sol "<<joints_sol.size();
+    for (size_t i=0; i<joints_sol.size();i++)
+    {
+        Bottle &cont=reply.addList();
+        yDebug()<<" Computed solutions "<<joints_sol[i].toString();
+
+        for (size_t j=0; j<joints_sol[i].size(); j++)
+        {
+            cont.addDouble(joints_sol[i][j]);
+        }
+
+        cout<<"debug "<<endl;
+    }
+
+    yDebug()<<" Sent joints solutions :";
+    cout<<reply.toString()<<endl;
+
+    return reply;
 }
+
 
 

@@ -61,6 +61,7 @@ class poseSelection : public RFModule,
     vector<double> manip;
     vector<Vector> positions;
     vector<Vector> orientations;
+    vector<Vector> first_arm_pose;
     vector<Vector> positions_rotated;    
     vector<Vector> x_axis, y_axis, z_axis;
     vector<Vector> x_axis_rotated, y_axis_rotated, z_axis_rotated;
@@ -91,20 +92,24 @@ class poseSelection : public RFModule,
     int camera;
     int startup_context_id;
 
-    deque<IControlLimits*> lim_deque;
+    deque<IControlLimits*> lim_deque1;
+    deque<IControlLimits*> lim_deque2;
 
-    iCubArm ikin_arm;
+    iCubArm ikin_second_arm;
+    iCubArm ikin_first_arm;
     iCubTorso ikin_torso;
     iKinChain *chain;
     IGazeControl *igaze;    
-    IControlLimits* lim_arm;
     IControlLimits* lim_torso;
+    IControlLimits* lim_first_arm;
+    IControlLimits* lim_second_arm;
     ICartesianControl *icart_arm_move;
 
     PolyDriver clientGazeCtrl;
     PolyDriver robotDevice_move;
     PolyDriver robotDevice2;
     PolyDriver robotDevice3;
+    PolyDriver robotDevice4;
 
     RpcClient portPoseIn;
     RpcClient portHandIn;
@@ -188,11 +193,12 @@ class poseSelection : public RFModule,
     /************************************************************************/
     Bottle get_Hhand()
     {
-        reply.addDouble(H_hand(0,0)); reply.addDouble(H_hand(0,1)); reply.addDouble(H_hand(0,2)); reply.addDouble(H_hand(0,3));
-        reply.addDouble(H_hand(1,0)); reply.addDouble(H_hand(1,1)); reply.addDouble(H_hand(2,2)); reply.addDouble(H_hand(1,3));
-        reply.addDouble(H_hand(2,0)); reply.addDouble(H_hand(2,1)); reply.addDouble(H_hand(2,2)); reply.addDouble(H_hand(2,3));
+        Bottle replyh;
+        replyh.addDouble(H_hand(0,0)); replyh.addDouble(H_hand(0,1)); replyh.addDouble(H_hand(0,2)); replyh.addDouble(H_hand(0,3));
+        replyh.addDouble(H_hand(1,0)); replyh.addDouble(H_hand(1,1)); replyh.addDouble(H_hand(1,2)); replyh.addDouble(H_hand(1,3));
+        replyh.addDouble(H_hand(2,0)); replyh.addDouble(H_hand(2,1)); replyh.addDouble(H_hand(2,2)); replyh.addDouble(H_hand(2,3));
 
-        return reply;
+        return replyh;
     }
 
     /************************************************************************/
@@ -337,9 +343,15 @@ class poseSelection : public RFModule,
         icart_arm_move->setDOF(newDof,curDof);
 
         if (left_or_right=="right")
-            ikin_arm=iCubArm("right_v2");
+        {
+            ikin_second_arm=iCubArm("right_v2");
+
+        }
         else
-            ikin_arm=iCubArm("left_v2");
+        {
+            ikin_second_arm=iCubArm("left_v2");
+            ikin_first_arm=iCubArm("right_v2");
+        }
 
         ikin_torso=iCubTorso();
 
@@ -354,7 +366,29 @@ class poseSelection : public RFModule,
             return false;
         }
 
-        robotDevice2.view(lim_arm);
+        robotDevice2.view(lim_second_arm);
+
+        Property option_arm4("(device remote_controlboard)");
+        if (left_or_right=="left")
+        {
+            option_arm4.put("remote","/"+robot+"/right_arm");
+            option_arm4.put("local","/"+module_name+"/joint/right_arm");
+        }
+        else
+        {
+            option_arm4.put("remote","/"+robot+"/left_arm");
+            option_arm4.put("local","/"+module_name+"/joint/left_arm");
+        }
+
+
+        robotDevice4.open(option_arm4);
+        if (!robotDevice4.isValid())
+        {
+            yError(" Device 4 not available!");
+            return false;
+        }
+
+        robotDevice4.view(lim_first_arm);
 
         Property option_arm3("(device remote_controlboard)");
         option_arm3.put("remote","/"+robot+"/torso");
@@ -363,21 +397,35 @@ class poseSelection : public RFModule,
         robotDevice3.open(option_arm3);
         if (!robotDevice3.isValid())
         {
-            yError(" Device 2 not available!");
+            yError(" Device 3 not available!");
             return false;
         }
 
         robotDevice3.view(lim_torso);
 
-        lim_deque.push_back(lim_torso);
-        lim_deque.push_back(lim_arm);
+        lim_deque1.push_back(lim_torso);
+        lim_deque1.push_back(lim_second_arm);
 
-        if (!ikin_arm.alignJointsBounds(lim_deque))
+        lim_deque2.push_back(lim_torso);
+        lim_deque2.push_back(lim_first_arm);
+
+        if (!ikin_second_arm.alignJointsBounds(lim_deque1))
+            yError(" Problems in alignJointsBounds()");
+
+        if (!ikin_first_arm.alignJointsBounds(lim_deque2))
             yError(" Problems in alignJointsBounds()");
 
         bool rel=ikin_torso.releaseLink(0);
         rel=rel && ikin_torso.releaseLink(1);
         rel=rel && ikin_torso.releaseLink(2);
+
+//        rel=ikin_first_arm.releaseLink(0);
+//        rel=rel && ikin_first_arm.releaseLink(1);
+//        rel=rel && ikin_first_arm.releaseLink(2);
+
+//        rel=ikin_second_arm.releaseLink(0);
+//        rel=rel && ikin_second_arm.releaseLink(1);
+//        rel=rel && ikin_second_arm.releaseLink(2);
 
         imgIn=NULL;
 
@@ -446,6 +494,9 @@ class poseSelection : public RFModule,
 
         if (robotDevice3.isValid())
             robotDevice3.close();
+
+        if (robotDevice4.isValid())
+            robotDevice4.close();
 
         if (portPoseIn.asPort().isOpen())
             portPoseIn.close();
@@ -586,7 +637,7 @@ class poseSelection : public RFModule,
     {
         Vector tmp(4,1.0);
         Vector tmp2(3,0.0);
-        H_object.setCol(3,tmp2);
+        //H_object.setCol(3,tmp2);
 
         if (norm(H_object.getCol(3).subVector(0,2))>0.0)
         {            
@@ -598,8 +649,6 @@ class poseSelection : public RFModule,
             for (size_t i=0; i<positions.size(); i++)
             {
                 tmp.setSubvector(0,positions[i].subVector(0,2));
-                cout<<endl;
-                yDebug()<<"positions in hand frame: "<<(H_object*tmp).toString();
                 tmp=H_hand*H_object*(tmp);
                 positions_rotated.push_back(tmp.subVector(0,2));
             }
@@ -786,6 +835,14 @@ class poseSelection : public RFModule,
         int x_shift, y_shift;
         Vector num_position(3,0.0);
 
+        if (closed_chain && norm(index_poses)>0.0)
+        {
+//            H_hand=axis2dcm(first_arm_pose[index].subVector(3,6));
+//            H_hand.setSubcol(first_arm_pose[index].subVector(0,2), 0, 3);
+              H_hand=askForHandPose();
+
+            changeFrame();
+        }
 
         if ( norm(pos)>0.0)
         {
@@ -871,8 +928,52 @@ class poseSelection : public RFModule,
             color[2]=255;
             Vector center_bb(2,0.0);
 
-            igaze->get2DPixel(camera, num_position,center_bb);
-            cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+            if (!closed_chain)
+            {
+                igaze->get2DPixel(camera, num_position,center_bb);
+                cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+
+                igaze->get2DPixel(camera, xd_h, position_2D);
+                cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+                Matrix orient(4,4);
+                orient=axis2dcm(od_h);
+
+                igaze->get2DPixel(camera, xd_h + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+                cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+                igaze->get2DPixel(camera, xd_h + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+                cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+                igaze->get2DPixel(camera,xd_h + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+                cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+            }
+            else
+            {
+                igaze->get2DPixel(camera, num_position,center_bb);
+                cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+
+                igaze->get2DPixel(camera, xdhat[index], position_2D);
+                cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+                Matrix orient(4,4);
+                orient=axis2dcm(odhat[index]);
+
+                igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+                cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+                igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+                cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+                igaze->get2DPixel(camera,xdhat[index] + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+                cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+            }
         }
 
         portImgOut.write();
@@ -1001,7 +1102,7 @@ class poseSelection : public RFModule,
             yDebug()<<" Qd for pose "<<i<<": "<<qdhat.toString();
             cout<<endl;
 
-            Matrix J=ikin_arm.GeoJacobian(qdhat);
+            Matrix J=ikin_second_arm.GeoJacobian(qdhat);
 
             manip.push_back(sqrt(det(J*J.transposed())));
         }
@@ -1037,6 +1138,7 @@ class poseSelection : public RFModule,
         Vector err_pos;
         bool first_time=true;
         vector<double> manip_notordered;
+        od.clear();
 
         cout<<endl<<" Computing manipulability..."<<endl<<endl;
 
@@ -1044,19 +1146,33 @@ class poseSelection : public RFModule,
 
         for (size_t i=0; i<positions_rotated.size(); i++)
         {
-                        orient.setCol(0,(x_axis_rotated[i]-positions_rotated[i])/norm(x_axis_rotated[i]-positions_rotated[i]));
+            orient.setCol(0,(x_axis_rotated[i]-positions_rotated[i])/norm(x_axis_rotated[i]-positions_rotated[i]));
             orient.setCol(1,(y_axis_rotated[i]-positions_rotated[i])/norm(y_axis_rotated[i]-positions_rotated[i]));
             orient.setCol(2,(z_axis_rotated[i]-positions_rotated[i])/norm(z_axis_rotated[i]-positions_rotated[i]));
 
             od.push_back(dcm2axis(orient));
         }
 
-        sendToClosedChain(positions_rotated, od);
+        if (positions_rotated.size()!=0)
+        {
+            sendToClosedChain(positions_rotated, od);
 
-        askXdOdHat();
+            askXdOdHat();
+        }
 
         for (size_t i=0; i<positions_rotated.size(); i++)
         {
+            H_hand=axis2dcm(first_arm_pose[i].subVector(3,6));
+            H_hand.setSubcol(first_arm_pose[i].subVector(0,2), 0, 3);
+
+            cout<<" New H_hand "<<H_hand.toString()<<endl;
+
+           // changeFrame();
+
+            Matrix orient(3,3);
+            orient.setCol(0,(x_axis_rotated[i]-positions_rotated[i])/norm(x_axis_rotated[i]-positions_rotated[i]));
+            orient.setCol(1,(y_axis_rotated[i]-positions_rotated[i])/norm(y_axis_rotated[i]-positions_rotated[i]));
+            orient.setCol(2,(z_axis_rotated[i]-positions_rotated[i])/norm(z_axis_rotated[i]-positions_rotated[i]));
 
             Matrix orient_hat=axis2dcm(odhat[i]);
 
@@ -1070,10 +1186,6 @@ class poseSelection : public RFModule,
             yDebug()<<" Error in position "<<i<<": "<<err_pos[i];
             yDebug()<<" Qd for pose "<<i<<": "<<qdhat[i].toString();
             cout<<endl;
-
-            //Matrix J=ikin_arm.GeoJacobian(qdhat[i]);
-
-            //manip.push_back(sqrt(det(J*J.transposed())));
         }
 
         manip_notordered=manip;
@@ -1132,23 +1244,28 @@ class poseSelection : public RFModule,
     {
         Bottle cmd, reply;
         cmd.addString("compute_manipulability");
-        cmd.addList();
-        cmd.addString("positions");
+        Bottle &cmd2=cmd.addList();
+        Bottle &cmd3=cmd2.addList();
+        cmd3.addString("positions");
 
         for (size_t i=0; i<positions.size(); i++)
         {
-            cmd.addList();
-            cmd.addDouble(positions[i][0]); cmd.addDouble(positions[i][1]); cmd.addDouble(positions[i][2]);
+            Bottle &cmd4=cmd3.addList();
+            cmd4.addDouble(positions[i][0]); cmd4.addDouble(positions[i][1]); cmd4.addDouble(positions[i][2]);
         }
 
-        cmd.addList();
-        cmd.addString("orientations");
+        Bottle &cmd5=cmd2.addList();
+        cmd5.addString("orientations");
 
         for (size_t i=0; i<od.size(); i++)
         {
-            cmd.addList();
-            cmd.addDouble(od[i][0]); cmd.addDouble(od[i][1]); cmd.addDouble(od[i][2]);
+            Bottle &cmd6=cmd5.addList();
+            cmd6.addDouble(od[i][0]); cmd6.addDouble(od[i][1]); cmd6.addDouble(od[i][2]); cmd6.addDouble(od[i][3]);
         }
+
+        cout<<endl;
+        yDebug()<<" Sent cmd for manipulability computation: ";
+        cout<<cmd.toString()<<endl;
 
         if (portClosedChain.write(cmd, reply))
         {
@@ -1158,49 +1275,76 @@ class poseSelection : public RFModule,
             for(size_t i=0; i<rec->size();i++)
             {
                 manip.push_back(rec->get(i).asDouble());
+
+                yDebug()<<" Received manipulability: "<<rec->get(i).asDouble();
             }
         }
+        else
+            yError()<<" No manipulability indices received!!";
+
     }
 
     /*******************************************************************************/
    void askXdOdHat()
    {
        Bottle cmd, reply;
-       Vector tmp(3,0.0);
-       Vector tmp_o(4,0.0);
-       cmd.addList();
-       cmd.addString("computed_poses");
+       Vector tmp(14,0.0);
+       Vector second_arm_pose(7,0.0);
+       Vector qm(7,0.0), qs(7,0.0);
+       cmd.addString("get_solutions");
 
        if (portClosedChain.write(cmd, reply))
        {
            xdhat.clear();
            odhat.clear();
+           qdhat.clear();
+           first_arm_pose.clear();
 
-           Bottle *lst=reply.get(0).asList();
+           yDebug()<<" Received joints solutions";
+           cout<<reply.toString()<<endl;
 
-           if (lst->get(0).asString()=="positions")
+           Bottle *cont=reply.get(0).asList();
+
+           for (size_t i=0; i<cont->size();i++)
            {
-               for (size_t i=1; i<lst->size();i++)
+               Bottle *pos=cont->get(i).asList();
+               for (size_t j=0; j<pos->size(); j++)
                {
-                   Bottle *pos=lst->get(i).asList();
-                   tmp[0]=pos->get(0).asDouble();
-                   tmp[1]=pos->get(1).asDouble();
-                   tmp[2]=pos->get(2).asDouble();
+                   tmp[j]=pos->get(j).asDouble();
                }
-               xdhat.push_back(tmp);
+               qdhat.push_back(tmp);
+
+               yDebug()<<" Qd hat saved"<<qdhat[i].toString();
            }
-           else if (lst->get(0).asString()=="orientations")
-           {
-               for (size_t i=1; i<lst->size();i++)
-               {
-                   Bottle *ori=lst->get(i).asList();
-                   tmp_o[0]=ori->get(0).asDouble();
-                   tmp_o[1]=ori->get(1).asDouble();
-                   tmp_o[2]=ori->get(2).asDouble();
-                   tmp_o[3]=ori->get(3).asDouble();
-               }
-               odhat.push_back(tmp_o);
-           }
+       }
+       else
+           yError()<<" No joints solutions receveid!!";
+
+//       Vector torso_dofs=ikin_torso.getAng();/**/
+
+       Vector torso_dofs(3,0.0);
+
+
+       for (size_t j=0; j<qdhat.size();j++)
+       {
+           for (size_t i=0; i<7; i++)
+               qs[6-i]=-qdhat[j][i];
+
+            for (size_t i=7; i<14; i++)
+                qm[i-7]=qdhat[j][i];
+
+//            qs[0]=qm[0]=torso_dofs[2];
+//            qs[1]=qm[1]=torso_dofs[1];
+//            qs[2]=qm[2]=torso_dofs[0];
+
+            second_arm_pose=ikin_second_arm.EndEffPose(qm);
+            first_arm_pose.push_back(ikin_first_arm.EndEffPose(qs));
+
+            cout<<"second arm pose "<<second_arm_pose.toString()<<endl;
+            cout<<"first arm pose "<<first_arm_pose[j].toString()<<endl;
+
+            xdhat.push_back(second_arm_pose.subVector(0,2));
+            odhat.push_back(second_arm_pose.subVector(3,6));
        }
    }
 };
