@@ -105,9 +105,26 @@
         <protocol>tcp</protocol>
     </connection>
 
+    <module>
+       <name>localizer</name>
+        <parameters> --from config-domino.ini</parameters>
+       <node>icub21</node>
+    </module>
+
+    <module>
+       <name>closed-chain</name>
+       <node>icub21</node>
+    </module>
+
     <connection>
         <from>/in-hand-localizer/pnt:i</from>
         <to>/in-hand-segmentation/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/pose-selection/cc:rpc</from>
+        <to>/closed-chain/rpc</to>
         <protocol>tcp</protocol>
     </connection>
 

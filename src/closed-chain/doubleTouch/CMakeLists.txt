@@ -2,7 +2,7 @@
 # Author: Alessandro Roncone
 # CopyPolicy: Released under the terms of the GNU GPL v2.0.
 
-project(doubleTouch)
+project(closedChain)
 
 include(YarpIDL)
 

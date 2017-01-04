@@ -49,7 +49,7 @@ public:
         doubleTouch_Thrd=0;
 
         robot    = "icubSim";
-        name     = "double-touch";
+        name     = "closed-chain";
         type     = "LHtoR";
         filename = ".txt";
         color    = " ";
