@@ -144,17 +144,20 @@ void doubleTouchThread::run()
                     step++;
                 break;                
             case 1:
-                Hpose=receivePose("pose");
-                if (!(Hpose(0,0)==1.0 &&  Hpose(1,1)==1.0 && Hpose(2,2)==1.0 && Hpose(3,3)==1.0))
-                {
-                    selectTask();
+//                Hpose=receivePose("pose");
+//                if (!(Hpose(0,0)==1.0 &&  Hpose(1,1)==1.0 && Hpose(2,2)==1.0 && Hpose(3,3)==1.0))
+//                {
+//                    selectTask();
+//                    step++;
+//                }
+
+                if (askSelectedPose())
                     step++;
-                }
                 break;
             case 2:
-                solveIK();
-                yInfo("[doubleTouch] Going to pose... Desired EE: %s\n",(sol->ee).toString(3,3).c_str());
-                printMessage(1,"Desired joint configuration:  %s\n",(sol->joints*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
+//                solveIK();
+//                yInfo("[doubleTouch] Going to pose... Desired EE: %s\n",(sol->ee).toString(3,3).c_str());
+//                printMessage(1,"Desired joint configuration:  %s\n",(sol->joints*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
                 step++;
                 recFlag = 1;
                 break;
@@ -422,7 +425,8 @@ void doubleTouchThread::goToPoseMaster()
     for (int i = 0; i < 7; i++)
     {
         Ejoints.push_back(i);
-        qM[i] = solution[nDOF-7+i];
+//        qM[i] = solution[nDOF-7+i];
+        qM[i] = iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][nDOF-7+i];
         if (verbosity>1)
         {
             printf("#%i to: %g\t",i,qM[i]);
@@ -448,7 +452,8 @@ void doubleTouchThread::goToPoseSlave()
         {
             printf("#%i to: %g\t",nDOF-7-1-i,-solution[i]);
         }
-        iposS -> positionMove(nDOF-7-1-i,-solution[i]);
+//        iposS -> positionMove(nDOF-7-1-i,-solution[i]);
+        iposS -> positionMove(nDOF-7-1-i,-iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][i]);
     }
     if (verbosity>1)
     {
@@ -636,6 +641,19 @@ void doubleTouchThread::askHhand()
     H_hand(3,3)=1.0;
 }
 
+bool doubleTouchThread::askSelectedPose()
+{
+    Bottle cmd, reply;
+    cmd.addString("get_index");
+    if (portPoseIn.write(cmd, reply))
+    {
+        index=reply.get(0).asInt();
+        return true;
+    }
+    else
+        return false;
+}
+
 /************************************************************************/
 void doubleTouchThread::computeManip()
 {
@@ -740,7 +758,6 @@ Bottle doubleTouchThread::get_solutions()
 {
     Bottle reply;
 
-    yDebug()<<"joints sol "<<joints_sol.size();
     for (size_t i=0; i<joints_sol.size();i++)
     {
         Bottle &cont=reply.addList();
@@ -750,12 +767,7 @@ Bottle doubleTouchThread::get_solutions()
         {
             cont.addDouble(joints_sol[i][j]);
         }
-
-        cout<<"debug "<<endl;
     }
-
-    yDebug()<<" Sent joints solutions :";
-    cout<<reply.toString()<<endl;
 
     return reply;
 }

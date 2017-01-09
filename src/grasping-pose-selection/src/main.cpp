@@ -345,6 +345,7 @@ class poseSelection : public RFModule,
         if (left_or_right=="right")
         {
             ikin_second_arm=iCubArm("right_v2");
+            ikin_first_arm=iCubArm("left_v2");
 
         }
         else
@@ -415,9 +416,9 @@ class poseSelection : public RFModule,
         if (!ikin_first_arm.alignJointsBounds(lim_deque2))
             yError(" Problems in alignJointsBounds()");
 
-        bool rel=ikin_torso.releaseLink(0);
-        rel=rel && ikin_torso.releaseLink(1);
-        rel=rel && ikin_torso.releaseLink(2);
+//        bool rel=ikin_torso.releaseLink(0);
+//        rel=rel && ikin_torso.releaseLink(1);
+//        rel=rel && ikin_torso.releaseLink(2);
 
 //        rel=ikin_first_arm.releaseLink(0);
 //        rel=rel && ikin_first_arm.releaseLink(1);
@@ -649,6 +650,7 @@ class poseSelection : public RFModule,
             for (size_t i=0; i<positions.size(); i++)
             {
                 tmp.setSubvector(0,positions[i].subVector(0,2));
+
                 tmp=H_hand*H_object*(tmp);
                 positions_rotated.push_back(tmp.subVector(0,2));
             }
@@ -839,7 +841,8 @@ class poseSelection : public RFModule,
         {
 //            H_hand=axis2dcm(first_arm_pose[index].subVector(3,6));
 //            H_hand.setSubcol(first_arm_pose[index].subVector(0,2), 0, 3);
-              H_hand=askForHandPose();
+
+            H_hand=askForHandPose();
 
             changeFrame();
         }
@@ -1167,7 +1170,7 @@ class poseSelection : public RFModule,
 
             cout<<" New H_hand "<<H_hand.toString()<<endl;
 
-           // changeFrame();
+            changeFrame();
 
             Matrix orient(3,3);
             orient.setCol(0,(x_axis_rotated[i]-positions_rotated[i])/norm(x_axis_rotated[i]-positions_rotated[i]));
@@ -1320,25 +1323,41 @@ class poseSelection : public RFModule,
        else
            yError()<<" No joints solutions receveid!!";
 
-//       Vector torso_dofs=ikin_torso.getAng();/**/
-
-       Vector torso_dofs(3,0.0);
-
-
        for (size_t j=0; j<qdhat.size();j++)
        {
+           Vector qd_tmp=qdhat[j];
+
            for (size_t i=0; i<7; i++)
-               qs[6-i]=-qdhat[j][i];
+               qs[6-i]=-qd_tmp[i];
 
             for (size_t i=7; i<14; i++)
-                qm[i-7]=qdhat[j][i];
-
-//            qs[0]=qm[0]=torso_dofs[2];
-//            qs[1]=qm[1]=torso_dofs[1];
-//            qs[2]=qm[2]=torso_dofs[0];
+                qm[i-7]=qd_tmp[i];
 
             second_arm_pose=ikin_second_arm.EndEffPose(qm);
             first_arm_pose.push_back(ikin_first_arm.EndEffPose(qs));
+
+//            Vector tmp(4,1.0);
+//            Matrix tmp_mat(4,4);
+//            Matrix aux(4,4);
+//            aux.zero();
+//            aux(2,0)=aux(1,2)=-1.0;
+//            aux(0,1)=1.0;
+//            Matrix aux_inv=SE3inv(aux);
+//            aux_inv=aux;
+
+//            //cout<<endl<<endl<<endl<<"aux inverted "<<aux_inv.toString()<<endl<<endl<<endl;
+
+//            tmp.setSubvector(0, second_arm_pose.subVector(0,2));
+//            second_arm_pose.setSubvector(0, (aux*tmp).subVector(0,2));
+
+//            tmp_mat=axis2dcm(second_arm_pose.subVector(3,6));
+//            second_arm_pose.setSubvector(3, dcm2axis(aux*tmp_mat));
+
+//            tmp.setSubvector(0, first_arm_pose[j].subVector(0,2));
+//            first_arm_pose[j].setSubvector(0, (aux_inv*tmp).subVector(0,2));
+
+//            tmp_mat=axis2dcm(first_arm_pose[j].subVector(3,6));
+//            first_arm_pose[j].setSubvector(3, dcm2axis(aux_inv*tmp_mat));
 
             cout<<"second arm pose "<<second_arm_pose.toString()<<endl;
             cout<<"first arm pose "<<first_arm_pose[j].toString()<<endl;

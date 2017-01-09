@@ -76,6 +76,8 @@ protected:
     double jnt_vels; // Joint velocities during the double touch
     bool         go;
 
+    int index;
+
     PolyDriver       ddR; // right arm device driver
     PolyDriver       ddL; // left arm  device driver
     PolyDriver       ddG; // gaze controller  driver
@@ -202,6 +204,8 @@ protected:
     void askMovingArm();
 
     void askHhand();
+
+    bool askSelectedPose();
 
     Matrix receivePose(const string &what);
 

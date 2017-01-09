@@ -70,4 +70,10 @@ service poseSelection_IDL
     * @ return a bottle coitaning H_hand matrix
     */
     Bottle get_Hhand();
+
+    /**
+    * get index of the selected pose
+    * @ return the
+    */
+    i32 get_index();
 }
