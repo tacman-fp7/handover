@@ -37,7 +37,9 @@ protected:
     vector<Vector> pointsIn;
     vector<Vector> pointsOut;
     vector<cv::Point> blobPoints;
+
     Matrix H_hand;
+
     Vector encoders;
     Vector position;
     Vector orientation;
@@ -461,7 +463,7 @@ protected:
             }
         }
         else
-            yError()<<"No points available!";
+            yError()<<" No points available!";
 
         return bpoints;
     }
@@ -556,27 +558,27 @@ protected:
     /***********************************************************************/
     bool new_hand_pose(const Bottle &entry)
     {
-        for (size_t i=0; i<entry.size();i++)
+        Bottle *position=entry.get(0).asList();
+        Bottle *pos=position->get(0).asList();
+
+        if (pos->get(0).asString()=="position")
         {
-            Bottle *position=entry.get(0).asList();
-            if (position->get(0).asString()=="position")
-            {
-                pos_to_reach[0]=position->get(1).asDouble();
-                pos_to_reach[1]=position->get(2).asDouble();
-                pos_to_reach[2]=position->get(3).asDouble();
-            }
-            else if (position->get(0).asString()=="orientation")
-            {
-                orient_to_reach[0]=position->get(1).asDouble();
-                orient_to_reach[1]=position->get(2).asDouble();
-                orient_to_reach[2]=position->get(3).asDouble();
-                orient_to_reach[3]=position->get(4).asDouble();
-            }
+            Bottle *poslst=pos->get(0).asList();
+            pos_to_reach[0]=poslst->get(0).asDouble();
+            pos_to_reach[1]=poslst->get(1).asDouble();
+            pos_to_reach[2]=poslst->get(2).asDouble();
         }
 
-        moveHand(pos_to_reach, orient_to_reach);
-        if (online)
-            computePose();
+        Bottle *orie=position->get(1).asList();
+
+        if (orie->get(0).asString()=="orientation")
+        {
+            Bottle *orielst=orie->get(0).asList();
+            orient_to_reach[0]=orielst->get(0).asDouble();
+            orient_to_reach[1]=orielst->get(1).asDouble();
+            orient_to_reach[2]=orielst->get(2).asDouble();
+            orient_to_reach[3]=orielst->get(3).asDouble();
+        }
 
         lookHand();
         return true;
@@ -837,6 +839,9 @@ public:
     {
         Vector colors(3,0.0);
 
+        if (fixate)
+            lookHand();
+
         if (online)
         {
             if (prepare_hand)
@@ -871,9 +876,6 @@ public:
 
             if (prepare_hand)
                 moveHand(position, orientation);
-
-            if (fixate)
-                lookHand();
 
             if (change_frame)
                 fromRobotTohandFrame(pointsIn);
@@ -1745,9 +1747,22 @@ public:
     void lookHand()
     {
         Vector shift(3,0.0);
-        shift[2]=0.1;
-        igaze->lookAtFixationPoint(position+ shift);
-        igaze->waitMotionDone();
+        shift[1]=0.05;
+        shift[2]=0.05;
+        Vector position_new(3,0.0);
+        Vector orientation_new(4,0.0);
+
+        if (test)
+            icart_arm->getPose(position_new,orientation_new);
+
+        if (norm(position_new -position)>=0.05 || pointsOut.size()==0)
+        {
+            position=position_new;
+            orientation=orientation_new;
+
+            igaze->lookAtFixationPoint(position+ shift);
+            igaze->waitMotionDone();
+        }
     }
 
     /*******************************************************************************/
@@ -1755,5 +1770,7 @@ public:
     {
         icart_arm->goToPose(pos,orient);
         icart_arm->waitMotionDone();
+        prepare_hand=false;
+        icart_arm->stopControl();
     }
 };

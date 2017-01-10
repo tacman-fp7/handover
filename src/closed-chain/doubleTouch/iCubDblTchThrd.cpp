@@ -144,24 +144,12 @@ void doubleTouchThread::run()
                     step++;
                 break;                
             case 1:
-//                Hpose=receivePose("pose");
-//                if (!(Hpose(0,0)==1.0 &&  Hpose(1,1)==1.0 && Hpose(2,2)==1.0 && Hpose(3,3)==1.0))
-//                {
-//                    selectTask();
-//                    step++;
-//                }
-
                 if (askSelectedPose())
                     step++;
-                break;
-            case 2:
-//                solveIK();
-//                yInfo("[doubleTouch] Going to pose... Desired EE: %s\n",(sol->ee).toString(3,3).c_str());
-//                printMessage(1,"Desired joint configuration:  %s\n",(sol->joints*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
-                step++;
+
                 recFlag = 1;
                 break;
-            case 3:
+            case 2:
                 configureHands();
                 if (record != 0)
                 {
@@ -172,11 +160,11 @@ void doubleTouchThread::run()
                 
                 step++;
                 break;
-            case 4:
+            case 3:
                 Time::delay(2.0);
                 step++;
                 break;
-            case 5:
+            case 4:
                 recFlag = 0;
 
                 bool flag;
@@ -196,20 +184,19 @@ void doubleTouchThread::run()
                     step++;
                 }
                 break;
-            case 6:
+            case 5:
                 if (!dontgoback)
                 {
-                    printMessage(0,"Going to rest...\n");
+                    printf(" Going to rest...\n");
                     clearTask();
-                    steerArmsHomeMasterSlave();
-                    step++;
+                    steerArmsHomeMasterSlave();                    
                 }
+                step++;
                 break;
-            case 7:
-                printMessage(1,"Switching to position mode..\n");
+            case 6:
+                printf(" Switching to position mode..\n");
                 imodeS -> setInteractionMode(2,VOCAB_IM_STIFF);
                 imodeS -> setInteractionMode(3,VOCAB_IM_STIFF);
-                yInfo("[doubleTouch] WAITING FOR CONTACT...\n");
                 step = 1;
                 break;
             default:
@@ -226,9 +213,6 @@ bool doubleTouchThread::selectTask()
         curTaskType = "LHtoR";
     else if (moving_arm=="left")
         curTaskType = "RHtoL";
-
-    yDebug()<<"moving arm "<<moving_arm;
-
 
     slv = new doubleTouch_Solver(curTaskType);
     gue = new doubleTouch_Variables(slv->probl->getNVars()); // guess
@@ -286,33 +270,26 @@ bool doubleTouchThread::selectTask()
     }
     else
     {
-        yError("[doubleTouch] current task type is none of the admissible values!");
+        yError(" Current task type is none of the admissible values!");
         return false;
     }
 
     if (!alignJointsBounds())
     {
-        yError("[doubleTouch] alignJointsBounds failed!!!\n");
+        yError(" AlignJointsBounds failed!!!\n");
         return false;
     }
-
-//    Vector joints;
-//    iencsM->getEncoders(encsM->data());
-//    slv->probl->index.getChainJoints(*encsM,joints);
-//    HIndex=slv->probl->index.getH(joints*iCub::ctrl::CTRL_DEG2RAD);
 
     HIndex=eye(4);
     slv->probl->limb.setHN(HIndex);
     testLimb->setHN(HIndex);
-    printMessage(1,"Index type: %s \t HIndex:\n%s\n", slv->probl->index.getType().c_str(),
-                                                      HIndex.toString(3,3).c_str());
 
     return true;
 }
 
 bool doubleTouchThread::clearTask()
 {
-    yInfo("[doubleTouch] Clearing task..");
+    cout<<" Clearing task.."<<endl;
 
     delete slv; slv=NULL;
     delete gue; gue=NULL;
@@ -327,7 +304,7 @@ void doubleTouchThread::configureHands()
     Vector vels(9,100.0);    
     vels[8]=200.0; 
 
-    printMessage(1,"Configuring master hand...\n");
+    cout<<endl<<" Configuring master hand..."<<endl;
 
     for (int i=7; i<jntsM; i++)
     {
@@ -354,8 +331,8 @@ bool doubleTouchThread::checkMotionDone()
 
     double normL = norm(eeL - oldEEL);
     double normR = norm(eeR - oldEER);
-    printMessage(4,"step: %i  result: %i  normL: %g\tnormR: %g\n", step,
-        (normL <= VEL_THRES * getRate()) && (normR <= VEL_THRES * getRate()), normL, normR);
+//    printf(" step: %i  result: %i  normL: %g\tnormR: %g\n", step,
+//        (normL <= VEL_THRES * getRate()) && (normR <= VEL_THRES * getRate()), normL, normR);
 
     oldEEL = eeL;
     oldEER = eeR;
@@ -380,24 +357,21 @@ void doubleTouchThread::testAchievement()
     iencsS->getEncoders(encsS->data());
 
     testLimb->setAng((*encsS)*iCub::ctrl::CTRL_DEG2RAD,(*encsM)*iCub::ctrl::CTRL_DEG2RAD);
-    printMessage(0,"Final end effector :          %s\n", testLimb->EndEffPosition().toString(3,3).c_str());
-    printMessage(0,"Final end effector :          %s\n", testLimb->EndEffPose(true).toString(3,3).c_str());
-    printMessage(2,"Final Joint configuration:    %s\n",(testLimb->getAng()*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
+    cout<<endl;
+    printf(" Final end effector :          %s\n", testLimb->EndEffPosition().toString(3,3).c_str());
+    printf(" Final end effector :          %s\n", testLimb->EndEffPose(true).toString(3,3).c_str());
+    printf(" Final Joint configuration:    %s\n",(testLimb->getAng()*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
+    cout<<endl;
 }
 
 void doubleTouchThread::solveIK()
 {
-    printMessage(2,"H0: \n%s\n",Hpose.toString(3,3).c_str());
     slv->probl->limb.setH0(SE3inv(Hpose));
     testLimb->setH0(SE3inv(Hpose));
-
-//    slv->probl->limb.setH0(Hpose);
-//    testLimb->setH0(Hpose);
 
     slv->probl->limb.setAng(sol->joints);
     slv->setInitialGuess(*sol);
     slv->solve(*sol);
-    // sol->print();
     solution=iCub::ctrl::CTRL_RAD2DEG * sol->joints;
 
     testLimb->setAng(sol->joints);
@@ -405,10 +379,10 @@ void doubleTouchThread::solveIK()
 
 void doubleTouchThread::goToPose()
 {
-    yDebug()<<"Moving slave ...";
+    cout<<endl<<" Moving slave ..."<<endl;
     goToPoseSlave();
     Time::delay(2.0);
-    yDebug()<<"Moving master ...";
+    cout<<endl<<" Moving master ..."<<endl;
     goToPoseMaster();
 }
 
@@ -420,21 +394,20 @@ void doubleTouchThread::goToPoseMaster()
 
     if (verbosity>1)
     {
-        printf("[doubleTouch] Moving master links: ");
+        cout<<" Moving master links: "<<endl;
     }
     for (int i = 0; i < 7; i++)
     {
         Ejoints.push_back(i);
-//        qM[i] = solution[nDOF-7+i];
         qM[i] = iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][nDOF-7+i];
         if (verbosity>1)
         {
-            printf("#%i to: %g\t",i,qM[i]);
+            printf(" #%i to: %g\t",i,qM[i]);
         }
     }
     if (verbosity>1)
     {
-        printf("\n");
+        cout<<endl;
     }
 
     iposM -> positionMove(nJnts,Ejoints.data(),qM.data());
@@ -444,37 +417,32 @@ void doubleTouchThread::goToPoseSlave()
 {
     if (verbosity>1)
     {
-        printf("[doubleTouch] Moving slave  links: ");
+        cout<<" Moving slave  links: "<<endl;
     }
     for (int i = 0; i < nDOF-7; i++)
     {
         if (verbosity>1)
         {
-            printf("#%i to: %g\t",nDOF-7-1-i,-solution[i]);
+            printf(" #%i to: %g\t",nDOF-7-1-i,-solution[i]);
         }
-//        iposS -> positionMove(nDOF-7-1-i,-solution[i]);
+
         iposS -> positionMove(nDOF-7-1-i,-iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][i]);
     }
     if (verbosity>1)
     {
-        printf("\n");
+        cout<<endl;
     }
 }
 
 void doubleTouchThread::steerArmsHome()
 {   
-    printMessage(1,"Moving arms to home, i.e. %s...\n",
+    printf(" Moving arms to home, i.e. %s...\n",
                  (iCub::ctrl::CTRL_RAD2DEG*armPossHome).toString(3,3).c_str());
 
     for (int i = 0; i < 7; i++)
     {
         iposL->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
     }
-//    for (int i = 7; i < 16; i++)
-//    {
-//        if (i==7)   iposL -> positionMove(i,60.0);
-//        else        iposL -> positionMove(i,0.0);
-//    }
 
     Time::delay(2.0);
     
@@ -482,16 +450,11 @@ void doubleTouchThread::steerArmsHome()
     {
         iposR->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
     }
-//    for (int i = 7; i < 16; i++)
-//    {
-//        if (i==7)   iposR -> positionMove(i,60.0);
-//        else        iposR -> positionMove(i,0.0);
-//    }
 }
 
 void doubleTouchThread::steerArmsHomeMasterSlave()
 {
-    printMessage(1,"Moving arms to home, i.e. %s...\n",
+    printf(" Moving arms to home, i.e. %s...\n",
                  (iCub::ctrl::CTRL_RAD2DEG*armPossHome).toString(3,3).c_str());
 
     for (int i = 0; i < 7; i++)
@@ -527,54 +490,40 @@ bool doubleTouchThread::alignJointsBounds()
     if (slv->probl->limb.alignJointsBounds(lim) == 0) return false;
 
     lim.pop_front();
-    //if (slv->probl->index.alignJointsBounds(lim) == 0) return false;
 
     return true;
 }
 
-int doubleTouchThread::printMessage(const int l, const char *f, ...) const
-{
-    if (verbosity>=l)
-    {
-        fprintf(stdout,"[%s] ",name.c_str());
-
-        va_list ap;
-        va_start(ap,f);
-        int ret=vfprintf(stdout,f,ap);
-        va_end(ap);
-        return ret;
-    }
-    else
-        return -1;
-}
-
 void doubleTouchThread::threadRelease()
 {
-    printMessage(0,"Returning to position mode..\n");
-        if (!dontgoback)
-        {
-            steerArmsHome();
-            imodeL -> setInteractionMode(2,VOCAB_IM_STIFF);
-            imodeL -> setInteractionMode(3,VOCAB_IM_STIFF);
-            imodeR -> setInteractionMode(2,VOCAB_IM_STIFF);
-            imodeR -> setInteractionMode(3,VOCAB_IM_STIFF);
-            steerArmsHome();
-        }
+    cout<<endl;
+    printf(" Returning to position mode..\n");
+    if (!dontgoback)
+    {
+        steerArmsHome();
+        imodeL -> setInteractionMode(2,VOCAB_IM_STIFF);
+        imodeL -> setInteractionMode(3,VOCAB_IM_STIFF);
+        imodeR -> setInteractionMode(2,VOCAB_IM_STIFF);
+        imodeR -> setInteractionMode(3,VOCAB_IM_STIFF);
+        steerArmsHome();
+    }
 
-        delete encsR; encsR = NULL;
-        delete  armR;  armR = NULL;
+    delete encsR; encsR = NULL;
+    delete  armR;  armR = NULL;
 
-        delete encsL; encsL = NULL;
-        delete  armL;  armL = NULL;
+    delete encsL; encsL = NULL;
+    delete  armL;  armL = NULL;
 
-    printMessage(0,"Closing ports..\n");
+    cout<<endl;
+    printf(" Closing ports..\n");
 
-    printMessage(0,"Closing controllers..\n");
-        ddR.close();
-        ddL.close();
+    printf(" Closing controllers..\n");
+    ddR.close();
+    ddL.close();
 
-    printMessage(0,"Closing solver..\n");
-        clearTask();
+    printf(" Closing solver..\n");
+    clearTask();
+    cout<<endl;
 }
 
 Matrix doubleTouchThread::receivePose(const string &what)
@@ -604,12 +553,6 @@ Matrix doubleTouchThread::receivePose(const string &what)
     H=axis2dcm(orient);
     H.setSubcol(pos, 0, 3);
     H(3,3)=1;
-
-    cout<<endl<<"Hpose "<<Hpose.toString()<<endl<<endl;
-
-    cout<<endl<<"Determinant of Rpose: "<<det(Hpose.submatrix(0,2,0,2))<<endl<<endl;
-
-    cout<<endl<<"Hpose inverted "<<(SE3inv(Hpose)).toString()<<endl<<endl;
 
     return H;
 }
@@ -663,25 +606,23 @@ void doubleTouchThread::computeManip()
     aux(2,0)=aux(1,2)=-1.0;
     aux(0,1)=1.0;
 
-    yDebug()<<" positions size"<<positions.size();
     askHhand();
 
     for (size_t i=0; i<positions.size(); i++)
     {
         Vector tmp(4,1.0);
         Vector tmp_pos(3,0.0);
-        cout<<"pos in world "<<positions[i].toString()<<endl;
+
         tmp.setSubvector(0, positions[i]);
         tmp=SE3inv(H_hand)*tmp;
         tmp_pos=tmp.subVector(0,2);
         pos_in_hand.push_back(tmp_pos);
 
-        cout<<"position in hand frame "<<tmp_pos.toString()<<endl;
-
         tmp=dcm2axis(aux*SE3inv(H_hand)*axis2dcm(orientations[i]));
         orie_in_hand.push_back(tmp);
-        cout<<"orientation in hand frame "<<tmp.toString()<<endl;
     }
+
+    cout<<endl;
 
     for (size_t i=0; i<positions.size(); i++)
     {
@@ -691,7 +632,7 @@ void doubleTouchThread::computeManip()
         selectTask();
         solveIK();
 
-        printMessage(1,"Desired joint configuration:  %s\n",(sol->joints*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
+        printf(" Desired joint configuration:  %s\n",(sol->joints*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
         joints_sol.push_back(sol->joints);
 
         Matrix J=slv->probl->limb.asChainMod()->GeoJacobian(joints_sol[i]);
@@ -717,6 +658,8 @@ Bottle doubleTouchThread::compute_manipulability(const Bottle &entry)
 
     positions.clear();
     orientations.clear();
+
+    cout<<endl;
 
     if (lstpos->get(0).asString()=="positions")
     {
@@ -758,6 +701,7 @@ Bottle doubleTouchThread::get_solutions()
 {
     Bottle reply;
 
+    cout<<endl;
     for (size_t i=0; i<joints_sol.size();i++)
     {
         Bottle &cont=reply.addList();

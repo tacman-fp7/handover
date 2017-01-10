@@ -109,7 +109,7 @@ public:
                 {
                     if (doubleTouch_Thrd)
                     {
-                        yInfo("DOUBLE TOUCH: Stopping threads..");
+                        yInfo(" Stopping threads..");
                         doubleTouch_Thrd->stop();
                         delete doubleTouch_Thrd;
                         doubleTouch_Thrd=0;
@@ -133,73 +133,44 @@ public:
         bool alignEyes = rf.check("alignEyes");
         dontgoback     = rf.check("dontgoback");
 
+        cout<<endl;
+
         if (dontgoback)
         {
-            yInfo("[doubleTouch] Dontgoback flag set to ON");
+            yInfo(" Dontgoback flag set to ON");
         }
 
         name = rf.check("name", Value("double-touch")).asString();
-        yInfo("[doubleTouch] Module name set to %s", name.c_str());
+        yInfo(" Module name set to %s", name.c_str());
 
         setName(name.c_str());
 
         robot = rf.check("robot", Value("icubSim")).asString();
-        yInfo("[doubleTouch] Robot is: %s", robot.c_str());
+        yInfo(" Robot is: %s", robot.c_str());
 
         type = rf.check("type", Value("RHtoL")).asString();
-        yInfo("[doubleTouch] Type is: %s", type.c_str());
+        yInfo(" Type is: %s", type.c_str());
 
         verbosity = rf.check("verbosity", Value(0)).asInt();
-        yInfo("[doubleTouch] verbosity set to %i", verbosity);
+        yInfo(" Verbosity set to %i", verbosity);
 
         rate = rf.check("rate", Value(100)).asInt();
-        yInfo("[doubleTouch] rateThread working at %i ms.",rate);
+        yInfo(" RateThread working at %i ms.",rate);
 
         record = rf.check("record", Value(0)).asInt();
-        yInfo("[doubleTouch] record variable is set to %i",record);
+        yInfo(" Record variable is set to %i",record);
 
         filename = rf.check("filename", Value(".txt")).asString();
-        yInfo("[doubleTouch] Module filename set to %s", filename.c_str());
+        yInfo(" Module filename set to %s", filename.c_str());
 
         jnt_vels = rf.check("jnt_vels", Value(10.0)).asDouble();
-        yInfo("[doubleTouch] Module jnt_vels set to %g", jnt_vels);
+        yInfo(" Module jnt_vels set to %g", jnt_vels);
 
         color = rf.check("color", Value("white")).asString();
-        yInfo("[doubleTouch] Robot color set to %s", color.c_str());
+        yInfo(" Robot color set to %s", color.c_str());
 
         go=(rf.check("closed_chain", Value("no")).asString()== "no");
 
-//        Bottle &bHandConf=rf.findGroup("hand_configuration");
-
-
-//        // PAY ATTENTION HERE //
-//        if (!bHandConf.isNull())
-//        {
-//            bHandConf.setMonitor(rf.getMonitor());
-            
-//            if (bHandConf.check("master"))
-//            {
-//                Bottle *bottleMaster=bHandConf.find("master").asList();
-//                handPossM = iCub::skinDynLib::vectorFromBottle(*bottleMaster,0,9);
-//                yInfo("[doubleTouch] Initializing master hand configuration: %s",
-//                        handPossM.toString(3,3).c_str());
-//            }
-//            else yInfo("[doubleTouch] Could not find [master] option in the config file; set to default.");
-
-//            if (bHandConf.check("slave"))
-//            {
-//                Bottle *bottleSlave=bHandConf.find("slave").asList();
-//                handPossS = iCub::skinDynLib::vectorFromBottle(*bottleSlave,0,9);
-//                yInfo("[doubleTouch] Initializing slave hand configuration: %s",
-//                        handPossS.toString(3,3).c_str());
-//            }
-//            else yInfo("[doubleTouch] Could not find [slave] option in the config file; set to default.");
-//        }
-//        else
-//        {
-//            yInfo("[doubleTouch] Could not find [hand_configuration] group in the config file; set all to default.");
-//        }
-            
         time_t now = time(0);
         tm *ltm = localtime(&now);
         string time = int_to_string(1900 + ltm->tm_year)+"_"+int_to_string(1+ltm->tm_mon)+"_"+
@@ -218,7 +189,7 @@ public:
         {
             filename = "../data/"+time+filename;
         }
-        yInfo("[doubleTouch] Storing file set to: %s",filename.c_str());
+        yInfo(" Storing file set to: %s",filename.c_str());
 
         if (alignEyes)
         {
@@ -239,6 +210,7 @@ public:
                 return false;
             }
         }
+        cout<<endl;
 
         return true;
     }
@@ -246,7 +218,7 @@ public:
     /*********************************************************************/
     bool close()
     {
-        yInfo("DOUBLE TOUCH: Stopping threads..");
+        yInfo(" Stopping threads..");
         if (doubleTouch_Thrd)
         {
             doubleTouch_Thrd->stop();
@@ -303,7 +275,7 @@ int main(int argc, char * argv[])
     
     if (!yarp.checkNetwork())
     {
-        printf("No Network!!!\n");
+        printf(" No Network!!!\n");
         return -1;
     }
 

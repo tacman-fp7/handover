@@ -47,6 +47,7 @@ class poseSelection : public RFModule,
                       public poseSelection_IDL
 {
     Matrix H_object, H_hand;
+
     Vector xd_h, od_h;
     Vector index_poses;
     Vector pos_hand, axis_hand;
@@ -151,7 +152,10 @@ class poseSelection : public RFModule,
         {
             Vector qdhat(10,0.0);
             index=entry;
-            icart_arm_move->askForPose(positions_rotated[index], od[index], xd_h, od_h, qdhat);
+
+            if (!closed_chain)
+                icart_arm_move->askForPose(positions_rotated[index], od[index], xd_h, od_h, qdhat);
+
             select_new_pose=false;
             return true;
         }
@@ -163,6 +167,7 @@ class poseSelection : public RFModule,
     Bottle get_pose()
     {
         reply.clear();
+
         if (to_be_sent=true)
         {
             Vector pos_in_hand(4,1.0);
@@ -194,6 +199,7 @@ class poseSelection : public RFModule,
     Bottle get_Hhand()
     {
         Bottle replyh;
+
         replyh.addDouble(H_hand(0,0)); replyh.addDouble(H_hand(0,1)); replyh.addDouble(H_hand(0,2)); replyh.addDouble(H_hand(0,3));
         replyh.addDouble(H_hand(1,0)); replyh.addDouble(H_hand(1,1)); replyh.addDouble(H_hand(1,2)); replyh.addDouble(H_hand(1,3));
         replyh.addDouble(H_hand(2,0)); replyh.addDouble(H_hand(2,1)); replyh.addDouble(H_hand(2,2)); replyh.addDouble(H_hand(2,3));
@@ -416,18 +422,6 @@ class poseSelection : public RFModule,
         if (!ikin_first_arm.alignJointsBounds(lim_deque2))
             yError(" Problems in alignJointsBounds()");
 
-//        bool rel=ikin_torso.releaseLink(0);
-//        rel=rel && ikin_torso.releaseLink(1);
-//        rel=rel && ikin_torso.releaseLink(2);
-
-//        rel=ikin_first_arm.releaseLink(0);
-//        rel=rel && ikin_first_arm.releaseLink(1);
-//        rel=rel && ikin_first_arm.releaseLink(2);
-
-//        rel=ikin_second_arm.releaseLink(0);
-//        rel=rel && ikin_second_arm.releaseLink(1);
-//        rel=rel && ikin_second_arm.releaseLink(2);
-
         imgIn=NULL;
 
         return true;
@@ -436,6 +430,14 @@ class poseSelection : public RFModule,
     /*********************************************************/
     bool updateModule()
     {
+        if (select_new_pose == true || update_hand_pose ==true)
+        {
+            cout<< endl<< " =================================="
+                          "==================================="
+                          "==================================="
+                          "=================================== "<<endl<<endl;
+        }
+
         if (online)
         {
             if (update_pose)
@@ -751,7 +753,7 @@ class poseSelection : public RFModule,
 
         H.resize(4,4);
 
-        cout<<" Pose read in "<<homeContextPath+"/"+fileName<<": "<<pos.toString()<<endl;
+        yDebug()<<" Pose read in "<<homeContextPath+"/"+fileName<<": "<<pos.toString(3,3);
 
         if (euler)
             H=euler2dcm(euler_angles);
@@ -788,7 +790,7 @@ class poseSelection : public RFModule,
             pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2];
         }
 
-        cout<<" Received pose: "<<pos.toString()<<" "<<euler_angles.toString()<<endl;
+        yDebug()<<" Received pose: "<<pos.toString(3,3)<<" "<<euler_angles.toString(3,3);
 
         H.resize(4,4);
 
@@ -801,7 +803,6 @@ class poseSelection : public RFModule,
         if (norm(pos)>0.0)
             update_pose=false;
 
-        cout<<" Homogeneous matrix of object pose: "<<H.toString()<<endl;
         return H;
     }
 
@@ -1018,7 +1019,6 @@ class poseSelection : public RFModule,
             pos_hand[0]=pos_hand[1]=pos_hand[2]=axis_hand[0]=axis_hand[1]=axis_hand[2]=axis_hand[3];
         }
 
-        yDebug()<<" Received hand pose: "<<pos_hand.toString()<<" "<<axis_hand.toString();
         H.resize(4,4);
 
         H=axis2dcm(axis_hand);
@@ -1054,7 +1054,7 @@ class poseSelection : public RFModule,
             }
         }
 
-        yDebug()<<" Index poses: "<<index_poses.toString();
+        yDebug()<<" Index poses: "<<index_poses.toString(3,3);
     }
 
     /*******************************************************************************/
@@ -1078,9 +1078,6 @@ class poseSelection : public RFModule,
             orient.setCol(1,(y_axis_rotated[i]-positions_rotated[i])/norm(y_axis_rotated[i]-positions_rotated[i]));
             orient.setCol(2,(z_axis_rotated[i]-positions_rotated[i])/norm(z_axis_rotated[i]-positions_rotated[i]));
 
-            yDebug()<<" Desired rotation matrix";
-            cout<<orient.toString()<<endl<<endl;
-
             od.push_back(dcm2axis(orient));
 
             icart_arm_move->askForPose(positions_rotated[i], od[i], xdhat, odhat_tmp, qdhat);
@@ -1089,9 +1086,6 @@ class poseSelection : public RFModule,
 
             Matrix orient_hat(4,4);
             orient_hat=axis2dcm(odhat[i]);
-
-            yDebug()<<" Computed rotation matrix ";
-            cout<<orient_hat.toString()<<endl<<endl;
 
             //err_orient.push_back(norm(od[i].subVector(0,2)-odhat.subVector(0,2)+ abs(fmod(od[i][3]-odhat[3], 2*M_PI))));
             err_orient.push_back(norm(orient_hat.getCol(0).subVector(0,2)-orient.getCol(0).subVector(0,2))+
@@ -1102,7 +1096,7 @@ class poseSelection : public RFModule,
 
             yDebug()<<" Error in orientation for pose "<<i<<": "<<err_orient[i];
             yDebug()<<" Error in position "<<i<<": "<<err_pos[i];
-            yDebug()<<" Qd for pose "<<i<<": "<<qdhat.toString();
+            yDebug()<<" Qd for pose "<<i<<": "<<qdhat.toString(3,3);
             cout<<endl;
 
             Matrix J=ikin_second_arm.GeoJacobian(qdhat);
@@ -1131,7 +1125,7 @@ class poseSelection : public RFModule,
             cout<<endl;
         }
 
-        cout<<" Index poses after manipulability: "<<index_poses.toString()<<endl<<endl;
+        yInfo()<<" Index poses after manipulability: "<<index_poses.toString(3,3);
     }
 
     /*******************************************************************************/
@@ -1168,8 +1162,6 @@ class poseSelection : public RFModule,
             H_hand=axis2dcm(first_arm_pose[i].subVector(3,6));
             H_hand.setSubcol(first_arm_pose[i].subVector(0,2), 0, 3);
 
-            cout<<" New H_hand "<<H_hand.toString()<<endl;
-
             changeFrame();
 
             Matrix orient(3,3);
@@ -1187,7 +1179,7 @@ class poseSelection : public RFModule,
 
             yDebug()<<" Error in orientation for pose "<<i<<": "<<err_orient[i];
             yDebug()<<" Error in position "<<i<<": "<<err_pos[i];
-            yDebug()<<" Qd for pose "<<i<<": "<<qdhat[i].toString();
+            yDebug()<<" Qd for pose "<<i<<": "<<qdhat[i].toString(3,3);
             cout<<endl;
         }
 
@@ -1212,7 +1204,7 @@ class poseSelection : public RFModule,
             cout<<endl;
         }
 
-        cout<<" Index poses after manipulability: "<<index_poses.toString()<<endl<<endl;
+        yInfo()<<" Index poses after manipulability: "<<index_poses.toString(3,3);
     }
 
     /*******************************************************************************/
@@ -1231,7 +1223,9 @@ class poseSelection : public RFModule,
             }
             count++;
         }
-        yDebug()<<" Selected pose: "<<index;
+        cout<<endl;
+        yInfo()<<" Selected pose: "<<index;
+        cout<<endl;
 
         if (norm(pos)>0.0)
         {
@@ -1266,10 +1260,6 @@ class poseSelection : public RFModule,
             cmd6.addDouble(od[i][0]); cmd6.addDouble(od[i][1]); cmd6.addDouble(od[i][2]); cmd6.addDouble(od[i][3]);
         }
 
-        cout<<endl;
-        yDebug()<<" Sent cmd for manipulability computation: ";
-        cout<<cmd.toString()<<endl;
-
         if (portClosedChain.write(cmd, reply))
         {
             manip.clear();
@@ -1287,7 +1277,7 @@ class poseSelection : public RFModule,
 
     }
 
-    /*******************************************************************************/
+   /*******************************************************************************/
    void askXdOdHat()
    {
        Bottle cmd, reply;
@@ -1303,8 +1293,9 @@ class poseSelection : public RFModule,
            qdhat.clear();
            first_arm_pose.clear();
 
+           cout<<endl;
            yDebug()<<" Received joints solutions";
-           cout<<reply.toString()<<endl;
+           cout<<reply.toString()<<endl<<endl;
 
            Bottle *cont=reply.get(0).asList();
 
@@ -1317,7 +1308,7 @@ class poseSelection : public RFModule,
                }
                qdhat.push_back(tmp);
 
-               yDebug()<<" Qd hat saved"<<qdhat[i].toString();
+               yDebug()<<" Qd hat saved"<<qdhat[i].toString(3,3);
            }
        }
        else
@@ -1336,31 +1327,10 @@ class poseSelection : public RFModule,
             second_arm_pose=ikin_second_arm.EndEffPose(qm);
             first_arm_pose.push_back(ikin_first_arm.EndEffPose(qs));
 
-//            Vector tmp(4,1.0);
-//            Matrix tmp_mat(4,4);
-//            Matrix aux(4,4);
-//            aux.zero();
-//            aux(2,0)=aux(1,2)=-1.0;
-//            aux(0,1)=1.0;
-//            Matrix aux_inv=SE3inv(aux);
-//            aux_inv=aux;
-
-//            //cout<<endl<<endl<<endl<<"aux inverted "<<aux_inv.toString()<<endl<<endl<<endl;
-
-//            tmp.setSubvector(0, second_arm_pose.subVector(0,2));
-//            second_arm_pose.setSubvector(0, (aux*tmp).subVector(0,2));
-
-//            tmp_mat=axis2dcm(second_arm_pose.subVector(3,6));
-//            second_arm_pose.setSubvector(3, dcm2axis(aux*tmp_mat));
-
-//            tmp.setSubvector(0, first_arm_pose[j].subVector(0,2));
-//            first_arm_pose[j].setSubvector(0, (aux_inv*tmp).subVector(0,2));
-
-//            tmp_mat=axis2dcm(first_arm_pose[j].subVector(3,6));
-//            first_arm_pose[j].setSubvector(3, dcm2axis(aux_inv*tmp_mat));
-
-            cout<<"second arm pose "<<second_arm_pose.toString()<<endl;
-            cout<<"first arm pose "<<first_arm_pose[j].toString()<<endl;
+            cout<<endl;
+            yDebug()<<" Second hand pose: "<<second_arm_pose.toString(3,3);
+            yDebug()<<" First arm pose: "<<first_arm_pose[j].toString(3,3);
+            cout<<endl;
 
             xdhat.push_back(second_arm_pose.subVector(0,2));
             odhat.push_back(second_arm_pose.subVector(3,6));
@@ -1374,7 +1344,7 @@ int main(int argc,char *argv[])
     Network yarp;
     if (!yarp.checkNetwork())
     {
-        yError("unable to find YARP server!");
+        yError(" Unable to find YARP server!");
         return 1;
     }
 
