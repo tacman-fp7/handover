@@ -31,9 +31,8 @@ private:
     string robot;
     string name;
     string type;
-    string filename;
 
-    int verbosity,rate,record;
+    int verbosity,rate;
     bool dontgoback;
     bool go;
     bool automatic_start;
@@ -51,11 +50,9 @@ public:
         robot    = "icubSim";
         name     = "closed-chain";
         type     = "LHtoR";
-        filename = ".txt";
 
         verbosity =    0;
         rate      =  100;
-        record    =    0;
         jnt_vels  = 10.0;
 
         dontgoback  = false;
@@ -87,8 +84,8 @@ public:
                 case VOCAB4('s','t','a','r'):
                 {
                     doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
-                                                       jnt_vels, record, filename,
-                                                        dontgoback, handPossM, handPossS, go, automatic_start);
+                                                             jnt_vels,dontgoback, handPossM,
+                                                             handPossS, go, automatic_start);
                     bool strt = doubleTouch_Thrd -> start();
                     if (!strt)
                     {
@@ -128,7 +125,7 @@ public:
     bool configure(ResourceFinder &rf)
     {
         bool alignEyes = rf.check("alignEyes");
-        dontgoback     = rf.check("dontgoback");
+        dontgoback     = rf.check("dontgoback", Value(true)).asBool();
 
         cout<<endl;
 
@@ -154,12 +151,6 @@ public:
         rate = rf.check("rate", Value(100)).asInt();
         yInfo(" RateThread working at %i ms.",rate);
 
-        record = rf.check("record", Value(0)).asInt();
-        yInfo(" Record variable is set to %i",record);
-
-        filename = rf.check("filename", Value(".txt")).asString();
-        yInfo(" Module filename set to %s", filename.c_str());
-
         jnt_vels = rf.check("jnt_vels", Value(10.0)).asDouble();
         yInfo(" Module jnt_vels set to %g", jnt_vels);
 
@@ -173,20 +164,6 @@ public:
                       int_to_string(ltm->tm_mday)+"_"+int_to_string(1+ltm->tm_hour)+"_"+
                       int_to_string(1+ltm->tm_min)+"_";
 
-        if (record==2)
-        {
-            filename = "../calibration_data/"+time+filename;
-        }
-        else if (record==1)
-        {
-            filename = "../vRFlearning_data/"+time+filename;
-        }
-        else
-        {
-            filename = "../data/"+time+filename;
-        }
-        yInfo(" Storing file set to: %s",filename.c_str());
-
         if (alignEyes)
         {
             rpcClnt.open(("/"+name+"/rpc:o").c_str());
@@ -196,7 +173,7 @@ public:
         else
         {
             doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
-                               jnt_vels, record, filename, dontgoback, handPossM, handPossS,go, automatic_start);
+                               jnt_vels, dontgoback, handPossM, handPossS,go, automatic_start);
             bool strt = doubleTouch_Thrd -> start();
             if (!strt)
             {
@@ -252,16 +229,8 @@ int main(int argc, char * argv[])
         yInfo("   --robot       robot: the name of the robot. Default icubSim.");
         yInfo("   --rate        rate:  the period used by the thread. Default 100ms.");
         yInfo("   --verbosity   int:   verbosity level (default 0).");
-        yInfo("   --record      int:   if to record data or not.");
-        yInfo("      --record 0 -> nothing is recorded, the double touch is iterating over and");
-        yInfo("                    over again. Demonstrative and testing purposes.");
-        yInfo("      --record 1 -> recording for visuo-tactile reference frames purposes.");
-        yInfo("      --record 2 -> recording for kinematic calibration purposes.");
         yInfo("   --dontgoback  flag: nothing is recorded. The double touch is executed once.");
         yInfo("                       The robot does not come back to a resting position.");
-        yInfo("   --filename    file:  the name of the file to be saved in case of");
-        yInfo("                        a recording session. Default 'calibration.txt'.");
-        yInfo("                        A date is appended at the beginning for completeness.");
         yInfo("   --jnt_vels    double: specify the joint level speed during the double touch. Default 4[deg/s].");
         yInfo("   --alignEyes   flag: if or not to use the rpc-thing and sync with alignEyes module.");
         yInfo(" ");

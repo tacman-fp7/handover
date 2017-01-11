@@ -7,11 +7,11 @@
 // VEL_THRES * getRate()
 
 doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const string &_robot, int _v,
-                                     double _jnt_vels, int _record, string _filename,
-                                     bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave, const bool &go, bool &automatic_start) :
-                                     RateThread(_rate), name(_name), robot(_robot),verbosity(_v), record(_record),
-                                     filename(_filename), jnt_vels(_jnt_vels), dontgoback(_dontgoback),
-                                     handPossMaster(_hand_poss_master),handPossSlave(_hand_poss_slave)
+                                     double _jnt_vels,bool _dontgoback, const Vector &_hand_poss_master,
+                                     const Vector &_hand_poss_slave, const bool &go, bool &automatic_start) :
+                                     RateThread(_rate), name(_name), robot(_robot),verbosity(_v),
+                                     jnt_vels(_jnt_vels), dontgoback(_dontgoback), handPossMaster(_hand_poss_master),
+                                     handPossSlave(_hand_poss_slave)
 {
     step     = 0;
 
@@ -141,47 +141,33 @@ void doubleTouchThread::run()
         switch (step)
         {
             case 0:
+
                 if (go)
                     step++;
+
                 break;                
             case 1:
+
                 if (askSelectedPose())
                     step++;
+
                 break;
             case 2:
+
                 configureHands();
-                if (record != 0)
-                {
-                    Time::delay(2.0);
-                }
-
                 goToPose();
-
                 step++;
+
                 break;
             case 3:
-                Time::delay(2.0);
-                step++;
+
+                Time::delay(3.0);
+                testAchievement();
+                step ++;
+
                 break;
             case 4:
-                bool flag;
-                if (record == 0)
-                {
-                    Time::delay(3.0);
-                    flag=1;
-                    if (flag == 1)
-                    {
-                        testAchievement();
-                        step += 2;
-                    }
-                }
-                else
-                {
-                    testAchievement();                    
-                    step++;
-                }
-                break;
-            case 5:
+
                 if (!dontgoback)
                 {
                     printf(" Going to rest...\n");
@@ -190,12 +176,15 @@ void doubleTouchThread::run()
                     step=0;
                 }
                 step++;
+
                 break;
-            case 6:
+            case 5:
+
                 printf(" Switching to position mode..\n");
                 imodeS -> setInteractionMode(2,VOCAB_IM_STIFF);
                 imodeS -> setInteractionMode(3,VOCAB_IM_STIFF);
                 step = 1;
+
                 break;
             default:
                 yError(" DoubleTouchThread should never be here!!!\nStep: %d",step);
@@ -318,7 +307,7 @@ void doubleTouchThread::configureHands()
 /************************************************************************/
 bool doubleTouchThread::checkMotionDone()
 {
-    if (step == 4 || (record == 0 && (step == 2 || step == 3)))
+    if (step == 4 || step == 2 || step == 3)
         return true;
     
     iencsL->getEncoders(encsL->data());
@@ -511,15 +500,15 @@ void doubleTouchThread::threadRelease()
 {
     cout<<endl;
     printf(" Returning to position mode..\n");
-    if (!dontgoback)
-    {
+//    if (!dontgoback)
+//    {
         steerArmsHome();
         imodeL -> setInteractionMode(2,VOCAB_IM_STIFF);
         imodeL -> setInteractionMode(3,VOCAB_IM_STIFF);
         imodeR -> setInteractionMode(2,VOCAB_IM_STIFF);
         imodeR -> setInteractionMode(3,VOCAB_IM_STIFF);
         steerArmsHome();
-    }
+//    }
 
     delete encsR; encsR = NULL;
     delete  armR;  armR = NULL;

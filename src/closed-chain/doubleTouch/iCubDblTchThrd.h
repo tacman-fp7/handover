@@ -49,8 +49,6 @@ protected:
     string robot;
     string type;
     string curTaskType;
-    int record;
-    string filename;
     string moving_arm;
     bool dontgoback;
     Vector handPossMaster;
@@ -210,9 +208,8 @@ protected:
 
 public:
     doubleTouchThread(int _rate, const string &_name, const string &_robot,
-                      int _v, double _jnt_vels,
-                      int _record, string _filename,
-                      bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave, const bool &go, bool &automatic_start);
+                      int _v, double _jnt_vels, bool _dontgoback, const Vector &_hand_poss_master,
+                      const Vector &_hand_poss_slave, const bool &go, bool &automatic_start);
 
     virtual bool threadInit();
 
