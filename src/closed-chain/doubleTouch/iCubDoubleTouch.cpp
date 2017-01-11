@@ -36,6 +36,7 @@ private:
     int verbosity,rate,record;
     bool dontgoback;
     bool go;
+    bool automatic_start;
 
     double jnt_vels;
     
@@ -87,7 +88,7 @@ public:
                 {
                     doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
                                                        jnt_vels, record, filename,
-                                                        dontgoback, handPossM, handPossS, go);
+                                                        dontgoback, handPossM, handPossS, go, automatic_start);
                     bool strt = doubleTouch_Thrd -> start();
                     if (!strt)
                     {
@@ -164,6 +165,8 @@ public:
 
         go=(rf.check("closed_chain", Value("no")).asString()== "no");
 
+        automatic_start=(rf.check("automatic_start", Value("no")).asString()== "no");
+
         time_t now = time(0);
         tm *ltm = localtime(&now);
         string time = int_to_string(1900 + ltm->tm_year)+"_"+int_to_string(1+ltm->tm_mon)+"_"+
@@ -193,7 +196,7 @@ public:
         else
         {
             doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
-                               jnt_vels, record, filename, dontgoback, handPossM, handPossS,go);
+                               jnt_vels, record, filename, dontgoback, handPossM, handPossS,go, automatic_start);
             bool strt = doubleTouch_Thrd -> start();
             if (!strt)
             {

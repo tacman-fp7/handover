@@ -8,7 +8,7 @@
 
 doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const string &_robot, int _v,
                                      double _jnt_vels, int _record, string _filename,
-                                     bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave, const bool &go) :
+                                     bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave, const bool &go, bool &automatic_start) :
                                      RateThread(_rate), name(_name), robot(_robot),verbosity(_v), record(_record),
                                      filename(_filename), jnt_vels(_jnt_vels), dontgoback(_dontgoback),
                                      handPossMaster(_hand_poss_master),handPossSlave(_hand_poss_slave)
@@ -726,7 +726,8 @@ Bottle doubleTouchThread::compute_manipulability(const Bottle &entry)
 
     computeManip();
 
-    go=true;
+    if (automatic_start)
+        go=true;
 
     return manip;
 }
@@ -765,6 +766,12 @@ bool doubleTouchThread::go_home()
     imodeR -> setInteractionMode(3,VOCAB_IM_STIFF);
     steerArmsHome();
     return true;
+}
+
+/************************************************************************/
+bool doubleTouchThread::move()
+{
+    go=true;
 }
 
 

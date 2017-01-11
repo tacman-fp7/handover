@@ -1755,7 +1755,10 @@ public:
     void lookHand()
     {
         Vector shift(3,0.0);
-        shift[1]=0.05;
+        if (left_or_right=="left")
+            shift[1]=0.05;
+        else
+            shift[1]=-0.05;
         shift[2]=0.05;
         Vector position_new(3,0.0);
         Vector orientation_new(4,0.0);

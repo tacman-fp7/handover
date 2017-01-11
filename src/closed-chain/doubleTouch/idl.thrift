@@ -40,4 +40,9 @@ service closedChain_IDL
     * @return true
     */
     bool go_home();  
+
+    /** Allows arms to move
+    * @return true
+    */
+    bool move();
 }

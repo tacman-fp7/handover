@@ -53,8 +53,8 @@ protected:
     string filename;
     string moving_arm;
     bool dontgoback;
-    Vector handPossMaster; //hand configuration for "master" arm - 9 joints
-    Vector handPossSlave; //hand configuration for "slave" arm - 9 joints
+    Vector handPossMaster;
+    Vector handPossSlave;
 
     Vector pos, orient;
     Matrix Hpose;
@@ -69,16 +69,17 @@ protected:
     vector<Vector> orie_in_hand;
     vector<Vector> joints_sol;
 
-    int        step; // Flag to know in which step the thread is
-    int        iter; // Iterator to keep track of the recording steps
-    double jnt_vels; // Joint velocities during the double touch
+    int        step;
+    int        iter;
+    double jnt_vels;
     bool         go;
+    bool automatic_start;
 
     int index;
 
-    PolyDriver       ddR; // right arm device driver
-    PolyDriver       ddL; // left arm  device driver
-    PolyDriver       ddG; // gaze controller  driver
+    PolyDriver       ddR;
+    PolyDriver       ddL;
+    PolyDriver       ddG;
 
     // "Classical" interfaces - SLAVE ARM
     IEncoders         *iencsL;
@@ -211,7 +212,7 @@ public:
     doubleTouchThread(int _rate, const string &_name, const string &_robot,
                       int _v, double _jnt_vels,
                       int _record, string _filename,
-                      bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave, const bool &go);
+                      bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave, const bool &go, bool &automatic_start);
 
     virtual bool threadInit();
 
@@ -228,6 +229,8 @@ public:
     Bottle get_solutions();
 
     bool go_home();
+
+    bool move();
 };
 
 #endif
