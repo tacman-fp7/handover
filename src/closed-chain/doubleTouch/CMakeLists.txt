@@ -23,3 +23,4 @@ target_link_libraries(${PROJECT_NAME} periPersonalSpace ${YARP_LIBRARIES} ${IPOP
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
+

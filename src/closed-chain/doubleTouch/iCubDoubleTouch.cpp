@@ -32,7 +32,6 @@ private:
     string name;
     string type;
     string filename;
-    string color;
 
     int verbosity,rate,record;
     bool dontgoback;
@@ -40,8 +39,8 @@ private:
 
     double jnt_vels;
     
-    Vector handPossM; //hand configuration for "master" arm
-    Vector handPossS; //hand configuration for "slave" arm
+    Vector handPossM;
+    Vector handPossS;
 
 public:
     doubleTouch()
@@ -52,24 +51,21 @@ public:
         name     = "closed-chain";
         type     = "LHtoR";
         filename = ".txt";
-        color    = " ";
 
-        verbosity =    0;    // verbosity
-        rate      =  100;    // rate of the doubleTouchThread
-        record    =    0;    // record data
-        jnt_vels  = 10.0;    // joint speed for the double touch
+        verbosity =    0;
+        rate      =  100;
+        record    =    0;
+        jnt_vels  = 10.0;
 
         dontgoback  = false;
         
         handPossM.resize(9,0.0);
-        //default parameters correspond to master hand totally open
+
         handPossM[0]=80.0; handPossM[1]=0.0;
         handPossM[2]=0.0; handPossM[3]=0.0;
         handPossM[4]=0.0;  handPossM[5]=0.0;
         handPossM[6]=0.0; handPossM[7]=0.0;
-        handPossM[8]=0.0;
-        
-        // I don't want to change fingers positions -> you have to communicate the first hand which is
+
         handPossS.resize(9,0.0);
         handPossS[0]=40.0;  handPossS[1]=0.0;
         handPossS[2]=0.0;   handPossS[3]=0.0;
@@ -90,7 +86,7 @@ public:
                 case VOCAB4('s','t','a','r'):
                 {
                     doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
-                                                       jnt_vels, record, filename, color,
+                                                       jnt_vels, record, filename,
                                                         dontgoback, handPossM, handPossS, go);
                     bool strt = doubleTouch_Thrd -> start();
                     if (!strt)
@@ -166,9 +162,6 @@ public:
         jnt_vels = rf.check("jnt_vels", Value(10.0)).asDouble();
         yInfo(" Module jnt_vels set to %g", jnt_vels);
 
-        color = rf.check("color", Value("white")).asString();
-        yInfo(" Robot color set to %s", color.c_str());
-
         go=(rf.check("closed_chain", Value("no")).asString()== "no");
 
         time_t now = time(0);
@@ -200,7 +193,7 @@ public:
         else
         {
             doubleTouch_Thrd = new doubleTouchThread(rate, name, robot, verbosity,
-                               jnt_vels, record, filename, color, dontgoback, handPossM, handPossS,go);
+                               jnt_vels, record, filename, dontgoback, handPossM, handPossS,go);
             bool strt = doubleTouch_Thrd -> start();
             if (!strt)
             {
@@ -263,7 +256,6 @@ int main(int argc, char * argv[])
         yInfo("      --record 2 -> recording for kinematic calibration purposes.");
         yInfo("   --dontgoback  flag: nothing is recorded. The double touch is executed once.");
         yInfo("                       The robot does not come back to a resting position.");
-        yInfo("   --color       color: robot color (black or white - MANDATORY!)");
         yInfo("   --filename    file:  the name of the file to be saved in case of");
         yInfo("                        a recording session. Default 'calibration.txt'.");
         yInfo("                        A date is appended at the beginning for completeness.");

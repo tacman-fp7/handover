@@ -80,6 +80,8 @@ protected:
 
     double a,b;
     double radius;
+    double targ_tol;
+    double traj_time;
     double radius_color;
     double radius_volume;
     double a_offset, b_offset;
@@ -610,6 +612,8 @@ public:
 
         robot=rf.check("robot", Value("icubSim")).asString();
         left_or_right=rf.check("which_hand", Value("left")).asString();
+        traj_time=rf.check("trajectory_time", Value(1.5)).asDouble();
+        targ_tol=rf.check("target_tollerance", Value(0.01)).asDouble();
 
         down=rf.check("downsampling", Value(1)).asInt();
         color_space=rf.check("color_code", Value("rgb")).asString();
@@ -747,6 +751,9 @@ public:
             icart_arm->storeContext(&startup_context_id);
             icart_arm->getTipFrame(tip_x_init, tip_o_init);
 
+            icart_arm->setTrajTime(traj_time);
+            icart_arm->setInTargetTol(targ_tol);
+
             Property option_analog("(device analogsensorclient)");
             option_analog.put("remote","/"+robot+"/"+left_or_right+"_hand"+"/analog:o");
             option_analog.put("local","/"+module_name+"/analogsensorclient/"+left_or_right+"_hand");
@@ -839,9 +846,6 @@ public:
     {
         Vector colors(3,0.0);
 
-        if (fixate)
-            lookHand();
-
         if (online)
         {
             if (prepare_hand)
@@ -872,6 +876,7 @@ public:
         else if (pointsIn.size()==0)
         {
             readPoints(visionFileName, "points");
+
             H_hand=readPose();
 
             if (prepare_hand)
@@ -883,6 +888,9 @@ public:
             if (tactile_on)
                 readPoints(fingersFileName, "fingers");
         }
+
+        if (fixate)
+            lookHand();
 
         if (filter && pointsIn.size()>0)
         {            
@@ -1755,22 +1763,31 @@ public:
         if (test)
             icart_arm->getPose(position_new,orientation_new);
 
-        if (norm(position_new -position)>=0.05 || pointsOut.size()==0)
+        if ((norm(position_new -position)>=0.05 || pointsOut.size()==0))
         {
             position=position_new;
             orientation=orientation_new;
-
-            igaze->lookAtFixationPoint(position+ shift);
-            igaze->waitMotionDone();
-        }
+            if ((norm(position)>0.0 && norm(position)<1.0))
+            {
+                igaze->lookAtFixationPoint(position+ shift);
+                igaze->waitMotionDone();
+            }
+            else
+                yError()<< " Unrealistic values for hand position!";
+        }            
     }
 
     /*******************************************************************************/
     void moveHand(Vector &pos, Vector &orient)
     {
-        icart_arm->goToPose(pos,orient);
-        icart_arm->waitMotionDone();
-        prepare_hand=false;
-        icart_arm->stopControl();
+        if (norm(pos)>0.0 && norm(pos)<1.0)
+        {
+            icart_arm->goToPoseSync(pos,orient);
+            icart_arm->waitMotionDone();
+            prepare_hand=false;
+            icart_arm->stopControl();
+        }
+        else
+            yError()<<" Unrealistic value for first hand position!";
     }
 };

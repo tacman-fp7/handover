@@ -7,14 +7,13 @@
 // VEL_THRES * getRate()
 
 doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const string &_robot, int _v,
-                                     double _jnt_vels, int _record, string _filename, string _color,
+                                     double _jnt_vels, int _record, string _filename,
                                      bool _dontgoback, const Vector &_hand_poss_master, const Vector &_hand_poss_slave, const bool &go) :
                                      RateThread(_rate), name(_name), robot(_robot),verbosity(_v), record(_record),
-                                     filename(_filename), color(_color), jnt_vels(_jnt_vels), dontgoback(_dontgoback),
+                                     filename(_filename), jnt_vels(_jnt_vels), dontgoback(_dontgoback),
                                      handPossMaster(_hand_poss_master),handPossSlave(_hand_poss_slave)
 {
     step     = 0;
-    recFlag  = 0;
 
     armPossHome.resize(7,0.0);
     armPossHome[0]=-30.0*iCub::ctrl::CTRL_DEG2RAD;
@@ -35,6 +34,7 @@ doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const strin
     testLimb=NULL;
 }
 
+/************************************************************************/
 bool doubleTouchThread::threadInit()
 {
     portPoseIn.open("/"+name+"/ps:rpc");    
@@ -52,7 +52,7 @@ bool doubleTouchThread::threadInit()
     OptR.put("local", ("/"+name +"/right_arm").c_str());
     if (!ddR.open(OptR))
     {
-        yError("[doubleTouch] Could not open right_arm PolyDriver!");
+        yError(" Could not open right_arm PolyDriver!");
         return false;
     }
 
@@ -64,7 +64,7 @@ bool doubleTouchThread::threadInit()
     OptL.put("local", ("/"+name +"/left_arm").c_str());
     if (!ddL.open(OptL))
     {
-        yError("[doubleTouch] Could not open left_arm PolyDriver!");
+        yError(" Could not open left_arm PolyDriver!");
         return false;
     }
 
@@ -95,7 +95,7 @@ bool doubleTouchThread::threadInit()
 
     if (!ok)
     {
-        yError("[doubleTouch] Problems acquiring either left_arm or right_arm interfaces!!!!\n");
+        yError(" Problems acquiring either left_arm or right_arm interfaces!!!!\n");
         return false;
     }
     
@@ -116,7 +116,7 @@ bool doubleTouchThread::threadInit()
 
         if (!ok)
         {
-            yError("[doubleTouch] Problems settings impedance values for either left_arm or right_arm!!!\n");
+            yError(" Problems settings impedance values for either left_arm or right_arm!!!\n");
             return false;
         }
     }
@@ -133,6 +133,7 @@ bool doubleTouchThread::threadInit()
     return true;
 }
 
+/************************************************************************/
 void doubleTouchThread::run()
 {
     if (checkMotionDone())
@@ -146,8 +147,6 @@ void doubleTouchThread::run()
             case 1:
                 if (askSelectedPose())
                     step++;
-
-                recFlag = 1;
                 break;
             case 2:
                 configureHands();
@@ -157,7 +156,7 @@ void doubleTouchThread::run()
                 }
 
                 goToPose();
-                
+
                 step++;
                 break;
             case 3:
@@ -165,8 +164,6 @@ void doubleTouchThread::run()
                 step++;
                 break;
             case 4:
-                recFlag = 0;
-
                 bool flag;
                 if (record == 0)
                 {
@@ -189,7 +186,8 @@ void doubleTouchThread::run()
                 {
                     printf(" Going to rest...\n");
                     clearTask();
-                    steerArmsHomeMasterSlave();                    
+                    steerArmsHomeMasterSlave();
+                    step=0;
                 }
                 step++;
                 break;
@@ -200,13 +198,14 @@ void doubleTouchThread::run()
                 step = 1;
                 break;
             default:
-                yError("[doubleTouch] doubleTouchThread should never be here!!!\nStep: %d",step);
+                yError(" DoubleTouchThread should never be here!!!\nStep: %d",step);
                 Time::delay(2.0);
                 break;
         }
     }
 }
 
+/************************************************************************/
 bool doubleTouchThread::selectTask()
 {
     if (moving_arm=="right")
@@ -287,6 +286,7 @@ bool doubleTouchThread::selectTask()
     return true;
 }
 
+/************************************************************************/
 bool doubleTouchThread::clearTask()
 {
     cout<<" Clearing task.."<<endl;
@@ -299,6 +299,7 @@ bool doubleTouchThread::clearTask()
     return true;
 }
 
+/************************************************************************/
 void doubleTouchThread::configureHands()
 {
     Vector vels(9,100.0);    
@@ -314,9 +315,10 @@ void doubleTouchThread::configureHands()
     }
 }
 
+/************************************************************************/
 bool doubleTouchThread::checkMotionDone()
 {
-    if (step == 7 || (record == 0 && (step == 4 || step == 5)))
+    if (step == 4 || (record == 0 && (step == 2 || step == 3)))
         return true;
     
     iencsL->getEncoders(encsL->data());
@@ -331,26 +333,24 @@ bool doubleTouchThread::checkMotionDone()
 
     double normL = norm(eeL - oldEEL);
     double normR = norm(eeR - oldEER);
-//    printf(" step: %i  result: %i  normL: %g\tnormR: %g\n", step,
-//        (normL <= VEL_THRES * getRate()) && (normR <= VEL_THRES * getRate()), normL, normR);
+    if (step >=2)
+    {
+        printf(" step: %i  result: %i  normL: %g\tnormR: %g\n", step,
+            (normL <= VEL_THRES * getRate()) && (normR <= VEL_THRES * getRate()), normL, normR);
+    }
 
     oldEEL = eeL;
     oldEER = eeR;
 
-    if ((normL <= VEL_THRES * getRate()) && (normR <= VEL_THRES * getRate())) {
+    if ((normL <= VEL_THRES * getRate()) && (normR <= VEL_THRES * getRate()))
+    {
         return true;
     }
 
     return false;
 }
 
-Vector doubleTouchThread::findFinalConfiguration()
-{
-    Vector q=solution.subVector(nDOF-1-7,nDOF-1);
-    armM->setAng(q*iCub::ctrl::CTRL_DEG2RAD);
-    return armM -> EndEffPosition();
-}
-
+/************************************************************************/
 void doubleTouchThread::testAchievement()
 {
     iencsM->getEncoders(encsM->data());
@@ -364,6 +364,7 @@ void doubleTouchThread::testAchievement()
     cout<<endl;
 }
 
+/************************************************************************/
 void doubleTouchThread::solveIK()
 {
     slv->probl->limb.setH0(SE3inv(Hpose));
@@ -377,6 +378,7 @@ void doubleTouchThread::solveIK()
     testLimb->setAng(sol->joints);
 }
 
+/************************************************************************/
 void doubleTouchThread::goToPose()
 {
     cout<<endl<<" Moving slave ..."<<endl;
@@ -386,6 +388,7 @@ void doubleTouchThread::goToPose()
     goToPoseMaster();
 }
 
+/************************************************************************/
 void doubleTouchThread::goToPoseMaster()
 {
     int nJnts = 7;
@@ -413,6 +416,7 @@ void doubleTouchThread::goToPoseMaster()
     iposM -> positionMove(nJnts,Ejoints.data(),qM.data());
 }
 
+/************************************************************************/
 void doubleTouchThread::goToPoseSlave()
 {
     if (verbosity>1)
@@ -434,24 +438,31 @@ void doubleTouchThread::goToPoseSlave()
     }
 }
 
+/************************************************************************/
 void doubleTouchThread::steerArmsHome()
 {   
     printf(" Moving arms to home, i.e. %s...\n",
                  (iCub::ctrl::CTRL_RAD2DEG*armPossHome).toString(3,3).c_str());
 
-    for (int i = 0; i < 7; i++)
+    if ( moving_arm=="left")
     {
-        iposL->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
-    }
+        for (int i = 0; i < 7; i++)
+        {
+            iposL->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
+        }
 
-    Time::delay(2.0);
-    
-    for (int i = 0; i < 7; i++)
+        Time::delay(2.0);
+    }
+    else
     {
-        iposR->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
+        for (int i = 0; i < 7; i++)
+        {
+            iposR->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
+        }
     }
 }
 
+/************************************************************************/
 void doubleTouchThread::steerArmsHomeMasterSlave()
 {
     printf(" Moving arms to home, i.e. %s...\n",
@@ -480,6 +491,7 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
     }
 }
 
+/************************************************************************/
 bool doubleTouchThread::alignJointsBounds()
 {
     deque<IControlLimits*> lim;
@@ -494,6 +506,7 @@ bool doubleTouchThread::alignJointsBounds()
     return true;
 }
 
+/************************************************************************/
 void doubleTouchThread::threadRelease()
 {
     cout<<endl;
@@ -526,6 +539,7 @@ void doubleTouchThread::threadRelease()
     cout<<endl;
 }
 
+/************************************************************************/
 Matrix doubleTouchThread::receivePose(const string &what)
 {
     Matrix H(4,4);
@@ -557,17 +571,25 @@ Matrix doubleTouchThread::receivePose(const string &what)
     return H;
 }
 
-void doubleTouchThread::askMovingArm()
+/************************************************************************/
+bool doubleTouchThread::askMovingArm()
 {
     Bottle cmd, reply;
     cmd.addString("get_moving_arm");
 
     if (portPoseIn.write(cmd,reply))
+    {
         moving_arm=reply.get(0).asString();
+        return true;
+    }
     else
+    {
         yError()<<" Moving arm name not received!!";
+        return false;
+    }
 }
 
+/************************************************************************/
 void doubleTouchThread::askHhand()
 {
     Bottle cmd, reply;
@@ -584,14 +606,20 @@ void doubleTouchThread::askHhand()
     H_hand(3,3)=1.0;
 }
 
+/************************************************************************/
 bool doubleTouchThread::askSelectedPose()
 {
     Bottle cmd, reply;
     cmd.addString("get_index");
     if (portPoseIn.write(cmd, reply))
     {
-        index=reply.get(0).asInt();
-        return true;
+        if (reply.get(0).asInt()<1000)
+        {
+            index=reply.get(0).asInt();
+            return true;
+        }
+        else
+            return false;
     }
     else
         return false;
@@ -628,16 +656,23 @@ void doubleTouchThread::computeManip()
     {
         Hpose=axis2dcm(orie_in_hand[i]);
         Hpose.setSubcol(pos_in_hand[i], 0, 3);
-        askMovingArm();
-        selectTask();
-        solveIK();
+        if (askMovingArm())
+        {
+            selectTask();
+            solveIK();
 
-        printf(" Desired joint configuration:  %s\n",(sol->joints*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
-        joints_sol.push_back(sol->joints);
+            printf(" Desired joint configuration:  %s\n",(sol->joints*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
+            joints_sol.push_back(sol->joints);
 
-        Matrix J=slv->probl->limb.asChainMod()->GeoJacobian(joints_sol[i]);
+            Matrix J=slv->probl->limb.asChainMod()->GeoJacobian(joints_sol[i]);
 
-        manip.addDouble(sqrt(det(J*J.transposed())));
+            manip.addDouble(sqrt(det(J*J.transposed())));
+        }
+        else
+        {
+            yError()<<" Moving arm name missing! Manipulability cannot be computed...";
+            cout<<endl;
+        }
     }
 }
 
@@ -715,6 +750,23 @@ Bottle doubleTouchThread::get_solutions()
 
     return reply;
 }
+
+/************************************************************************/
+bool doubleTouchThread::go_home()
+{
+    printf(" Going to rest...\n");
+    step=0;
+    go=false;
+    clearTask();
+    steerArmsHome();
+    imodeL -> setInteractionMode(2,VOCAB_IM_STIFF);
+    imodeL -> setInteractionMode(3,VOCAB_IM_STIFF);
+    imodeR -> setInteractionMode(2,VOCAB_IM_STIFF);
+    imodeR -> setInteractionMode(3,VOCAB_IM_STIFF);
+    steerArmsHome();
+    return true;
+}
+
 
 
 

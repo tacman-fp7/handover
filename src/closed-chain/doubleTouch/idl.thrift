@@ -30,10 +30,14 @@ service closedChain_IDL
     */
     Bottle compute_manipulability(1: Bottle entry);
 
-/**
+    /**
     * Get computed joints
     * @return a Bottle with all joints solutions
     */
     Bottle get_solutions();
-  
+
+    /** Move arms to home position
+    * @return true
+    */
+    bool go_home();  
 }

@@ -162,4 +162,10 @@
         <protocol>tcp</protocol>
     </connection>
 
+    <connection>
+        <from>/closed-chain/ps:rpc</from>
+        <to>/pose-selection/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
 </application>
