@@ -8,7 +8,7 @@
 
 doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const string &_robot, int _v,
                                      double _jnt_vels,bool _dontgoback, const Vector &_hand_poss_master,
-                                     const Vector &_hand_poss_slave, const bool &go, bool &automatic_start) :
+                                     const Vector &_hand_poss_slave, bool &go, bool &automatic_start) :
                                      RateThread(_rate), name(_name), robot(_robot),verbosity(_v),
                                      jnt_vels(_jnt_vels), dontgoback(_dontgoback), handPossMaster(_hand_poss_master),
                                      handPossSlave(_hand_poss_slave)
@@ -128,6 +128,8 @@ bool doubleTouchThread::threadInit()
 
     askMovingArm();
 
+    home=false;
+
     //HIndex=receivePose("arm");
 
     return true;
@@ -141,19 +143,16 @@ void doubleTouchThread::run()
         switch (step)
         {
             case 0:
-
                 if (go)
                     step++;
 
                 break;                
             case 1:
-
                 if (askSelectedPose())
                     step++;
 
                 break;
             case 2:
-
                 configureHands();
                 goToPose();
                 step++;
@@ -309,6 +308,12 @@ bool doubleTouchThread::checkMotionDone()
 {
     if (step == 4 || step == 2 || step == 3)
         return true;
+
+    if (home)
+    {
+        step=0;
+        return true;
+    }
     
     iencsL->getEncoders(encsL->data());
     Vector qL=encsL->subVector(0,6);
@@ -370,11 +375,14 @@ void doubleTouchThread::solveIK()
 /************************************************************************/
 void doubleTouchThread::goToPose()
 {
-    cout<<endl<<" Moving slave ..."<<endl;
-    goToPoseSlave();
-    Time::delay(2.0);
-    cout<<endl<<" Moving master ..."<<endl;
-    goToPoseMaster();
+    if (!home)
+    {
+        cout<<endl<<" Moving slave ..."<<endl;
+        goToPoseSlave();
+        Time::delay(2.0);
+        cout<<endl<<" Moving master ..."<<endl;
+        goToPoseMaster();
+    }
 }
 
 /************************************************************************/
@@ -467,17 +475,17 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
         else        iposM -> positionMove(i,0.0);
     }
 
-    Time::delay(2.0);
+//    Time::delay(2.0);
     
-    for (int i = 0; i < 7; i++)
-    {
-        iposS->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
-    }
-    for (int i = 7; i < 16; i++)
-    {
-        if (i==7)   iposS -> positionMove(i,60.0);
-        else        iposS -> positionMove(i,0.0);
-    }
+//    for (int i = 0; i < 7; i++)
+//    {
+//        iposS->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
+//    }
+//    for (int i = 7; i < 16; i++)
+//    {
+//        if (i==7)   iposS -> positionMove(i,60.0);
+//        else        iposS -> positionMove(i,0.0);
+//    }
 }
 
 /************************************************************************/
@@ -618,6 +626,8 @@ bool doubleTouchThread::askSelectedPose()
 void doubleTouchThread::computeManip()
 {
     pos_in_hand.clear();
+    orie_in_hand.clear();
+    manip.clear();
     Matrix aux(4,4);
     aux.zero();
     aux(2,0)=aux(1,2)=-1.0;
@@ -745,21 +755,17 @@ Bottle doubleTouchThread::get_solutions()
 bool doubleTouchThread::go_home()
 {
     printf(" Going to rest...\n");
-    step=0;
     go=false;
-    clearTask();
-    steerArmsHome();
-    imodeL -> setInteractionMode(2,VOCAB_IM_STIFF);
-    imodeL -> setInteractionMode(3,VOCAB_IM_STIFF);
-    imodeR -> setInteractionMode(2,VOCAB_IM_STIFF);
-    imodeR -> setInteractionMode(3,VOCAB_IM_STIFF);
-    steerArmsHome();
+    home=true;
+    steerArmsHomeMasterSlave();
+
     return true;
 }
 
 /************************************************************************/
 bool doubleTouchThread::move()
 {
+    home=false;
     go=true;
 }
 

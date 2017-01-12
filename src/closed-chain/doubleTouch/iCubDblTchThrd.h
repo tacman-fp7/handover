@@ -72,6 +72,7 @@ protected:
     double jnt_vels;
     bool         go;
     bool automatic_start;
+    bool home;
 
     int index;
 
@@ -209,7 +210,7 @@ protected:
 public:
     doubleTouchThread(int _rate, const string &_name, const string &_robot,
                       int _v, double _jnt_vels, bool _dontgoback, const Vector &_hand_poss_master,
-                      const Vector &_hand_poss_slave, const bool &go, bool &automatic_start);
+                      const Vector &_hand_poss_slave, bool &go, bool &automatic_start);
 
     virtual bool threadInit();
 

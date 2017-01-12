@@ -73,7 +73,21 @@ service poseSelection_IDL
 
     /**
     * get index of the selected pose
-    * @ return the
+    * @ return the index
     */
     i32 get_index();
+
+    /**
+    * Set offset in order to shift poses 
+    * far away from the object surface
+    * @ return true
+    */
+    bool set_offset(1:double entry);
+
+    /**
+    * Get offset used to shift poses 
+    * far away from the object surface
+    * @ return offset value
+    */
+    double get_offset();
 }

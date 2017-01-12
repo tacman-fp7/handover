@@ -88,6 +88,7 @@ class poseSelection : public RFModule,
     bool euler;
 
     double length;
+    double offset;
 
     int index;
     int camera;
@@ -241,6 +242,19 @@ class poseSelection : public RFModule,
         return true;
     }
 
+    /************************************************************************/
+    bool set_offset(double entry)
+    {
+        cout<<endl<< "  New offset set: "<<entry<<endl<<endl;
+        offset=entry;
+    }
+
+    /************************************************************************/
+    double get_offset()
+    {
+        return offset;
+    }
+
     /*********************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -259,6 +273,10 @@ class poseSelection : public RFModule,
 
         robot=rf.check("robot", Value("icubSim")).asString();
         left_or_right=rf.check("which_hand", Value("left")).asString();
+
+        offset=rf.check("offset", Value(0.02)).asDouble();
+
+        cout<< " An offset of "<<offset<< " will be added in order to shift poses"<<endl<<endl;
 
         pos.resize(3,0.0);
         xd_h.resize(3,0.0);
@@ -687,6 +705,14 @@ class poseSelection : public RFModule,
             }
         }
 
+        if (offset > 0.0)
+        {
+            addOffset(positions_rotated);
+            addOffset(x_axis_rotated);
+            addOffset(y_axis_rotated);
+            addOffset(z_axis_rotated);
+        }
+
         update_hand_pose=false;
 
         return true;
@@ -1017,6 +1043,8 @@ class poseSelection : public RFModule,
         else
         {
             pos_hand[0]=pos_hand[1]=pos_hand[2]=axis_hand[0]=axis_hand[1]=axis_hand[2]=axis_hand[3];
+            select_new_pose=false;
+            yError()<< " Some problems in receiving hand pose";
         }
 
         H.resize(4,4);
@@ -1233,8 +1261,11 @@ class poseSelection : public RFModule,
             }
             cout<<endl;
             yInfo()<<" Selected pose: "<<index;
-            yInfo()<<" First hand selected pose"<<first_arm_pose[index].toString(3,3);
-            yInfo()<<" Second hand selected pose"<<xdhat[index].toString(3,3)<< " "<< odhat[index].toString();
+            if (first_arm_pose.size()>0)
+            {
+                yInfo()<<" First hand selected pose"<<first_arm_pose[index].toString(3,3);
+                yInfo()<<" Second hand selected pose"<<xdhat[index].toString(3,3)<< " "<< odhat[index].toString();
+            }
             cout<<endl;
         }
 
@@ -1374,6 +1405,27 @@ class poseSelection : public RFModule,
        }
 
        return true;
+   }
+
+   /*******************************************************************************/
+   void addOffset(vector<Vector> &vect)
+   {
+       if (left_or_right=="right")
+       {
+            for (size_t i=0; i<vect.size(); i++)
+            {
+                if (norm(z_axis_rotated[i]-positions_rotated[i])>0.0)
+                    vect[i]=vect[i] - offset*(z_axis_rotated[i]-positions_rotated[i])/(norm(z_axis_rotated[i]-positions_rotated[i]));
+            }
+       }
+       else
+       {
+           for (size_t i=0; i<vect.size(); i++)
+           {
+               if (norm(z_axis_rotated[i]-positions_rotated[i])>0.0)
+                   vect[i]=vect[i] + offset*(z_axis_rotated[i]-vect[i])/(norm(z_axis_rotated[i]-vect[i]));
+           }
+       }
    }
 };
 
