@@ -1758,7 +1758,7 @@ public:
         if (left_or_right=="left")
             shift[1]=0.05;
         else
-            shift[1]=-0.05;
+            shift[1]=-0.15;
         shift[2]=0.05;
         Vector position_new(3,0.0);
         Vector orientation_new(4,0.0);
@@ -1770,7 +1770,8 @@ public:
         {
             position=position_new;
             orientation=orientation_new;
-            if ((norm(position)>0.0 && norm(position)<1.0))
+
+            if ((norm(position)>0.0 && norm(position)<2.0))
             {
                 igaze->lookAtFixationPoint(position+ shift);
                 igaze->waitMotionDone();

@@ -663,6 +663,7 @@ class poseSelection : public RFModule,
         Vector tmp2(3,0.0);
         //H_object.setCol(3,tmp2);
 
+
         if (norm(H_object.getCol(3).subVector(0,2))>0.0)
         {            
             x_axis_rotated.clear();
@@ -1019,7 +1020,7 @@ class poseSelection : public RFModule,
         cmd.addString("get_pose");
 
         if (portHandIn.write(cmd, reply))
-        {         
+        {
             Bottle *bpos0=reply.get(0).asList();  
             for (size_t i=0; i<bpos0->size();i++)
             {               
@@ -1214,8 +1215,12 @@ class poseSelection : public RFModule,
                 cout<<endl;
             }
 
+            cout<< " Invert manip "<<endl;
             manip_notordered=manip;
             sort(manip.begin(), manip.end());
+
+            cout<<" manip not orderede size "<<manip_notordered.size()<<endl;
+
 
             for (size_t i=0; i<manip_notordered.size(); i++)
             {
@@ -1423,7 +1428,7 @@ class poseSelection : public RFModule,
            for (size_t i=0; i<vect.size(); i++)
            {
                if (norm(z_axis_rotated[i]-positions_rotated[i])>0.0)
-                   vect[i]=vect[i] + offset*(z_axis_rotated[i]-vect[i])/(norm(z_axis_rotated[i]-vect[i]));
+                   vect[i]=vect[i] + offset*(z_axis_rotated[i]-positions_rotated[i])/(norm(z_axis_rotated[i]-positions_rotated[i]));
            }
        }
    }
