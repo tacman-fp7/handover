@@ -42,7 +42,7 @@ bool doubleTouchThread::threadInit()
 
     attach(portRpc);
 
-    Network::connect("/"+name+"/ps:rpc","/pose-selection/rpc");
+    //Network::connect("/"+name+"/ps:rpc","/pose-selection/rpc");
 
     Property OptR;
     OptR.put("robot",  robot.c_str());
@@ -126,9 +126,10 @@ bool doubleTouchThread::threadInit()
     Hpose.resize(4,4);
     H_hand.resize(4,4);
 
-    askMovingArm();
+    //askMovingArm();
 
     home=false;
+    go=false;
 
     //HIndex=receivePose("arm");
 
@@ -140,14 +141,17 @@ void doubleTouchThread::run()
 {
     if (checkMotionDone())
     {
+cout<<"step "<<step<<endl;
         switch (step)
         {
+cout<<"step "<<step<<endl;
             case 0:
                 if (go)
                     step++;
 
                 break;                
             case 1:
+cout<<"step "<<step<<endl;
                 if (askSelectedPose())
                     step++;
 
@@ -577,6 +581,7 @@ bool doubleTouchThread::askMovingArm()
     if (portPoseIn.write(cmd,reply))
     {
         moving_arm=reply.get(0).asString();
+        cout<<"moving arm "<<moving_arm<<endl;
         return true;
     }
     else
@@ -608,6 +613,7 @@ bool doubleTouchThread::askSelectedPose()
 {
     Bottle cmd, reply;
     cmd.addString("get_index");
+cout<<"inde selected pose "<<endl;
     if (portPoseIn.write(cmd, reply))
     {
         if (reply.get(0).asInt()<1000)
@@ -726,7 +732,7 @@ Bottle doubleTouchThread::compute_manipulability(const Bottle &entry)
     computeManip();
 
     if (automatic_start)
-        go=true;
+        ;
 
     return manip;
 }

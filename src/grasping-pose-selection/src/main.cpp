@@ -173,6 +173,8 @@ class poseSelection : public RFModule,
         {
             Vector pos_in_hand(4,1.0);
 
+        cout<<"H_hand "<<H_hand.toString()<<endl;
+
             pos_in_hand.setSubvector(0,positions_rotated[index]);
             pos_in_hand=SE3inv(H_hand)*pos_in_hand;
             reply.addDouble(pos_in_hand[0]); reply.addDouble(pos_in_hand[1]); reply.addDouble(pos_in_hand[2]);
@@ -202,6 +204,7 @@ class poseSelection : public RFModule,
     /************************************************************************/
     Bottle get_Hhand()
     {
+cout<< " arm 2"<<endl;
         Bottle replyh;
 
         replyh.addDouble(H_hand(0,0)); replyh.addDouble(H_hand(0,1)); replyh.addDouble(H_hand(0,2)); replyh.addDouble(H_hand(0,3));
@@ -231,6 +234,7 @@ class poseSelection : public RFModule,
     /************************************************************************/
     string get_moving_arm()
     {
+cout<< " arm "<<endl;
         return left_or_right;
     }
 
@@ -301,7 +305,7 @@ class poseSelection : public RFModule,
 
         update_hand_pose=false;
         to_be_sent=true;
-        select_new_pose=true;
+        select_new_pose=false;
         update_pose=false;        
 
         if (online)
@@ -663,6 +667,8 @@ class poseSelection : public RFModule,
         Vector tmp2(3,0.0);
         //H_object.setCol(3,tmp2);
 
+        cout<< "debug 1"<<endl;
+
 
         if (norm(H_object.getCol(3).subVector(0,2))>0.0)
         {            
@@ -705,6 +711,8 @@ class poseSelection : public RFModule,
                 z_axis_rotated.push_back(tmp.subVector(0,2));
             }
         }
+
+cout<< "debug 2"<<endl;
 
         if (offset > 0.0)
         {
@@ -800,6 +808,8 @@ class poseSelection : public RFModule,
     /*******************************************************************************/
     Matrix askForObjectPose()
     {
+
+cout<< "debug 3"<<endl;
         Matrix H;
         Bottle cmd,reply;
         cmd.addString("get_estimated_pose");
@@ -820,6 +830,8 @@ class poseSelection : public RFModule,
             pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2];
         }
 
+cout<< "debug 4"<<endl;
+
         yDebug()<<" Received pose: "<<pos.toString(3,3)<<" "<<euler_angles.toString(3,3);
 
         H.resize(4,4);
@@ -839,6 +851,8 @@ class poseSelection : public RFModule,
     /*******************************************************************************/
     bool showPoses()
     {
+
+cout<< "debug 5"<<endl;
         if (imgIn==NULL)
         {
             imgIn=portImgIn.read(false);
@@ -875,7 +889,9 @@ class poseSelection : public RFModule,
             changeFrame();
         }
 
-        if ( norm(pos)>0.0)
+cout<< "debug 6"<<endl;
+
+        if ( norm(pos)>0.0 && positions_rotated.size()<0)
         {
             for (size_t i=0; i<positions_rotated.size(); i++)
             {
@@ -918,7 +934,9 @@ class poseSelection : public RFModule,
             }
         }
 
-        if (index>=0 && norm(index_poses)>0.0)
+cout<< "debug 7"<<endl;
+
+        if (index>=0 && norm(index_poses)>0.0 && positions_rotated.size()>0)
         {
             cv::Scalar color(255,0,0);
             color[0]=-10*index_poses[index];
@@ -1007,7 +1025,11 @@ class poseSelection : public RFModule,
             }
         }
 
+cout<< "debug 8"<<endl;
+
         portImgOut.write();
+
+cout<< "debug 9"<<endl;
 
         return true;
     }
@@ -1019,9 +1041,15 @@ class poseSelection : public RFModule,
         Bottle cmd,reply;
         cmd.addString("get_pose");
 
+cout<< "debug 9"<<endl;
+
         if (portHandIn.write(cmd, reply))
         {
-            Bottle *bpos0=reply.get(0).asList();  
+            Bottle *bpos0=reply.get(0).asList();
+
+cout<< "debug 9 a"<<endl;
+
+cout<< "debug 9 b"<<bpos0->size()<<endl;
             for (size_t i=0; i<bpos0->size();i++)
             {               
                 Bottle *bpos=bpos0->get(i).asList(); 
@@ -1048,6 +1076,8 @@ class poseSelection : public RFModule,
             yError()<< " Some problems in receiving hand pose";
         }
 
+cout<< "debug 10"<<endl;
+
         H.resize(4,4);
 
         H=axis2dcm(axis_hand);
@@ -1061,29 +1091,32 @@ class poseSelection : public RFModule,
     /*******************************************************************************/
     void distanceFromHand()
     {
-        vector<double> distances(positions_rotated.size(), 0.0);
-
-        for (size_t i=0; i<positions_rotated.size(); i++)
+        if (positions_rotated.size()>0)
         {
-             distances[i]=norm(positions_rotated[i] - pos_hand);
-        }
+            vector<double> distances(positions_rotated.size(), 0.0);
 
-        sort(distances.begin(), distances.end());
-
-        for (size_t i=0; i<distances.size(); i++)
-        {
-            double count=-1;
-            for (vector<double>::iterator it=distances.begin(); it!=distances.end(); ++it)
+            for (size_t i=0; i<positions_rotated.size(); i++)
             {
-                count++;
-                if (norm(positions_rotated[i] - pos_hand)==*it)
+                 distances[i]=norm(positions_rotated[i] - pos_hand);
+            }
+
+            sort(distances.begin(), distances.end());
+
+            for (size_t i=0; i<distances.size(); i++)
+            {
+                double count=-1;
+                for (vector<double>::iterator it=distances.begin(); it!=distances.end(); ++it)
                 {
-                    index_poses[i]= (count - 8);                    
+                    count++;
+                    if (norm(positions_rotated[i] - pos_hand)==*it)
+                    {
+                        index_poses[i]= (count - 8);                    
+                    }
                 }
             }
-        }
 
-        yDebug()<<" Index poses: "<<index_poses.toString(3,3);
+            yDebug()<<" Index poses: "<<index_poses.toString(3,3);
+        }
     }
 
     /*******************************************************************************/
@@ -1171,6 +1204,8 @@ class poseSelection : public RFModule,
 
         Matrix orient(3,3);
 
+cout<< "debug 11"<<endl;
+
         for (size_t i=0; i<positions_rotated.size(); i++)
         {
             orient.setCol(0,(x_axis_rotated[i]-positions_rotated[i])/norm(x_axis_rotated[i]-positions_rotated[i]));
@@ -1180,12 +1215,18 @@ class poseSelection : public RFModule,
             od.push_back(dcm2axis(orient));
         }
 
-        if (positions_rotated.size()!=0)
+cout<< "debug 12"<<endl;
+
+cout<<"positions rotated size "<<positions_rotated.size()<<endl;
+
+        if (positions_rotated.size()>0)
         {
             sendToClosedChain(positions_rotated, od);
 
            go_on=askXdOdHat();
         }
+
+cout<< "debug 13"<<endl;
 
         if (go_on)
         {
@@ -1243,7 +1284,7 @@ class poseSelection : public RFModule,
             yInfo()<<" Index poses after manipulability: "<<index_poses.toString(3,3);
         }
         else
-            yError()<<" Index poses cannote be computed!";
+            yError()<<" Index poses cannot be computed!";
     }
 
     /*******************************************************************************/
@@ -1302,11 +1343,15 @@ class poseSelection : public RFModule,
         Bottle &cmd3=cmd2.addList();
         cmd3.addString("positions");
 
+cout<< " debug s "<<endl;
+
         for (size_t i=0; i<positions.size(); i++)
         {
             Bottle &cmd4=cmd3.addList();
             cmd4.addDouble(positions[i][0]); cmd4.addDouble(positions[i][1]); cmd4.addDouble(positions[i][2]);
         }
+
+cout<< " debug s 2"<<endl;
 
         Bottle &cmd5=cmd2.addList();
         cmd5.addString("orientations");
@@ -1316,6 +1361,8 @@ class poseSelection : public RFModule,
             Bottle &cmd6=cmd5.addList();
             cmd6.addDouble(od[i][0]); cmd6.addDouble(od[i][1]); cmd6.addDouble(od[i][2]); cmd6.addDouble(od[i][3]);
         }
+
+cout<< " debug s3 "<<endl;
 
         if (portClosedChain.write(cmd, reply))
         {
