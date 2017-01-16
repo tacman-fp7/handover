@@ -667,9 +667,6 @@ cout<< " arm "<<endl;
         Vector tmp2(3,0.0);
         //H_object.setCol(3,tmp2);
 
-        cout<< "debug 1"<<endl;
-
-
         if (norm(H_object.getCol(3).subVector(0,2))>0.0)
         {            
             x_axis_rotated.clear();
@@ -711,8 +708,6 @@ cout<< " arm "<<endl;
                 z_axis_rotated.push_back(tmp.subVector(0,2));
             }
         }
-
-cout<< "debug 2"<<endl;
 
         if (offset > 0.0)
         {
@@ -808,8 +803,6 @@ cout<< "debug 2"<<endl;
     /*******************************************************************************/
     Matrix askForObjectPose()
     {
-
-cout<< "debug 3"<<endl;
         Matrix H;
         Bottle cmd,reply;
         cmd.addString("get_estimated_pose");
@@ -830,8 +823,6 @@ cout<< "debug 3"<<endl;
             pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2];
         }
 
-cout<< "debug 4"<<endl;
-
         yDebug()<<" Received pose: "<<pos.toString(3,3)<<" "<<euler_angles.toString(3,3);
 
         H.resize(4,4);
@@ -851,8 +842,6 @@ cout<< "debug 4"<<endl;
     /*******************************************************************************/
     bool showPoses()
     {
-
-cout<< "debug 5"<<endl;
         if (imgIn==NULL)
         {
             imgIn=portImgIn.read(false);
@@ -888,8 +877,6 @@ cout<< "debug 5"<<endl;
 
             changeFrame();
         }
-
-cout<< "debug 6"<<endl;
 
         if ( norm(pos)>0.0 && positions_rotated.size()<0)
         {
@@ -933,8 +920,6 @@ cout<< "debug 6"<<endl;
                 cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
             }
         }
-
-cout<< "debug 7"<<endl;
 
         if (index>=0 && norm(index_poses)>0.0 && positions_rotated.size()>0)
         {
@@ -1025,11 +1010,7 @@ cout<< "debug 7"<<endl;
             }
         }
 
-cout<< "debug 8"<<endl;
-
         portImgOut.write();
-
-cout<< "debug 9"<<endl;
 
         return true;
     }
@@ -1041,15 +1022,10 @@ cout<< "debug 9"<<endl;
         Bottle cmd,reply;
         cmd.addString("get_pose");
 
-cout<< "debug 9"<<endl;
-
         if (portHandIn.write(cmd, reply))
         {
             Bottle *bpos0=reply.get(0).asList();
 
-cout<< "debug 9 a"<<endl;
-
-cout<< "debug 9 b"<<bpos0->size()<<endl;
             for (size_t i=0; i<bpos0->size();i++)
             {               
                 Bottle *bpos=bpos0->get(i).asList(); 
@@ -1075,8 +1051,6 @@ cout<< "debug 9 b"<<bpos0->size()<<endl;
             select_new_pose=false;
             yError()<< " Some problems in receiving hand pose";
         }
-
-cout<< "debug 10"<<endl;
 
         H.resize(4,4);
 
@@ -1204,8 +1178,6 @@ cout<< "debug 10"<<endl;
 
         Matrix orient(3,3);
 
-cout<< "debug 11"<<endl;
-
         for (size_t i=0; i<positions_rotated.size(); i++)
         {
             orient.setCol(0,(x_axis_rotated[i]-positions_rotated[i])/norm(x_axis_rotated[i]-positions_rotated[i]));
@@ -1215,18 +1187,12 @@ cout<< "debug 11"<<endl;
             od.push_back(dcm2axis(orient));
         }
 
-cout<< "debug 12"<<endl;
-
-cout<<"positions rotated size "<<positions_rotated.size()<<endl;
-
         if (positions_rotated.size()>0)
         {
             sendToClosedChain(positions_rotated, od);
 
            go_on=askXdOdHat();
         }
-
-cout<< "debug 13"<<endl;
 
         if (go_on)
         {
@@ -1343,15 +1309,11 @@ cout<< "debug 13"<<endl;
         Bottle &cmd3=cmd2.addList();
         cmd3.addString("positions");
 
-cout<< " debug s "<<endl;
-
         for (size_t i=0; i<positions.size(); i++)
         {
             Bottle &cmd4=cmd3.addList();
             cmd4.addDouble(positions[i][0]); cmd4.addDouble(positions[i][1]); cmd4.addDouble(positions[i][2]);
         }
-
-cout<< " debug s 2"<<endl;
 
         Bottle &cmd5=cmd2.addList();
         cmd5.addString("orientations");
@@ -1361,8 +1323,6 @@ cout<< " debug s 2"<<endl;
             Bottle &cmd6=cmd5.addList();
             cmd6.addDouble(od[i][0]); cmd6.addDouble(od[i][1]); cmd6.addDouble(od[i][2]); cmd6.addDouble(od[i][3]);
         }
-
-cout<< " debug s3 "<<endl;
 
         if (portClosedChain.write(cmd, reply))
         {

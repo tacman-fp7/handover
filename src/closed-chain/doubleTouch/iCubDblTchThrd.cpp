@@ -129,7 +129,7 @@ bool doubleTouchThread::threadInit()
     //askMovingArm();
 
     home=false;
-    go=false;
+    //go=false;
 
     //HIndex=receivePose("arm");
 
@@ -141,17 +141,14 @@ void doubleTouchThread::run()
 {
     if (checkMotionDone())
     {
-cout<<"step "<<step<<endl;
         switch (step)
         {
-cout<<"step "<<step<<endl;
             case 0:
                 if (go)
                     step++;
 
                 break;                
             case 1:
-cout<<"step "<<step<<endl;
                 if (askSelectedPose())
                     step++;
 

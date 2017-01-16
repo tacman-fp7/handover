@@ -154,11 +154,10 @@ public:
         jnt_vels = rf.check("jnt_vels", Value(10.0)).asDouble();
         yInfo(" Module jnt_vels set to %g", jnt_vels);
 
-        go=(rf.check("closed_chain", Value("no")).asString()== "no");
+        go=(rf.check("closed_chain", Value("no")).asString()== "yes");
 
         automatic_start=(rf.check("automatic_start", Value("no")).asString()== "yes");
 
-cout<<"automatic start "<<automatic_start<<endl;
         time_t now = time(0);
         tm *ltm = localtime(&now);
         string time = int_to_string(1900 + ltm->tm_year)+"_"+int_to_string(1+ltm->tm_mon)+"_"+
