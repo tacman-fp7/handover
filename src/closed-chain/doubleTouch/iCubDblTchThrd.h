@@ -73,6 +73,8 @@ protected:
     bool         go;
     bool automatic_start;
     bool home;
+    bool home_slave;
+    bool home_master;
 
     int index;
 
@@ -226,7 +228,7 @@ public:
 
     Bottle get_solutions();
 
-    bool go_home();
+    bool go_home(const string &entry);
 
     bool move();
 };

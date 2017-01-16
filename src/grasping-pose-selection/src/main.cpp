@@ -204,7 +204,6 @@ class poseSelection : public RFModule,
     /************************************************************************/
     Bottle get_Hhand()
     {
-cout<< " arm 2"<<endl;
         Bottle replyh;
 
         replyh.addDouble(H_hand(0,0)); replyh.addDouble(H_hand(0,1)); replyh.addDouble(H_hand(0,2)); replyh.addDouble(H_hand(0,3));
@@ -234,7 +233,6 @@ cout<< " arm 2"<<endl;
     /************************************************************************/
     string get_moving_arm()
     {
-cout<< " arm "<<endl;
         return left_or_right;
     }
 
@@ -878,7 +876,7 @@ cout<< " arm "<<endl;
             changeFrame();
         }
 
-        if ( norm(pos)>0.0 && positions_rotated.size()<0)
+        if ( norm(pos)>0.0)
         {
             for (size_t i=0; i<positions_rotated.size(); i++)
             {
@@ -921,7 +919,7 @@ cout<< " arm "<<endl;
             }
         }
 
-        if (index>=0 && norm(index_poses)>0.0 && positions_rotated.size()>0)
+        if (index>=0 && norm(index_poses)>0.0)
         {
             cv::Scalar color(255,0,0);
             color[0]=-10*index_poses[index];
@@ -1222,11 +1220,12 @@ cout<< " arm "<<endl;
                 cout<<endl;
             }
 
-            cout<< " Invert manip "<<endl;
+            
             manip_notordered=manip;
             sort(manip.begin(), manip.end());
 
-            cout<<" manip not orderede size "<<manip_notordered.size()<<endl;
+for (size_t i=0; i<manip.size(); i++)
+        cout<<"manip ordered "<<manip[i]<<endl;
 
 
             for (size_t i=0; i<manip_notordered.size(); i++)

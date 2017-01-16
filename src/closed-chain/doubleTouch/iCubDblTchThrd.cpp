@@ -42,7 +42,7 @@ bool doubleTouchThread::threadInit()
 
     attach(portRpc);
 
-    //Network::connect("/"+name+"/ps:rpc","/pose-selection/rpc");
+    Network::connect("/"+name+"/ps:rpc","/pose-selection/rpc");
 
     Property OptR;
     OptR.put("robot",  robot.c_str());
@@ -126,10 +126,10 @@ bool doubleTouchThread::threadInit()
     Hpose.resize(4,4);
     H_hand.resize(4,4);
 
-    //askMovingArm();
+    askMovingArm();
 
     home=false;
-    //go=false;
+    go=false;
 
     //HIndex=receivePose("arm");
 
@@ -379,10 +379,12 @@ void doubleTouchThread::goToPose()
     if (!home)
     {
         cout<<endl<<" Moving slave ..."<<endl;
-        goToPoseSlave();
+        if (home_slave)
+            goToPoseSlave();
         Time::delay(2.0);
         cout<<endl<<" Moving master ..."<<endl;
-        goToPoseMaster();
+        if (home_master)
+            goToPoseMaster();
     }
 }
 
@@ -610,12 +612,13 @@ bool doubleTouchThread::askSelectedPose()
 {
     Bottle cmd, reply;
     cmd.addString("get_index");
-cout<<"inde selected pose "<<endl;
+
     if (portPoseIn.write(cmd, reply))
     {
         if (reply.get(0).asInt()<1000)
         {
             index=reply.get(0).asInt();
+            yDebug()<< " Index "<<index;
             return true;
         }
         else
@@ -755,11 +758,16 @@ Bottle doubleTouchThread::get_solutions()
 }
 
 /************************************************************************/
-bool doubleTouchThread::go_home()
+bool doubleTouchThread::go_home(const string &entry)
 {
     printf(" Going to rest...\n");
     go=false;
     home=true;
+    if (entry=="slave")
+        home_slave=true;
+    else if (entry=="master")
+        home_master=true;
+
     steerArmsHomeMasterSlave();
 
     return true;
