@@ -67,16 +67,18 @@ protected:
     vector<Vector> orie_in_hand;
     vector<Vector> joints_sol;
 
-    int        step;
-    int        iter;
-    double jnt_vels;
-    bool         go;
+    int             step;
+    int       n_waypoint;
+    int             iter;
+    double      jnt_vels;
+    bool              go;
     bool automatic_start;
-    bool home;
-    bool home_slave;
-    bool home_master;
+    bool            home;
+    bool        go_slave;
+    bool       go_master;
 
     int index;
+    int current_waypoint;
 
     PolyDriver       ddR;
     PolyDriver       ddL;
@@ -130,6 +132,8 @@ protected:
 
 
     Vector armPossHome;
+    Vector armPossHomeM;
+    Vector armPossHomeS;
 
     // CUSTOM LIMB (for testing the achievement of the task)
     iCubCustomLimb *testLimb;
@@ -175,9 +179,9 @@ protected:
     /**
     * Goes to the configuration found by solveIK()
     */
-    void goToPose();
-    void goToPoseMaster();
-    void goToPoseSlave();
+    void goToPose(int waypoint);
+    void goToPoseMaster(int i);
+    void goToPoseSlave(int waypoint);
 
     /**
     * Sends the output to the port
@@ -228,9 +232,13 @@ public:
 
     Bottle get_solutions();
 
-    bool go_home(const string &entry);
+    bool go_home();
 
-    bool move();
+    bool move(const string &entry);
+
+    void extractInitialQ(IEncoders *ienc);
+
+    bool set_waypoint(const int entry);
 };
 
 #endif

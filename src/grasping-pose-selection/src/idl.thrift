@@ -90,4 +90,22 @@ service poseSelection_IDL
     * @ return offset value
     */
     double get_offset();
+
+ /**
+    * Set distance between waypoints
+    * @ return true
+    */
+    bool set_distance(1:double entry);
+
+    /**
+    * Get offset between waypoints
+    * @ return offset value
+    */
+    double get_distance();
+
+    /**
+    * Get number of waypoints
+    * @ return number of waypoints
+    */
+    i32 get_n_waypoint();
 }

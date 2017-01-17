@@ -79,19 +79,22 @@ class poseSelection : public RFModule,
 
     bool update_hand_pose;   
     bool select_new_pose;
-    bool torso_enabled;
-    bool to_be_sent;
+    bool torso_enabled;    
     bool change_frame;
     bool closed_chain;
     bool update_pose;
+    bool to_be_sent;
+    bool waypoint;
     bool online;
     bool euler;
 
     double length;
     double offset;
+    double distance;
 
     int index;
     int camera;
+    int n_waypoint;
     int startup_context_id;
 
     deque<IControlLimits*> lim_deque1;
@@ -202,6 +205,12 @@ class poseSelection : public RFModule,
     }
 
     /************************************************************************/
+    int get_n_waypoint()
+    {
+        return n_waypoint;
+    }
+
+    /************************************************************************/
     Bottle get_Hhand()
     {
         Bottle replyh;
@@ -249,12 +258,27 @@ class poseSelection : public RFModule,
     {
         cout<<endl<< "  New offset set: "<<entry<<endl<<endl;
         offset=entry;
+        return true;
     }
 
     /************************************************************************/
     double get_offset()
     {
         return offset;
+    }
+
+    /************************************************************************/
+    bool set_distance(double entry)
+    {
+        cout<<endl<< "  New distance set: "<<entry<<endl<<endl;
+       distance=entry;
+       return true;
+    }
+
+    /************************************************************************/
+    double get_distance()
+    {
+        return distance;
     }
 
     /*********************************************************/
@@ -272,14 +296,18 @@ class poseSelection : public RFModule,
         camera=(rf.check("camera", Value(0), "online or offline processing").asInt());
         torso_enabled=(rf.check("torso_enabled", Value("no")).asString()== "yes");
         closed_chain=(rf.check("closed_chain", Value("no")).asString()== "yes");
+        waypoint=(rf.check("use_waypoint", Value("yes")).asString()== "yes");
 
         robot=rf.check("robot", Value("icubSim")).asString();
         left_or_right=rf.check("which_hand", Value("left")).asString();
 
         offset=rf.check("offset", Value(0.02)).asDouble();
+        distance=rf.check("distance", Value(0.10)).asDouble();
+        n_waypoint=rf.check("n_waypoint", Value(1)).asInt();
 
         cout<< " An offset of "<<offset<< " will be added in order to shift poses"<<endl<<endl;
 
+        length=0.06;
         pos.resize(3,0.0);
         xd_h.resize(3,0.0);
         od_h.resize(4,0.0);
@@ -296,10 +324,10 @@ class poseSelection : public RFModule,
 
         readPoses(positionFileName, orientationFileName);
 
-        index_poses.resize(positions.size(), 0.0);
+        index_poses.resize(positions.size()/(n_waypoint+1), 0.0);
 
         index=-1;
-        length=0.06;
+
 
         update_hand_pose=false;
         to_be_sent=true;
@@ -476,15 +504,21 @@ class poseSelection : public RFModule,
         if (select_new_pose)
         {
             changeFrame();
+            cout<<"debug "<<endl;
 
             distanceFromHand();
+            cout<<"debug 2"<<endl;
 
             if (!closed_chain)
                 manipulability();
             else
                 manipulabilityClosedChain();
 
+            cout<<"debug 3"<<endl;
+
             showPoses();
+
+            cout<<"debug 4"<<endl;
 
             choosePose();
         }
@@ -566,6 +600,11 @@ class poseSelection : public RFModule,
     {
         read(positionFileName, "positions");
         read(orientationFileName, "orientations");
+
+        if (waypoint)
+            addWaypoint(n_waypoint);
+
+        cout<<"position size "<<positions.size()<<endl;
 
         return true;
     }
@@ -680,18 +719,18 @@ class poseSelection : public RFModule,
                 positions_rotated.push_back(tmp.subVector(0,2));
             }
 
-            Vector x(3,0.0), y(3,0.0), z(3,0.0);
-            Vector matrix(9,0.0);
+//            Vector x(3,0.0), y(3,0.0), z(3,0.0);
+//            Vector matrix(9,0.0);
 
-            for (size_t i=0; i<orientations.size(); i++)
+            for (size_t i=0; i<positions.size(); i++)
             {
-                matrix=orientations[i];
-                x[0]=matrix[0]; x[1]=matrix[3]; x[2]=matrix[6];
-                y[0]=matrix[1]; y[1]=matrix[4]; y[2]=matrix[7];
-                z[0]=matrix[2]; z[1]=matrix[5]; z[2]=matrix[8];
-                x_axis.push_back(positions[i].subVector(0,2)+length*x);
-                y_axis.push_back(positions[i].subVector(0,2)+length*y);
-                z_axis.push_back(positions[i].subVector(0,2)+length*z);
+//                matrix=orientations[i];
+//                x[0]=matrix[0]; x[1]=matrix[3]; x[2]=matrix[6];
+//                y[0]=matrix[1]; y[1]=matrix[4]; y[2]=matrix[7];
+//                z[0]=matrix[2]; z[1]=matrix[5]; z[2]=matrix[8];
+//                x_axis.push_back(positions[i].subVector(0,2)+length*x);
+//                y_axis.push_back(positions[i].subVector(0,2)+length*y);
+//                z_axis.push_back(positions[i].subVector(0,2)+length*z);
 
                 tmp.setSubvector(0,x_axis[i]);
                 tmp=H_hand*H_object*tmp;
@@ -712,7 +751,7 @@ class poseSelection : public RFModule,
             addOffset(positions_rotated);
             addOffset(x_axis_rotated);
             addOffset(y_axis_rotated);
-            addOffset(z_axis_rotated);
+            //addOffset(z_axis_rotated);
         }
 
         update_hand_pose=false;
@@ -878,15 +917,17 @@ class poseSelection : public RFModule,
 
         if ( norm(pos)>0.0)
         {
+            int k=0;
+
             for (size_t i=0; i<positions_rotated.size(); i++)
             {
                 cv::Scalar color(0,255,0);
                 
                 if (norm(index_poses)>0.0)
                 {
-                    color[0]+=-50*index_poses[i];
-                    color[1]+= 10*index_poses[i];
-                    if (index_poses[i]!=0.0)
+                    color[0]+=-50*index_poses[i-k*(x_axis_rotated.size())/(n_waypoint+1)];
+                    color[1]+= 10*index_poses[i-k*x_axis_rotated.size()/(n_waypoint+1)];
+                    if (index_poses[i-k*x_axis_rotated.size()/(n_waypoint+1)]!=0.0)
                         color[2]=0;
                 }
 
@@ -916,6 +957,9 @@ class poseSelection : public RFModule,
                 Vector num_position2D(2,0.0);
                 igaze->get2DPixel(camera, num_position,num_position2D);
                 cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
+
+                if (i==(k+1)*x_axis_rotated.size()/(n_waypoint+1)-1)
+                    k++;
             }
         }
 
@@ -985,26 +1029,29 @@ class poseSelection : public RFModule,
             }
             else if (xdhat.size()>0)
             {
-                igaze->get2DPixel(camera, num_position,center_bb);
-                cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+                for (size_t i=0; i<n_waypoint+1;i++)
+                {
+                    igaze->get2DPixel(camera, num_position,center_bb);
+                    cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
 
-                igaze->get2DPixel(camera, xdhat[index], position_2D);
-                cv::Point real_pixel2D(position_2D[0],position_2D[1]);
-                Matrix orient(4,4);
-                orient=axis2dcm(odhat[index]);
+                    igaze->get2DPixel(camera, xdhat[index+i*xdhat.size()/(n_waypoint+1)], position_2D);
+                    cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+                    Matrix orient(4,4);
+                    orient=axis2dcm(odhat[index]);
 
-                igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
-                cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+                    igaze->get2DPixel(camera, xdhat[index+i*xdhat.size()/(n_waypoint+1)] + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+                    cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
 
-                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
 
-                igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
-                cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
-                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+                    igaze->get2DPixel(camera, xdhat[index+i*xdhat.size()/(n_waypoint+1)] + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+                    cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
 
-                igaze->get2DPixel(camera,xdhat[index] + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
-                cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
-                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+                    igaze->get2DPixel(camera,xdhat[index+i*xdhat.size()/(n_waypoint+1)] + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+                    cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+                }
             }
         }
 
@@ -1194,7 +1241,7 @@ class poseSelection : public RFModule,
 
         if (go_on)
         {
-            for (size_t i=0; i<positions_rotated.size(); i++)
+            for (size_t i=0; i<positions_rotated.size()/(n_waypoint+1); i++)
             {
                 H_hand=axis2dcm(first_arm_pose[i].subVector(3,6));
                 H_hand.setSubcol(first_arm_pose[i].subVector(0,2), 0, 3);
@@ -1224,11 +1271,7 @@ class poseSelection : public RFModule,
             manip_notordered=manip;
             sort(manip.begin(), manip.end());
 
-for (size_t i=0; i<manip.size(); i++)
-        cout<<"manip ordered "<<manip[i]<<endl;
-
-
-            for (size_t i=0; i<manip_notordered.size(); i++)
+            for (size_t i=0; i<manip_notordered.size()/(n_waypoint+1); i++)
             {
                 int count=0;
                 yDebug()<<" Manipulability for pose "<<i<<": "<<manip_notordered[i];
@@ -1422,7 +1465,7 @@ for (size_t i=0; i<manip.size(); i++)
    void addOffset(vector<Vector> &vect)
    {
        if (left_or_right=="right")
-       {
+       {           
             for (size_t i=0; i<vect.size(); i++)
             {
                 if (norm(z_axis_rotated[i]-positions_rotated[i])>0.0)
@@ -1435,6 +1478,51 @@ for (size_t i=0; i<manip.size(); i++)
            {
                if (norm(z_axis_rotated[i]-positions_rotated[i])>0.0)
                    vect[i]=vect[i] + offset*(z_axis_rotated[i]-positions_rotated[i])/(norm(z_axis_rotated[i]-positions_rotated[i]));
+           }
+       }
+   }
+
+   /*******************************************************************************/
+   void addWaypoint(int n)
+   {
+       Vector x(3,0.0), y(3,0.0), z(3,0.0);
+       Vector matrix(9,0.0);
+
+       for (size_t i=0; i<orientations.size(); i++)
+       {
+           matrix=orientations[i];
+           x[0]=matrix[0]; x[1]=matrix[3]; x[2]=matrix[6];
+           y[0]=matrix[1]; y[1]=matrix[4]; y[2]=matrix[7];
+           z[0]=matrix[2]; z[1]=matrix[5]; z[2]=matrix[8];
+           x_axis.push_back(positions[i].subVector(0,2)+length*x);
+           y_axis.push_back(positions[i].subVector(0,2)+length*y);
+           z_axis.push_back(positions[i].subVector(0,2)+length*z);
+       }
+
+       if (left_or_right=="right")
+       {
+            for (size_t j=0; j<n; j++)
+            {
+                for (size_t i=0; i<orientations.size(); i++)
+                {
+                    positions.push_back(positions[i].subVector(0,2) - (j+1)*distance*(z_axis[i]-positions[i].subVector(0,2))/(norm(z_axis[i]-positions[i].subVector(0,2))));
+                    x_axis.push_back(x_axis[i].subVector(0,2) - (j+1)*distance*(z_axis[i]-positions[i].subVector(0,2))/(norm(z_axis[i]-positions[i].subVector(0,2))));
+                    y_axis.push_back(y_axis[i].subVector(0,2) - (j+1)*distance*(z_axis[i]-positions[i].subVector(0,2))/(norm(z_axis[i]-positions[i].subVector(0,2))));
+                    z_axis.push_back(z_axis[i].subVector(0,2) - (j+1)*distance*(z_axis[i]-positions[i].subVector(0,2))/(norm(z_axis[i]-positions[i].subVector(0,2))));
+                }
+            }
+       }
+       else
+       {
+           for (size_t j=0; j<n; j++)
+           {
+               for (size_t i=0; i<orientations.size(); i++)
+               {
+                   positions.push_back(positions[i].subVector(0,2) + (j+1)*distance*(z_axis[i]-positions[i].subVector(0,2))/(norm(z_axis[i]-positions[i].subVector(0,2))));
+                   x_axis.push_back(x_axis[i].subVector(0,2) + (j+1)*distance*(z_axis[i]-positions[i].subVector(0,2))/(norm(z_axis[i]-positions[i].subVector(0,2))));
+                   y_axis.push_back(y_axis[i].subVector(0,2) + (j+1)*distance*(z_axis[i]-positions[i].subVector(0,2))/(norm(z_axis[i]-positions[i].subVector(0,2))));
+                   z_axis.push_back(z_axis[i].subVector(0,2) + (j+1)*distance*(z_axis[i]-positions[i])/(norm(z_axis[i]-positions[i])));
+               }
            }
        }
    }

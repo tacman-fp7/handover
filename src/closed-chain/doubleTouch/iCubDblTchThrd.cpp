@@ -20,6 +20,18 @@ doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const strin
     armPossHome[1]=30.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHome[3]=45.0*iCub::ctrl::CTRL_DEG2RAD;
 
+    armPossHomeM.resize(7,0.0);
+    armPossHomeM[0]=-30.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeM[1]=30.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeM[3]=45.0*iCub::ctrl::CTRL_DEG2RAD;
+
+    armPossHomeS.resize(7,0.0);
+    armPossHomeS[0]=-60.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeS[1]=24.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeS[2]=56.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeS[3]=40.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeS[4]=-50.0*iCub::ctrl::CTRL_DEG2RAD;
+
     armL = new iCubArm("left");
     armR = new iCubArm("right");
 
@@ -70,7 +82,6 @@ bool doubleTouchThread::threadInit()
 
     bool ok = true;
 
-    // Left arm is the master, right arm is the slave
     if (ddR.isValid())
     {
         ok = ok && ddR.view(iencsR);
@@ -129,9 +140,15 @@ bool doubleTouchThread::threadInit()
     askMovingArm();
 
     home=false;
-    go=false;
+    go=go_slave=go_master=false;
+
 
     //HIndex=receivePose("arm");
+
+//    if (moving_arm=="right")
+//        extractInitialQ(iencsR);
+//    else if (moving_arm=="left")
+//        extractInitialQ(iencsL);
 
     return true;
 }
@@ -154,8 +171,8 @@ void doubleTouchThread::run()
 
                 break;
             case 2:
-                configureHands();
-                goToPose();
+                configureHands();               
+                goToPose(current_waypoint);
                 step++;
 
                 break;
@@ -374,22 +391,28 @@ void doubleTouchThread::solveIK()
 }
 
 /************************************************************************/
-void doubleTouchThread::goToPose()
+void doubleTouchThread::goToPose(int waypoint)
 {
     if (!home)
-    {
-        cout<<endl<<" Moving slave ..."<<endl;
-        if (home_slave)
-            goToPoseSlave();
+    {        
+        if (go_slave)
+        {
+            cout<<endl<<" Moving slave ..."<<endl;
+            goToPoseSlave(waypoint);
+        }
+
         Time::delay(2.0);
-        cout<<endl<<" Moving master ..."<<endl;
-        if (home_master)
-            goToPoseMaster();
+
+        if (go_master)
+        {
+            cout<<endl<<" Moving master ..."<<endl;
+            goToPoseMaster(waypoint);
+        }
     }
 }
 
 /************************************************************************/
-void doubleTouchThread::goToPoseMaster()
+void doubleTouchThread::goToPoseMaster(int k)
 {
     int nJnts = 7;
     Vector qM(nJnts,0.0);
@@ -402,7 +425,8 @@ void doubleTouchThread::goToPoseMaster()
     for (int i = 0; i < 7; i++)
     {
         Ejoints.push_back(i);
-        qM[i] = iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][nDOF-7+i];
+        cout<<"index value "<<index+k*(joints_sol.size()/(n_waypoint+1))<<endl;
+        qM[i] = iCub::ctrl::CTRL_RAD2DEG*joints_sol[index+k*(joints_sol.size()/(n_waypoint+1))][nDOF-7+i];
         if (verbosity>1)
         {
             printf(" #%i to: %g\t",i,qM[i]);
@@ -417,7 +441,7 @@ void doubleTouchThread::goToPoseMaster()
 }
 
 /************************************************************************/
-void doubleTouchThread::goToPoseSlave()
+void doubleTouchThread::goToPoseSlave(int k)
 {
     if (verbosity>1)
     {
@@ -425,12 +449,13 @@ void doubleTouchThread::goToPoseSlave()
     }
     for (int i = 0; i < nDOF-7; i++)
     {
+        /*
         if (verbosity>1)
         {
             printf(" #%i to: %g\t",nDOF-7-1-i,-solution[i]);
-        }
+        }*/
 
-        iposS -> positionMove(nDOF-7-1-i,-iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][i]);
+        iposS -> positionMove(nDOF-7-1-i,-iCub::ctrl::CTRL_RAD2DEG*joints_sol[index+k*(joints_sol.size()/(n_waypoint+1))][i]);
     }
     if (verbosity>1)
     {
@@ -465,12 +490,15 @@ void doubleTouchThread::steerArmsHome()
 /************************************************************************/
 void doubleTouchThread::steerArmsHomeMasterSlave()
 {
-    printf(" Moving arms to home, i.e. %s...\n",
-                 (iCub::ctrl::CTRL_RAD2DEG*armPossHome).toString(3,3).c_str());
+    printf(" Moving master arm to home, i.e. %s...\n",
+                 (iCub::ctrl::CTRL_RAD2DEG*armPossHomeM).toString(3,3).c_str());
+
+    printf(" Moving slave arm to home, i.e. %s...\n",
+                 (iCub::ctrl::CTRL_RAD2DEG*armPossHomeS).toString(3,3).c_str());
 
     for (int i = 0; i < 7; i++)
     {
-        iposM->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
+        iposM->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeM[i]);
     }
     for (int i = 7; i < 16; i++)
     {
@@ -478,12 +506,12 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
         else        iposM -> positionMove(i,0.0);
     }
 
-//    Time::delay(2.0);
+    Time::delay(2.0);
     
-//    for (int i = 0; i < 7; i++)
-//    {
-//        iposS->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
-//    }
+    for (int i = 0; i < 7; i++)
+    {
+        iposS->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeS[i]);
+    }
 //    for (int i = 7; i < 16; i++)
 //    {
 //        if (i==7)   iposS -> positionMove(i,60.0);
@@ -580,7 +608,6 @@ bool doubleTouchThread::askMovingArm()
     if (portPoseIn.write(cmd,reply))
     {
         moving_arm=reply.get(0).asString();
-        cout<<"moving arm "<<moving_arm<<endl;
         return true;
     }
     else
@@ -619,10 +646,31 @@ bool doubleTouchThread::askSelectedPose()
         {
             index=reply.get(0).asInt();
             yDebug()<< " Index "<<index;
-            return true;
+            //return true;
         }
         else
             return false;
+    }
+    else
+        return false;
+
+    cmd.clear(); reply.clear();
+    cmd.addString("get_n_waypoint");
+
+    if (portPoseIn.write(cmd, reply))
+    {
+        cout<<reply.toString()<<endl;
+        if (reply.get(0).asInt()<1000)
+        {
+            n_waypoint=reply.get(0).asInt();
+            yDebug()<< " n_waypoint "<<n_waypoint;
+            return true;
+        }
+        else
+        {
+            n_waypoint=0;
+            return false;
+        }
     }
     else
         return false;
@@ -758,15 +806,11 @@ Bottle doubleTouchThread::get_solutions()
 }
 
 /************************************************************************/
-bool doubleTouchThread::go_home(const string &entry)
+bool doubleTouchThread::go_home()
 {
     printf(" Going to rest...\n");
     go=false;
     home=true;
-    if (entry=="slave")
-        home_slave=true;
-    else if (entry=="master")
-        home_master=true;
 
     steerArmsHomeMasterSlave();
 
@@ -774,10 +818,48 @@ bool doubleTouchThread::go_home(const string &entry)
 }
 
 /************************************************************************/
-bool doubleTouchThread::move()
+bool doubleTouchThread::move(const string &entry)
 {
     home=false;
+    if (entry=="slave")
+    {
+        go_slave=true;
+        go_master=false;
+    }
+    else if (entry=="master")
+    {
+        go_master=true;
+        go_slave=false;
+    }
+    else if (entry=="both")
+        go_slave=go_master=true;
     go=true;
+
+    return true;
+}
+
+/************************************************************************/
+void doubleTouchThread::extractInitialQ(IEncoders *iencs)
+{
+    double v;
+//    for (size_t i=0; i<7; i++)
+//    {
+//        iencs->getEncoder(i,&v);
+//        armPossHomeS[i]=v;
+//        cout<<armPossHomeS[i]<<endl;
+//    }
+
+    //iencsR->getEncoders(armPossHomeS.data());
+    cout<<"test "<<armL->getAng().toString()<<endl;
+    armPossHomeS=armL->getAng();
+    //cout<<"armPossHomeS "<<armPossHomeS.toString()<<endl;
+}
+
+/************************************************************************/
+bool doubleTouchThread::set_waypoint(const int entry)
+{
+    current_waypoint=entry;
+    return true;
 }
 
 

@@ -44,5 +44,10 @@ service closedChain_IDL
     /** Allows arms to move
     * @return true
     */
-    bool move();
+    bool move(1: string entry);
+
+    /** Set the waypoint to reach
+    * @return true
+    */
+    bool set_waypoint(1: i32 entry);
 }
