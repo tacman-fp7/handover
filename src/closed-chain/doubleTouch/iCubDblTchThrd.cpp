@@ -171,7 +171,7 @@ void doubleTouchThread::run()
 
                 break;
             case 2:
-                configureHands();               
+                configureHands();
                 goToPose(current_waypoint);
                 step++;
 
@@ -397,7 +397,7 @@ void doubleTouchThread::goToPose(int waypoint)
     {        
         if (go_slave)
         {
-            cout<<endl<<" Moving slave ..."<<endl;
+            cout<<endl<<" Moving slave to waypoint "<<waypoint<<" ..."<<endl;
             goToPoseSlave(waypoint);
         }
 
@@ -405,7 +405,7 @@ void doubleTouchThread::goToPose(int waypoint)
 
         if (go_master)
         {
-            cout<<endl<<" Moving master ..."<<endl;
+            cout<<endl<<" Moving master to waypoint "<<waypoint<<" ..."<<endl;
             goToPoseMaster(waypoint);
         }
     }
@@ -425,7 +425,7 @@ void doubleTouchThread::goToPoseMaster(int k)
     for (int i = 0; i < 7; i++)
     {
         Ejoints.push_back(i);
-        cout<<"index value "<<index+k*(joints_sol.size()/(n_waypoint+1))<<endl;
+
         qM[i] = iCub::ctrl::CTRL_RAD2DEG*joints_sol[index+k*(joints_sol.size()/(n_waypoint+1))][nDOF-7+i];
         if (verbosity>1)
         {
@@ -589,8 +589,8 @@ Matrix doubleTouchThread::receivePose(const string &what)
         orient[2]=rec->get(5).asDouble();
         orient[3]=rec->get(6).asDouble();
     }
-
-    yDebug()<<" Received pose: "<<pos.toString()<<" "<<orient.toString();
+    else
+        yError()<<" No pose received!";
 
     H=axis2dcm(orient);
     H.setSubcol(pos, 0, 3);
@@ -645,8 +645,6 @@ bool doubleTouchThread::askSelectedPose()
         if (reply.get(0).asInt()<1000)
         {
             index=reply.get(0).asInt();
-            yDebug()<< " Index "<<index;
-            //return true;
         }
         else
             return false;
@@ -659,11 +657,9 @@ bool doubleTouchThread::askSelectedPose()
 
     if (portPoseIn.write(cmd, reply))
     {
-        cout<<reply.toString()<<endl;
         if (reply.get(0).asInt()<1000)
         {
             n_waypoint=reply.get(0).asInt();
-            yDebug()<< " n_waypoint "<<n_waypoint;
             return true;
         }
         else
@@ -705,16 +701,17 @@ void doubleTouchThread::computeManip()
 
     cout<<endl;
 
+    cout<<endl<<" Computing solutions..."<<endl<<endl;
+
     for (size_t i=0; i<positions.size(); i++)
     {
         Hpose=axis2dcm(orie_in_hand[i]);
         Hpose.setSubcol(pos_in_hand[i], 0, 3);
         if (askMovingArm())
-        {
+        {            
             selectTask();
             solveIK();
 
-            printf(" Desired joint configuration:  %s\n",(sol->joints*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
             joints_sol.push_back(sol->joints);
 
             Matrix J=slv->probl->limb.asChainMod()->GeoJacobian(joints_sol[i]);
@@ -727,6 +724,8 @@ void doubleTouchThread::computeManip()
             cout<<endl;
         }
     }
+
+    cout<<endl<<" Solutions computed: waiting for moving.."<<endl<<endl;
 }
 
 /************************************************************************/
@@ -758,9 +757,10 @@ Bottle doubleTouchThread::compute_manipulability(const Bottle &entry)
             tmp[1]=pos->get(1).asDouble();
             tmp[2]=pos->get(2).asDouble();
             positions.push_back(tmp);
-            yDebug()<<" Position received: "<<tmp.toString();
         }        
     }
+    else
+        yError()<<" No positions received!!";
 
     if (lstorie->get(0).asString()=="orientations")
     {
@@ -773,9 +773,10 @@ Bottle doubleTouchThread::compute_manipulability(const Bottle &entry)
             tmp_o[3]=ori->get(3).asDouble();
 
             orientations.push_back(tmp_o);
-            yDebug()<<" Orientation received: "<<tmp_o.toString();
         }
     }
+    else
+        yError()<<" No orientaions received!!";
 
     computeManip();
 
@@ -794,7 +795,6 @@ Bottle doubleTouchThread::get_solutions()
     for (size_t i=0; i<joints_sol.size();i++)
     {
         Bottle &cont=reply.addList();
-        yDebug()<<" Computed solutions "<<joints_sol[i].toString();
 
         for (size_t j=0; j<joints_sol[i].size(); j++)
         {
@@ -821,12 +821,12 @@ bool doubleTouchThread::go_home()
 bool doubleTouchThread::move(const string &entry)
 {
     home=false;
-    if (entry=="slave")
+    if (entry=="first_hand")
     {
         go_slave=true;
         go_master=false;
     }
-    else if (entry=="master")
+    else if (entry=="second_hand")
     {
         go_master=true;
         go_slave=false;
@@ -850,7 +850,7 @@ void doubleTouchThread::extractInitialQ(IEncoders *iencs)
 //    }
 
     //iencsR->getEncoders(armPossHomeS.data());
-    cout<<"test "<<armL->getAng().toString()<<endl;
+    //cout<<"test "<<armL->getAng().toString()<<endl;
     armPossHomeS=armL->getAng();
     //cout<<"armPossHomeS "<<armPossHomeS.toString()<<endl;
 }

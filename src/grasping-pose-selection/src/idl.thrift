@@ -79,19 +79,47 @@ service poseSelection_IDL
 
     /**
     * Set offset in order to shift poses 
-    * far away from the object surface
+    * far away from the object surface on z-axis
     * @ return true
     */
-    bool set_offset(1:double entry);
+    bool set_offset_z(1:double entry);
 
     /**
     * Get offset used to shift poses 
-    * far away from the object surface
+    * far away from the object surface on z-axis
     * @ return offset value
     */
-    double get_offset();
+    double get_offset_z();
 
- /**
+    /**
+    * Set offset in order to shift poses 
+    * far away from the object surface on x-axis during approach
+    * @ return true
+    */
+    bool set_offset_x_approach(1:double entry);
+
+    /**
+    * Get offset used to shift poses 
+    * far away from the object surface on x-axis durign approach
+    * @ return offset value
+    */
+    double get_offset_x_approach();
+
+    /**
+    * Set offset in order to shift final poses 
+    * far away from the object surface on x-axis 
+    * @ return true
+    */
+    bool set_offset_x_final(1:double entry);
+
+    /**
+    * Get offset used to shift final poses 
+    * far away from the object surface on x-axis
+    * @ return offset value
+    */
+    double get_offset_x_final();
+
+    /**
     * Set distance between waypoints
     * @ return true
     */
@@ -102,6 +130,18 @@ service poseSelection_IDL
     * @ return offset value
     */
     double get_distance();
+    
+    /**
+    * Set angle for wrist
+    * @ return true
+    */
+    bool set_angle(1:double entry);
+
+    /**
+    * Get angle for wrist
+    * @ return offset value
+    */
+    double get_angle();
 
     /**
     * Get number of waypoints
