@@ -134,6 +134,7 @@ bool doubleTouchThread::threadInit()
 
     pos.resize(3,0.0);
     orient.resize(4,0.0);
+    Hpose_waypoint.resize(4,4);
     Hpose.resize(4,4);
     H_hand.resize(4,4);
 
@@ -172,7 +173,7 @@ void doubleTouchThread::run()
                 break;
             case 2:
                 configureHands();
-                goToPose(current_waypoint);
+                goToPose();
                 step++;
 
                 break;
@@ -391,28 +392,26 @@ void doubleTouchThread::solveIK()
 }
 
 /************************************************************************/
-void doubleTouchThread::goToPose(int waypoint)
+void doubleTouchThread::goToPose()
 {
     if (!home)
     {        
         if (go_slave)
         {
-            cout<<endl<<" Moving slave to waypoint "<<waypoint<<" ..."<<endl;
-            goToPoseSlave(waypoint);
+            goToPoseSlave();
         }
 
         Time::delay(2.0);
 
         if (go_master)
         {
-            cout<<endl<<" Moving master to waypoint "<<waypoint<<" ..."<<endl;
-            goToPoseMaster(waypoint);
+            goToPoseMaster();
         }
     }
 }
 
 /************************************************************************/
-void doubleTouchThread::goToPoseMaster(int k)
+void doubleTouchThread::goToPoseMaster()
 {
     int nJnts = 7;
     Vector qM(nJnts,0.0);
@@ -426,7 +425,8 @@ void doubleTouchThread::goToPoseMaster(int k)
     {
         Ejoints.push_back(i);
 
-        qM[i] = iCub::ctrl::CTRL_RAD2DEG*joints_sol[index+k*(joints_sol.size()/(n_waypoint+1))][nDOF-7+i];
+            qM[i] = iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][nDOF-7+i];
+
         if (verbosity>1)
         {
             printf(" #%i to: %g\t",i,qM[i]);
@@ -441,7 +441,7 @@ void doubleTouchThread::goToPoseMaster(int k)
 }
 
 /************************************************************************/
-void doubleTouchThread::goToPoseSlave(int k)
+void doubleTouchThread::goToPoseSlave()
 {
     if (verbosity>1)
     {
@@ -455,7 +455,8 @@ void doubleTouchThread::goToPoseSlave(int k)
             printf(" #%i to: %g\t",nDOF-7-1-i,-solution[i]);
         }*/
 
-        iposS -> positionMove(nDOF-7-1-i,-iCub::ctrl::CTRL_RAD2DEG*joints_sol[index+k*(joints_sol.size()/(n_waypoint+1))][i]);
+        iposS -> positionMove(nDOF-7-1-i,-iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][i]);
+
     }
     if (verbosity>1)
     {
@@ -652,24 +653,7 @@ bool doubleTouchThread::askSelectedPose()
     else
         return false;
 
-    cmd.clear(); reply.clear();
-    cmd.addString("get_n_waypoint");
-
-    if (portPoseIn.write(cmd, reply))
-    {
-        if (reply.get(0).asInt()<1000)
-        {
-            n_waypoint=reply.get(0).asInt();
-            return true;
-        }
-        else
-        {
-            n_waypoint=0;
-            return false;
-        }
-    }
-    else
-        return false;
+    return true;
 }
 
 /************************************************************************/
@@ -855,12 +839,6 @@ void doubleTouchThread::extractInitialQ(IEncoders *iencs)
     //cout<<"armPossHomeS "<<armPossHomeS.toString()<<endl;
 }
 
-/************************************************************************/
-bool doubleTouchThread::set_waypoint(const int entry)
-{
-    current_waypoint=entry;
-    return true;
-}
 
 
 

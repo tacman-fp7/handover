@@ -148,4 +148,6 @@ service poseSelection_IDL
     * @ return number of waypoints
     */
     i32 get_n_waypoint();
+
+    bool set_waypoint(1: i32 entry);
 }

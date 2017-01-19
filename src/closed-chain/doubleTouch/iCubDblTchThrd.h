@@ -56,6 +56,7 @@ protected:
 
     Vector pos, orient;
     Matrix Hpose;
+    Matrix Hpose_waypoint;
     Matrix HIndex;
     Matrix H_hand;
 
@@ -65,7 +66,10 @@ protected:
     vector<Vector> orientations;
     vector<Vector> pos_in_hand;
     vector<Vector> orie_in_hand;
+    vector<Vector> joints_sol_wp;
     vector<Vector> joints_sol;
+    vector<Vector> waypoint_p;
+    vector<Vector> waypoint_o;
 
     int             step;
     int       n_waypoint;
@@ -179,9 +183,9 @@ protected:
     /**
     * Goes to the configuration found by solveIK()
     */
-    void goToPose(int waypoint);
-    void goToPoseMaster(int i);
-    void goToPoseSlave(int waypoint);
+    void goToPose();
+    void goToPoseMaster();
+    void goToPoseSlave();
 
     /**
     * Sends the output to the port
@@ -238,7 +242,8 @@ public:
 
     void extractInitialQ(IEncoders *ienc);
 
-    bool set_waypoint(const int entry);
+//    bool set_waypoint(const int entry);
+//    bool reach_final_pose();
 };
 
 #endif

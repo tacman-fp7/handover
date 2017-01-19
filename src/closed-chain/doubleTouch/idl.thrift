@@ -50,4 +50,8 @@ service closedChain_IDL
     * @return true
     */
     bool set_waypoint(1: i32 entry);
+
+    /** skip waypoints
+    */
+    bool reach_final_pose();
 }
