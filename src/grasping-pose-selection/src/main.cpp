@@ -97,10 +97,10 @@ class poseSelection : public RFModule,
 
     double theta;
     double length;    
-    double offset_z;
+    double offset_z_final;
     double offset_x_approach;
     double offset_x_final;
-    double distance;
+    double offset_z_approach;
 
     int index;
     int camera;
@@ -221,6 +221,12 @@ class poseSelection : public RFModule,
     }
 
     /************************************************************************/
+    bool set_n_waypoint(const int entry)
+    {
+        n_waypoint=entry;
+    }
+
+    /************************************************************************/
     Bottle get_Hhand()
     {
         Bottle replyh;
@@ -264,17 +270,17 @@ class poseSelection : public RFModule,
     }
 
     /************************************************************************/
-    bool set_offset_z(double entry)
+    bool set_offset_z_final(double entry)
     {
-        cout<<endl<< "  New offset_z set: "<<entry<<endl<<endl;
-        offset_z=entry;
+        cout<<endl<< "  New offset_z_final set: "<<entry<<endl<<endl;
+        offset_z_final=entry;
         return true;
     }
 
     /************************************************************************/
-    double get_offset_z()
+    double get_offset_z_final()
     {
-        return offset_z;
+        return offset_z_final;
     }
 
     /************************************************************************/
@@ -306,17 +312,17 @@ class poseSelection : public RFModule,
     }
 
     /************************************************************************/
-    bool set_distance(double entry)
+    bool set_offset_z_approach(double entry)
     {
-        cout<<endl<< "  New distance set: "<<entry<<endl<<endl;
-       distance=entry;
+        cout<<endl<< "  New offset_z_approach set: "<<entry<<endl<<endl;
+       offset_z_approach=entry;
        return true;
     }
 
     /************************************************************************/
-    double get_distance()
+    double get_offset_z_approach()
     {
-        return distance;
+        return offset_z_approach;
     }
 
     /************************************************************************/
@@ -340,9 +346,17 @@ class poseSelection : public RFModule,
     /************************************************************************/
     bool set_waypoint(const int entry)
     {
-        current_waypoint=entry;
-        reach_waypoint=true;
-        return true;
+        if (entry<n_waypoint)
+        {
+            current_waypoint=entry;
+            reach_waypoint=true;
+            return true;
+        }
+        else
+        {
+            reach_waypoint=false;
+            return false;
+        }
     }
 
     /*********************************************************/
@@ -368,13 +382,13 @@ class poseSelection : public RFModule,
 
         n_waypoint=rf.check("n_waypoint", Value(1)).asInt();
         theta=rf.check("theta", Value(-20.0)).asDouble();
-        offset_z=rf.check("offset_z", Value(0.02)).asDouble();
+        offset_z_final=rf.check("offset_z_final", Value(0.02)).asDouble();
         offset_x_approach=rf.check("offset_x_approach", Value(0.08)).asDouble();
         offset_x_final=rf.check("offset_x_final", Value(0.02)).asDouble();
-        distance=rf.check("distance", Value(0.04)).asDouble();
+        offset_z_approach=rf.check("offset_z_approach", Value(0.04)).asDouble();
 
 
-        cout<< " An offset_z of "<<offset_z<< " will be added in order to shift poses along z-axis of hand frame"<<endl;
+        cout<< " An offset_z_final of "<<offset_z_final<< " will be added in order to shift poses along z-axis of hand frame"<<endl;
         cout<< " An offset_x_approach of "<<offset_x_approach<< " will be added in order to shift poses along x-axis of hand frame during approach"<<endl;
         cout<< " An offset_x_final of "<<offset_x_final<< " will be added in order to shift final poses along x-axis of hand frame "<<endl<<endl;
 
@@ -402,7 +416,8 @@ class poseSelection : public RFModule,
         update_hand_pose=false;
         to_be_sent=true;
         select_new_pose=false;
-        update_pose=false;        
+        update_pose=false;
+        reach_waypoint=false;
 
         if (online)
         {
@@ -811,13 +826,13 @@ class poseSelection : public RFModule,
             }
         }
 
-        if (offset_z > 0.0)
+        if (offset_z_final > 0.0)
         {
-            addOffset(positions_rotated,z_axis_rotated, positions_rotated,offset_z, "z");
+            addOffset(positions_rotated,z_axis_rotated, positions_rotated,offset_z_final, "z");
 
-            addOffset(z_axis_rotated, z_axis_rotated,positions_rotated,offset_z, "z");
-            addOffset(x_axis_rotated, z_axis_rotated,positions_rotated, offset_z, "z");
-            addOffset(y_axis_rotated, z_axis_rotated,positions_rotated, offset_z, "z");
+            addOffset(z_axis_rotated, z_axis_rotated,positions_rotated,offset_z_final, "z");
+            addOffset(x_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z");
+            addOffset(y_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z");
         }
 
         if (offset_x_final > 0.0)
@@ -1602,6 +1617,7 @@ class poseSelection : public RFModule,
        x_axis_wp.clear();
        y_axis_wp.clear();
        z_axis_wp.clear();
+       vector<Vector> tmp1, tmp2, tmp3, tmp4;
 
        if (left_or_right=="right")
        {
@@ -1609,19 +1625,30 @@ class poseSelection : public RFModule,
             {
                 Matrix orient_hat=axis2dcm(odhat[i]);
 
-                waypoints.push_back(xdhat[i].subVector(0,2) - (j+1)*distance*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+                waypoints.push_back(xdhat[i].subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
 
-                z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) - (j+1)*distance*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
-                x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*distance*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
-                y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*distance*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+                z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+                x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+                y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
 
                 if (offset_x_approach > 0.0)
                 {
-                    addOffset(waypoints,x_axis_wp,waypoints, offset_x_approach, "x_approach");
+                    tmp1.push_back(waypoints[j]);
+                    tmp2.push_back(x_axis_wp[j]);
+                    tmp3.push_back(y_axis_wp[j]);
+                    tmp4.push_back(z_axis_wp[j]);
 
-                    addOffset(x_axis_wp, x_axis_wp,waypoints,offset_x_approach, "x_approach");
-                    addOffset(z_axis_wp, x_axis_wp,waypoints, offset_x_approach, "x_approach");
-                    addOffset(y_axis_wp, x_axis_wp,waypoints, offset_x_approach, "x_approach");
+                    addOffset(tmp1,tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
+                    addOffset(tmp2, tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
+                    addOffset(tmp4, tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
+                    addOffset(tmp3, tmp2,tmp1, (j+1)* offset_x_approach, "x_approach");
+
+                    waypoints[j]=tmp1[0];
+                    x_axis_wp[j]=tmp2[0];
+                    y_axis_wp[j]=tmp3[0];
+                    z_axis_wp[j]=tmp4[0];
+
+                    tmp1.clear(); tmp2.clear(); tmp3.clear(); tmp4.clear();
                 }
             }
        }
@@ -1629,11 +1656,33 @@ class poseSelection : public RFModule,
        {
            for (size_t j=0; j<n; j++)
            {
-               waypoints.push_back(positions_rotated[i].subVector(0,2) + (j+1)*distance*(z_axis_rotated[i]-positions_rotated[i].subVector(0,2))/(norm(z_axis_rotated[i]-positions_rotated[i].subVector(0,2))));
+               Matrix orient_hat=axis2dcm(odhat[i]);
 
-               z_axis_wp.push_back(z_axis_rotated[i].subVector(0,2) + (j+1)*distance*(z_axis_rotated[i]-positions_rotated[i])/(norm(z_axis_rotated[i]-positions_rotated[i])));
-               x_axis_wp.push_back(x_axis_rotated[i].subVector(0,2) + (j+1)*distance*(z_axis_rotated[i]-positions_rotated[i].subVector(0,2))/(norm(z_axis_rotated[i]-positions_rotated[i].subVector(0,2))));
-               y_axis_wp.push_back(y_axis_rotated[i].subVector(0,2) + (j+1)*distance*(z_axis_rotated[i]-positions_rotated[i].subVector(0,2))/(norm(z_axis_rotated[i]-positions_rotated[i].subVector(0,2))));
+               waypoints.push_back(xdhat[i].subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+
+               z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+               x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+               y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+
+               if (offset_x_approach > 0.0)
+               {
+                   tmp1.push_back(waypoints[j]);
+                   tmp2.push_back(x_axis_wp[j]);
+                   tmp3.push_back(y_axis_wp[j]);
+                   tmp4.push_back(z_axis_wp[j]);
+
+                   addOffset(tmp1,tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
+                   addOffset(tmp2, tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
+                   addOffset(tmp4, tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
+                   addOffset(tmp3, tmp2,tmp1, (j+1)* offset_x_approach, "x_approach");
+
+                   waypoints[j]=tmp1[0];
+                   x_axis_wp[j]=tmp2[0];
+                   y_axis_wp[j]=tmp3[0];
+                   z_axis_wp[j]=tmp4[0];
+
+                   tmp1.clear(); tmp2.clear(); tmp3.clear(); tmp4.clear();
+               }
            }
        }
    }
