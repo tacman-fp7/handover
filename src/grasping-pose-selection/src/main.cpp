@@ -1737,6 +1737,7 @@ class poseSelection : public RFModule,
 
        Vector odhat_wp=dcm2axis(orient);
 
+       icart_arm_move->setInTargetTol(0.005);
        icart_arm_move->goToPoseSync(waypoints[i], odhat_wp);
        icart_arm_move->waitMotionDone();
        icart_arm_move->stopControl();
