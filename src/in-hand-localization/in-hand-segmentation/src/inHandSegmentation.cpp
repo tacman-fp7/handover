@@ -75,6 +75,7 @@ protected:
     int diff_ycbcr;
     int nnThreshold;
     int numVertices;
+    int fileCount_old;
     int nnThreshold_color;
     int startup_context_id; 
 
@@ -276,24 +277,30 @@ protected:
         handb.addString("hand");
         handb.addString(left_or_right);
 
-        ofstream fout;
-        stringstream fileName;
-        string fileNameFormat;
-        fileName<<homeContextPath + "/" +savename+ "_recorded_hand_pose"+"_"+left_or_right+"_"<<fileCount;
-        fileNameFormat= fileName.str()+".off";
-        fout.open(fileNameFormat.c_str());
-        if (fout.is_open())
+        if (fileCount!= fileCount_old)
         {
-            fout<<"position"<<endl;
-            fout<<position.toString()<<endl<<endl;
-            fout<<"orientation"<<endl;
-            fout<<orientation.toString()<<endl;
-            cout<<endl<<" Hand pose data saved in "<<fileNameFormat<<endl<<endl;
+            ofstream fout;
+            stringstream fileName;
+            string fileNameFormat;
+            fileName<<homeContextPath + "/" +savename+ "_recorded_hand_pose"+"_"+left_or_right+"_"<<fileCount;
+            fileNameFormat= fileName.str()+".off";
+            fout.open(fileNameFormat.c_str());
+
+            if (fout.is_open())
+            {
+                fout<<"position"<<endl;
+                fout<<position.toString()<<endl<<endl;
+                fout<<"orientation"<<endl;
+                fout<<orientation.toString()<<endl;
+                cout<<endl<<" Hand pose data saved in "<<fileNameFormat<<endl<<endl;
+            }
+            else
+            {
+                yError(" Problems in opening pose out file!");
+            }
         }
-        else
-        {
-            yError(" Problems in opening pose out file!");
-        }
+
+        fileCount_old=fileCount;
 
         return poseInfo;
     }
