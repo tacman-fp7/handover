@@ -139,7 +139,7 @@ service poseSelection_IDL
 
     /**
     * Get angle for wrist
-    * @ return offset value
+    * @ return angle value
     */
     double get_angle();
 
@@ -160,4 +160,16 @@ service poseSelection_IDL
     * @ return true
     */
     bool set_waypoint(1: i32 entry);
+
+    /**
+    * Set tolerance for cartesian solver
+    * @ return true
+    */
+    bool set_tolerance(1:double tolerance);
+
+    /**
+    * Get tolerance for cartesian solver
+    * @ return tolerance value
+    */
+    double get_tolerance();
 }

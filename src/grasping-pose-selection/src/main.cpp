@@ -96,7 +96,8 @@ class poseSelection : public RFModule,
     bool euler;
 
     double theta;
-    double length;    
+    double length;
+    double tolerance;
     double offset_z_final;
     double offset_x_approach;
     double offset_x_final;
@@ -328,7 +329,7 @@ class poseSelection : public RFModule,
     /************************************************************************/
     bool set_angle(double entry)
     {
-        cout<<endl<< "  New angle fopr wrist set: "<<entry<<endl<<endl;
+        cout<<endl<< "  New angle for wrist set: "<<entry<<endl<<endl;
 
         theta=entry;
 
@@ -359,6 +360,22 @@ class poseSelection : public RFModule,
         }
     }
 
+    /************************************************************************/
+    bool set_tolerance(double entry)
+    {
+        cout<<endl<< "  New tolerance set: "<<entry<<endl<<endl;
+
+        tolerance=entry;
+
+        return true;
+    }
+
+    /************************************************************************/
+    double get_tolerance()
+    {
+        return tolerance;
+    }
+
     /*********************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -386,6 +403,7 @@ class poseSelection : public RFModule,
         offset_x_approach=rf.check("offset_x_approach", Value(0.08)).asDouble();
         offset_x_final=rf.check("offset_x_final", Value(0.02)).asDouble();
         offset_z_approach=rf.check("offset_z_approach", Value(0.04)).asDouble();
+        tolerance=rf.check("tolerance", Value(0.02)).asDouble();
 
 
         cout<< " An offset_z_final of "<<offset_z_final<< " will be added in order to shift poses along z-axis of hand frame"<<endl;
@@ -824,24 +842,24 @@ class poseSelection : public RFModule,
                 tmp=H_hand*H_object*tmp;
                 z_axis_rotated.push_back(tmp.subVector(0,2));
             }
-        }
 
-        if (offset_z_final > 0.0)
-        {
-            addOffset(positions_rotated,z_axis_rotated, positions_rotated,offset_z_final, "z");
+            if (offset_z_final > 0.0)
+            {
+                addOffset(positions_rotated,z_axis_rotated, positions_rotated,offset_z_final, "z");
 
-            addOffset(z_axis_rotated, z_axis_rotated,positions_rotated,offset_z_final, "z");
-            addOffset(x_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z");
-            addOffset(y_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z");
-        }
+                addOffset(z_axis_rotated, z_axis_rotated,positions_rotated,offset_z_final, "z");
+                addOffset(x_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z");
+                addOffset(y_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z");
+            }
 
-        if (offset_x_final > 0.0)
-        {
-            addOffset(positions_rotated,x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+            if (offset_x_final > 0.0)
+            {
+                addOffset(positions_rotated,x_axis_rotated,positions_rotated, offset_x_final, "x_final");
 
-            addOffset(x_axis_rotated, x_axis_rotated,positions_rotated,offset_x_final, "x_final");
-            addOffset(z_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
-            addOffset(y_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+                addOffset(x_axis_rotated, x_axis_rotated,positions_rotated,offset_x_final, "x_final");
+                addOffset(z_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+                addOffset(y_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+            }
         }
 
         update_hand_pose=false;
@@ -1737,9 +1755,20 @@ class poseSelection : public RFModule,
 
        Vector odhat_wp=dcm2axis(orient);
 
-       icart_arm_move->setInTargetTol(0.001);
+       Vector x_tmp(3,0.0);
+       Vector o_tmp(4,0.0);
+
+       icart_arm_move->setInTargetTol(tolerance);
+
+
+       cout<< " Going to pose: "<<waypoints[i].toString()<<" "<< (odhat_wp).toString()<<endl<<endl;
+
        icart_arm_move->goToPoseSync(waypoints[i], odhat_wp);
        icart_arm_move->waitMotionDone();
+       icart_arm_move->getPose(x_tmp, o_tmp);
+
+       cout<<" Reached pose with"<<endl<<" position error: "<<norm(x_tmp - waypoints[i])<<endl<< " and orientation error: "<<norm(o_tmp- odhat_wp)<<endl<<endl;
+
        icart_arm_move->stopControl();
        reach_waypoint=false;
    }
