@@ -373,23 +373,6 @@ class poseSelection : public RFModule,
     }
 
     /************************************************************************/
-    bool get_fixate()
-    {
-        return fixate;
-    }
-
-
-    /************************************************************************/
-    bool set_fixate(string &entry)
-    {
-        fixate=(entry=="on");
-
-        cout<<endl<<" New fixate variable: "<<fixate<<endl<<endl;
-
-        return true;
-    }
-
-    /************************************************************************/
     double get_tolerance()
     {
         return tolerance;

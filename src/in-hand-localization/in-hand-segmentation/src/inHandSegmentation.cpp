@@ -593,6 +593,23 @@ protected:
         return true;
     }
 
+    /************************************************************************/
+    bool get_fixate()
+    {
+        return fixate;
+    }
+
+
+    /************************************************************************/
+    bool set_fixate(const string &entry)
+    {
+        fixate=(entry=="on");
+
+        cout<<endl<<" New fixate variable: "<<fixate<<endl<<endl;
+
+        return true;
+    }
+
 public:
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)

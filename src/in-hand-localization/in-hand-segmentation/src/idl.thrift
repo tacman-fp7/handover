@@ -206,6 +206,21 @@ service inHandSegmentation_IDL
     * @param entry is a bottle cointaning position and orientation
     * @return true
     */
-    bool new_hand_pose(1: Bottle entry);
+    bool new_hand_pose(1: Bottle entry)
+
+
+    /**
+    * Set fixate variable
+    * @ return true
+    */
+    bool set_fixate(1:string tolerance);
+
+    /**
+    * Get fixate variable
+    * @ return fixate
+    */
+    bool get_fixate();
+
+
 
 }
