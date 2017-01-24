@@ -812,7 +812,7 @@ class poseSelection : public RFModule,
 
         if (new_angle)
         {
-            rotatePoses(theta);
+            rotatePoses(theta*iCub::ctrl::CTRL_DEG2RAD);
         }
 
         if (norm(H_object.getCol(3).subVector(0,2))>0.0)
