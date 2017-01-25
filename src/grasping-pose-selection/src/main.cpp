@@ -1825,46 +1825,6 @@ class poseSelection : public RFModule,
 
        icart_arm_move->stopControl();
 
-       reach_final_pose=false;
-
-
-//       Vector x_tmp(3,0.0);
-//       Vector o_tmp(4,0.0);
-
-//       double Ts=0.1;
-//       double T=2.0;
-//       double v_max=0.1;
-
-
-
-//        minJerkVelCtrlForIdealPlant ctrl(Ts,waypoints[i].length());
-
-//        bool done=false;
-//        Vector tmp=offset_x_approach*orient.getCol(0) + offset_z_approach+orient.getCol(2);
-//        Vector dir=tmp/norm(tmp);
-
-//        while (!done)
-//        {
-//            Vector x,o;
-//            icart_arm_move->getPose(x,o);
-
-//            Vector e=waypoints[i]-x;
-//            Vector vel_x=dir*ctrl.computeCmd(T,e);
-
-//            for (size_t j=0; j<vel_x.length(); j++)
-//                vel_x[j]=sign(e[j])*std::min(v_max,fabs(vel_x[j]));
-
-//           icart_arm_move->setTaskVelocities(vel_x,Vector(4,0.0));
-//           Time::delay(Ts);
-
-//            done=(norm(e.subVector(0,1))<0.01);
-//            if (done)
-//                yDebug("waypoint[i]= %s; x= %s",waypoints[i].toString(3,3).c_str(),x.toString(3,3).c_str());
-//        }
-
-//        icart_arm_move->stopControl();
-
-       //cout<<" Reached pose with"<<endl<<" position error: "<<norm(x_tmp - waypoints[i])<<endl<< " and orientation error: "<<norm(o_tmp- odhat_wp)<<endl<<endl;
        reach_waypoint=false;
    }
 
@@ -1886,7 +1846,6 @@ class poseSelection : public RFModule,
 
        icart_arm_move->setDOF(dof,dof);
 
-       cout<<"qdhat  "<<(qdhat[index]*iCub::ctrl::CTRL_RAD2DEG).toString()<<endl;
        for (size_t j=3; j<10; j++)
            icart_arm_move->setLimits(j,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG);
 
@@ -1895,13 +1854,10 @@ class poseSelection : public RFModule,
        Vector qtmp(7,0.0);
        icart_arm_move->askForPose(positions_rotated[index], odhat_wp, xtmp, otmp, qtmp);
 
-       cout<<" difference between positions "<<norm(positions_rotated[index]-xtmp)<<endl;
-       cout<<" difference between orientations "<<norm(odhat_wp-otmp)<<endl;
+//       cout<<" difference between positions "<<norm(positions_rotated[index]-xtmp)<<endl;
+//       cout<<" difference between orientations "<<norm(odhat_wp-otmp)<<endl;
 
-       cout<<" difference between qs "<<norm(qdhat[index].subVector(7,13)*iCub::ctrl::CTRL_RAD2DEG-qtmp.subVector(3,9))<<endl;
-
-       cout<<"qhat index "<<(qdhat[index].subVector(7,13)*iCub::ctrl::CTRL_RAD2DEG).toString()<<endl;
-       cout<<"q  "<<qtmp.toString()<<endl;
+//       cout<<" difference between qs "<<norm(qdhat[index].subVector(7,13)*iCub::ctrl::CTRL_RAD2DEG-qtmp.subVector(3,9))<<endl;
 
        icart_arm_move->goToPoseSync(positions_rotated[index], odhat_wp);
        icart_arm_move->waitMotionDone();
@@ -1912,7 +1868,6 @@ class poseSelection : public RFModule,
        icart_arm_move->stopControl();
 
        reach_final_pose=false;
-
 
        return true;
 

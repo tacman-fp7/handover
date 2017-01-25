@@ -22,7 +22,7 @@ doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const strin
 
     armPossHomeM.resize(7,0.0);
     armPossHomeM[0]=-30.0*iCub::ctrl::CTRL_DEG2RAD;
-    armPossHomeM[1]=30.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeM[1]=80.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHomeM[3]=45.0*iCub::ctrl::CTRL_DEG2RAD;
 
     armPossHomeS.resize(7,0.0);
