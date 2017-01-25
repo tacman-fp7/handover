@@ -171,5 +171,7 @@ service poseSelection_IDL
     * Get tolerance for cartesian solver
     * @ return tolerance value
     */
+
+    bool reach_final();
     double get_tolerance();
 }

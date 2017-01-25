@@ -83,6 +83,7 @@ class poseSelection : public RFModule,
     string frame;
     string robot;
 
+    bool reach_final_pose;
     bool update_hand_pose;   
     bool select_new_pose;
     bool reach_waypoint;
@@ -363,6 +364,13 @@ class poseSelection : public RFModule,
     }
 
     /************************************************************************/
+    bool reach_final()
+    {
+        reach_final_pose=true;
+        return true;
+    }
+
+    /************************************************************************/
     bool set_tolerance(double entry)
     {
         cout<<endl<< "  New tolerance set: "<<entry<<endl<<endl;
@@ -438,6 +446,7 @@ class poseSelection : public RFModule,
         select_new_pose=false;
         update_pose=false;
         reach_waypoint=false;
+        reach_final_pose=false;
 
         if (online)
         {
@@ -638,6 +647,9 @@ class poseSelection : public RFModule,
 
         if (reach_waypoint)
             reachWaypointVel(current_waypoint);
+
+        if (reach_final_pose)
+            reachFinalPoint();
 
         showPoses();
 
@@ -1779,48 +1791,131 @@ class poseSelection : public RFModule,
    bool reachWaypointVel(int i)
    {
        Matrix orient(3,3);
-       orient.setCol(0,(x_axis_wp[i]-waypoints[i])/norm(x_axis_wp[i]-waypoints[i]));
-       orient.setCol(1,(y_axis_wp[i]-waypoints[i])/norm(y_axis_wp[i]-waypoints[i]));
-       orient.setCol(2,(z_axis_wp[i]-waypoints[i])/norm(z_axis_wp[i]-waypoints[i]));
+       orient.setCol(0,(x_axis_rotated[index]-positions_rotated[index])/norm(x_axis_rotated[index]-positions_rotated[index]));
+       orient.setCol(1,(y_axis_rotated[index]-positions_rotated[index])/norm(y_axis_rotated[index]-positions_rotated[index]));
+       orient.setCol(2,(z_axis_rotated[index]-positions_rotated[index])/norm(z_axis_rotated[index]-positions_rotated[index]));
 
        Vector odhat_wp=dcm2axis(orient);
 
-       Vector x_tmp(3,0.0);
-       Vector o_tmp(4,0.0);
+       int context;
+       icart_arm_move->storeContext(&context);
 
-       double Ts=0.1;
-       double T=2.0;
-       double v_max=0.1;
+       Vector dof(10,1.0);
+       dof[0]=dof[1]=dof[2]=0.0;
 
-        minJerkVelCtrlForIdealPlant ctrl(Ts,waypoints[i].length());
+       icart_arm_move->setDOF(dof,dof);
 
-        bool done=false;
-        Vector tmp=offset_x_approach*orient.getCol(0) + offset_z_approach+orient.getCol(2);
-        Vector dir=tmp/norm(tmp);
+       cout<<"qdhat  "<<(qdhat[index]*iCub::ctrl::CTRL_RAD2DEG).toString()<<endl;
+       for (size_t j=3; j<10; j++)
+           icart_arm_move->setLimits(j,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG);
 
-        while (!done)
-        {
-            Vector x,o;
-            icart_arm_move->getPose(x,o);
+       Vector xtmp(3,0.0);
+       Vector otmp(4,0.0);
+       Vector qtmp(7,0.0);
+       icart_arm_move->askForPose(positions_rotated[index], odhat_wp, xtmp, otmp, qtmp);
 
-            Vector e=waypoints[i]-x;
-            Vector vel_x=dir*ctrl.computeCmd(T,e);
+       icart_arm_move->restoreContext(context);
+       icart_arm_move->deleteContext(context);
 
-            for (size_t j=0; j<vel_x.length(); j++)
-                vel_x[j]=sign(e[j])*std::min(v_max,fabs(vel_x[j]));
 
-           icart_arm_move->setTaskVelocities(vel_x,Vector(4,0.0));
-           Time::delay(Ts);
+       icart_arm_move->goToPoseSync(waypoints[i], otmp);
+       icart_arm_move->waitMotionDone();
 
-            done=(norm(e.subVector(0,1))<0.01);
-            if (done)
-                yDebug("waypoint[i]= %s; x= %s",waypoints[i].toString(3,3).c_str(),x.toString(3,3).c_str());
-        }
 
-        icart_arm_move->stopControl();
+
+       icart_arm_move->stopControl();
+
+       reach_final_pose=false;
+
+
+//       Vector x_tmp(3,0.0);
+//       Vector o_tmp(4,0.0);
+
+//       double Ts=0.1;
+//       double T=2.0;
+//       double v_max=0.1;
+
+
+
+//        minJerkVelCtrlForIdealPlant ctrl(Ts,waypoints[i].length());
+
+//        bool done=false;
+//        Vector tmp=offset_x_approach*orient.getCol(0) + offset_z_approach+orient.getCol(2);
+//        Vector dir=tmp/norm(tmp);
+
+//        while (!done)
+//        {
+//            Vector x,o;
+//            icart_arm_move->getPose(x,o);
+
+//            Vector e=waypoints[i]-x;
+//            Vector vel_x=dir*ctrl.computeCmd(T,e);
+
+//            for (size_t j=0; j<vel_x.length(); j++)
+//                vel_x[j]=sign(e[j])*std::min(v_max,fabs(vel_x[j]));
+
+//           icart_arm_move->setTaskVelocities(vel_x,Vector(4,0.0));
+//           Time::delay(Ts);
+
+//            done=(norm(e.subVector(0,1))<0.01);
+//            if (done)
+//                yDebug("waypoint[i]= %s; x= %s",waypoints[i].toString(3,3).c_str(),x.toString(3,3).c_str());
+//        }
+
+//        icart_arm_move->stopControl();
 
        //cout<<" Reached pose with"<<endl<<" position error: "<<norm(x_tmp - waypoints[i])<<endl<< " and orientation error: "<<norm(o_tmp- odhat_wp)<<endl<<endl;
        reach_waypoint=false;
+   }
+
+   /*******************************************************************************/
+   bool reachFinalPoint()
+   {
+       Matrix orient(3,3);
+       orient.setCol(0,(x_axis_rotated[index]-positions_rotated[index])/norm(x_axis_rotated[index]-positions_rotated[index]));
+       orient.setCol(1,(y_axis_rotated[index]-positions_rotated[index])/norm(y_axis_rotated[index]-positions_rotated[index]));
+       orient.setCol(2,(z_axis_rotated[index]-positions_rotated[index])/norm(z_axis_rotated[index]-positions_rotated[index]));
+
+       Vector odhat_wp=dcm2axis(orient);
+
+       int context;
+       icart_arm_move->storeContext(&context);
+
+       Vector dof(10,1.0);
+       dof[0]=dof[1]=dof[2]=0.0;
+
+       icart_arm_move->setDOF(dof,dof);
+
+       cout<<"qdhat  "<<(qdhat[index]*iCub::ctrl::CTRL_RAD2DEG).toString()<<endl;
+       for (size_t j=3; j<10; j++)
+           icart_arm_move->setLimits(j,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG);
+
+       Vector xtmp(3,0.0);
+       Vector otmp(4,0.0);
+       Vector qtmp(7,0.0);
+       icart_arm_move->askForPose(positions_rotated[index], odhat_wp, xtmp, otmp, qtmp);
+
+       cout<<" difference between positions "<<norm(positions_rotated[index]-xtmp)<<endl;
+       cout<<" difference between orientations "<<norm(odhat_wp-otmp)<<endl;
+
+       cout<<" difference between qs "<<norm(qdhat[index].subVector(7,13)*iCub::ctrl::CTRL_RAD2DEG-qtmp.subVector(3,9))<<endl;
+
+       cout<<"qhat index "<<(qdhat[index].subVector(7,13)*iCub::ctrl::CTRL_RAD2DEG).toString()<<endl;
+       cout<<"q  "<<qtmp.toString()<<endl;
+
+       icart_arm_move->goToPoseSync(positions_rotated[index], odhat_wp);
+       icart_arm_move->waitMotionDone();
+
+       icart_arm_move->restoreContext(context);
+       icart_arm_move->deleteContext(context);
+
+       icart_arm_move->stopControl();
+
+       reach_final_pose=false;
+
+
+       return true;
+
    }
 };
 
