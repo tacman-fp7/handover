@@ -41,5 +41,11 @@ service localizer_IDL
     */
     bool go_localize()
 
+    /**
+    * Set localize variable false and stop localization
+    * @return true
+    */
+    bool stop_localize()
+
 
 }

@@ -73,6 +73,13 @@ public:
     }
 
     /*******************************************************************************/
+    bool stop_localize()
+    {
+        localize=false;
+        return true;
+    }
+
+    /*******************************************************************************/
     bool go_acquire()
     {
         acquire=true;
@@ -204,18 +211,19 @@ public:
             askForPoints();
         }
 
-        if (localize)
+
+        for (size_t j=0; j<num_objs;j++)
         {
-            for (size_t j=0; j<num_objs;j++)
+            for (size_t k=0; k<num_m_values; k++)
             {
-                for (size_t k=0; k<num_m_values; k++)
+                for (size_t l=0; l<num_particles; l++)
                 {
-                    for (size_t l=0; l<num_particles; l++)
+                    for (size_t m=0; m<num_Q; m++)
                     {
-                        for (size_t m=0; m<num_Q; m++)
+                        solutions.resize(num_trials,4);
+                        for(size_t i=0; i<num_trials; i++)
                         {
-                            solutions.resize(num_trials,4);
-                            for(size_t i=0; i<num_trials; i++)
+                            if (localize)
                             {
                                 Localizer *loc5=new UnscentedParticleFilter();
                                 loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch);
@@ -231,17 +239,18 @@ public:
                                 pose_computed=true;
                                 pose_saved=false;
                             }
-
-                            Localizer *loc5=new UnscentedParticleFilter();
-                            loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, measurements, enabled_touch);
-                            loc5->saveStatisticsData(solutions,j,k,l,m);
-
-                            delete loc5;
                         }
+
+                        Localizer *loc5=new UnscentedParticleFilter();
+                        loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, measurements, enabled_touch);
+                        loc5->saveStatisticsData(solutions,j,k,l,m);
+
+                        delete loc5;
                     }
                 }
             }
         }
+
 
         if (online)
         {
