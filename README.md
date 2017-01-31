@@ -66,7 +66,7 @@ The developed code can be run both on the **iCub simulator** and on the **real r
 
 (You can execute step `Prerequisities:3` and `Running the modules:1-3` just by launching and connecting port with the `handover` application in the `yarpmanager`)
 
-You can play with the modules by using 3 rpc ports. Several commands are available,  but the most important ones are:
+You can play with the modules by using 4 rpc ports. Several commands are available,  but the most important ones are:
 
 - `/in-hand-segmentation/rpc`:
       - `go_acquire` to acquire in-hand object point cloud
@@ -76,6 +76,10 @@ You can play with the modules by using 3 rpc ports. Several commands are availab
       - `go_localize` to localize the object
 - `/pose-selection/rpc`:
      - `ask_new_pose`: to get the estimated object pose and select a good pose for the _second hand_
+     -  `set_waypoint <no_waypoint>`: to make the second hand reach a specific waypoint
+     - `reach_final`: to make the second hand reach the final pose
+- `/closed-chain/rpc`:
+     - `move_first_hand`: to make the robot move the first hand toward the final pose
 
 Yarpviews show the blob selected for point cloud extraction and the selected pose on the object.
 Here, you can find an example of [the selected blob](https://github.com/tacman-fp7/handover/issues/17#issuecomment-267567631) and [the selected pose](https://github.com/tacman-fp7/handover/issues/15#issuecomment-265692371).
