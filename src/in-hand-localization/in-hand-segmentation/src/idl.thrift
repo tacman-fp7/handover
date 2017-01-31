@@ -211,16 +211,31 @@ service inHandSegmentation_IDL
 
     /**
     * Set fixate variable
-    * @ return true
+    * @return true
     */
-    bool set_fixate(1:string tolerance);
+    bool set_fixate(1:string entry);
 
     /**
     * Get fixate variable
-    * @ return fixate
+    * @return fixate
     */
     bool get_fixate();
 
+    /**
+    * Set automatic_acquisition variable
+    * @return true
+    */
+    bool set_automatic_acquisition(1:string entry);
 
+    /**
+    * Get automatic_acquisition variable
+    * @return automatic_acquisition
+    */
+    bool get_automatic_acquisition();
 
+    /**
+    * Reset count_pose variable
+    * @return true
+    */
+    bool reset_count_pose();
 }

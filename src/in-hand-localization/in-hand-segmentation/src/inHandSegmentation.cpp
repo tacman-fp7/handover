@@ -36,7 +36,12 @@ protected:
     vector<Vector> fingers;
     vector<Vector> pointsIn;
     vector<Vector> pointsOut;
+    vector<Vector> q_poses_arm;
+    vector<Vector> q_poses_head;
     vector<cv::Point> blobPoints;
+    vector<Vector> acquisition_poses_arm;
+    vector<Vector> acquisition_poses_head;
+
 
     Matrix H_hand;
 
@@ -67,9 +72,11 @@ protected:
     string fingersFileName;
     string homeContextPath;
     string handPoseFileName;    
-    string fingersOutFileName;    
+    string fingersOutFileName;
+    string acquisitionPoseFileName;
 
     int down;
+    int count_pose;
     int diff_rgb;
     int fileCount;
     int diff_ycbcr;
@@ -85,6 +92,7 @@ protected:
     double traj_time;
     double radius_color;
     double radius_volume;
+    double min_blob_size;
     double a_offset, b_offset;
     double x_lim_up, x_lim_down;
     double y_lim_up, y_lim_down;
@@ -103,8 +111,10 @@ protected:
     bool change_frame;
     bool coarse_filter;        
     bool density_filter;
-    bool cylinder_filter;
     bool ellipse_filter;
+    bool cylinder_filter;
+    bool automatic_acquisition;
+
 
     PolyDriver robotDevice;
     PolyDriver robotDevice2;
@@ -610,6 +620,33 @@ protected:
         return true;
     }
 
+    /************************************************************************/
+    bool get_automatic_acquisition()
+    {
+        return automatic_acquisition;
+    }
+
+
+    /************************************************************************/
+    bool set_automatic_acquisition(const string &entry)
+    {
+        automatic_acquisition=(entry=="on");
+
+        cout<<endl<<" New automatic_acquisition variable: "<<automatic_acquisition<<endl<<endl;
+
+        return true;
+    }
+
+    /************************************************************************/
+    bool reset_count_pose()
+    {
+        count_pose=0;
+
+        cout<<endl<<" Rset count_pose variable: "<<count_pose<<endl<<endl;
+
+        return true;
+    }
+
 public:
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
@@ -625,6 +662,7 @@ public:
         poseFileName=rf.check("poseFileName", Value("hand_pose.off"), "Default pose file name").asString();
         handPoseFileName=rf.check("handPoseFileName", Value("recorded_hand_pose.off"), "Default pose file name").asString();
         fingersFileName=rf.check("fingersFileName", Value("tactile_hand_pose.off"), "Default fingers positions file name").asString();
+        acquisitionPoseFileName=rf.check("acquisitionPoseFileName", Value("acquisition_poses.txt"), "Default fingers positions file name").asString();
 
         test=(rf.check("test", Value("no")).asString()=="yes");
         fixate=(rf.check("fixate", Value("no")).asString()=="yes");
@@ -638,6 +676,7 @@ public:
         left_or_right=rf.check("which_hand", Value("left")).asString();
         traj_time=rf.check("trajectory_time", Value(1.5)).asDouble();
         targ_tol=rf.check("target_tollerance", Value(0.01)).asDouble();
+        min_blob_size=rf.check("min_blob_size", Value(7000)).asDouble();
 
         down=rf.check("downsampling", Value(1)).asInt();
         color_space=rf.check("color_code", Value("rgb")).asString();
@@ -647,6 +686,47 @@ public:
         ellipse_filter=(rf.check("ellipse_filter", Value("yes")).asString()=="yes");
         density_filter=(rf.check("density_filter", Value("yes")).asString()=="yes");
         cylinder_filter=(rf.check("cylinder_filter", Value("no")).asString()=="yes");
+        automatic_acquisition=(rf.check("automatic_acquisition", Value("no")).asString()=="yes");
+
+        if(!automatic_acquisition)
+            min_blob_size=0;
+        else
+        {
+            readAcquisitionPoses(acquisitionPoseFileName,"ARM_Q");
+            readAcquisitionPoses(acquisitionPoseFileName,"ARM");
+            readAcquisitionPoses(acquisitionPoseFileName,"HEAD_Q");
+            readAcquisitionPoses(acquisitionPoseFileName,"HEAD");
+
+            count_pose=0;
+
+            cout<<"arm poses "<<endl;
+
+            for (size_t i=0; i<acquisition_poses_arm.size(); i++)
+            {
+                cout<<acquisition_poses_arm[i].toString()<<endl;
+            }
+
+            cout<<"arm qs "<<endl;
+
+            for (size_t i=0; i<q_poses_arm.size(); i++)
+            {
+                cout<<q_poses_arm[i].toString()<<endl;
+            }
+
+            cout<<"head poses "<<endl;
+
+            for (size_t i=0; i<acquisition_poses_head.size(); i++)
+            {
+                cout<<acquisition_poses_head[i].toString()<<endl;
+            }
+
+            cout<<"head qs "<<endl;
+
+            for (size_t i=0; i<q_poses_head.size(); i++)
+            {
+                cout<<q_poses_head[i].toString()<<endl;
+            }
+        }
 
         if (tactile_on==false)
         {
@@ -870,13 +950,19 @@ public:
     {
         Vector colors(3,0.0);
 
-        if (online)
+        //if (online)
+        if (!online)
         {
             if (prepare_hand)
                 moveHand(pos_to_reach, orient_to_reach);
 
             if (fixate)
                 lookHand();
+
+            if (automatic_acquisition)
+            {
+                findPose(count_pose);
+            }
 
             acquirePoints();
             
@@ -1049,7 +1135,7 @@ public:
             cmdSFM.addString("Points");
             int count=0;
 
-            if (blobPoints.size()>0)
+            if (blobPoints.size()>min_blob_size || count_pose>= acquisition_poses_arm.size())
             {
                 for (size_t i=0; i<blobPoints.size(); i++)
                 {
@@ -1089,7 +1175,10 @@ public:
                 }
             }
             else
-                yError()<<" No blob received!";
+            {
+                yError()<<" Size of received blob equal to:"<<blobPoints.size();
+                count_pose++;
+            }
         }
 
         if (pointsIn.size()>0 && acquire==true)
@@ -1818,4 +1907,150 @@ public:
         else
             yError()<<" Unrealistic value for first hand position!";
     }
+
+    /*******************************************************************************/
+    void findPose(int i)
+    {
+        if (i<acquisition_poses_arm.size())
+        {
+            cout<<endl;
+            int context;
+            icart_arm->storeContext(&context);
+
+            Vector dof(10,1.0);
+            dof[0]=dof[1]=dof[2]=0.0;
+
+            icart_arm->setDOF(dof,dof);
+
+            yDebug()<<" q pose arm "<<q_poses_arm[i].toString();
+
+            for (size_t j=0; j<7; j++)
+            {
+                icart_arm->setLimits(j+3, q_poses_arm[i][j], q_poses_arm[i][j]);
+            }
+
+            yDebug()<<" acquisition pose arm "<<acquisition_poses_arm[i].toString();
+
+            icart_arm->goToPoseSync(acquisition_poses_arm[i].subVector(0,2), acquisition_poses_arm[i].subVector(3,6));
+            icart_arm->waitMotionDone();
+            yInfo()<<" Arm movement completed!";
+            cout<<endl;
+
+            icart_arm->restoreContext(context);
+            icart_arm->deleteContext(context);
+
+            icart_arm->stopControl();
+
+
+            igaze->setTrackingMode(true);
+
+            yDebug()<<" q poses head "<<q_poses_head[i].toString();
+
+            cout<<"block "<<igaze->blockNeckPitch(q_poses_head[i][0])<<endl;
+            igaze->blockNeckYaw(q_poses_head[i][1]);
+            igaze->blockNeckRoll(q_poses_head[i][2]);
+            igaze->waitMotionDone();
+            igaze->setTrackingMode(false);
+
+            yInfo()<<" Gaze movement completed!";
+
+            //count_pose++;
+        }
+        else
+        {
+            yError()<<" Tested all possible poses!";
+        }
+
+    }
+
+    /*********************************************************************************/
+    bool readAcquisitionPoses(string &filename, const string &tag)
+    {
+        int state=0;
+        int nPoints;
+        char line[255];
+        vector<Vector> points_tmp;
+
+        Vector point_tmp;
+
+        if (tag=="ARM_Q")
+            point_tmp.resize(7,0.0);
+        else if (tag=="HEAD_Q")
+            point_tmp.resize(6,0.0);
+        else if (tag=="HEAD")
+            point_tmp.resize(7,0.0);
+        else if (tag=="ARM")
+            point_tmp.resize(7,0.0);
+
+        cout<< " In cloud file "<<homeContextPath+"/"+filename<<endl;
+
+        ifstream cloudFile((homeContextPath+"/"+filename).c_str());
+        if (!cloudFile.is_open())
+        {
+            yError()<<" Problem opening cloud file!";
+            return false;
+        }
+
+        while (!cloudFile.eof())
+        {
+            cloudFile.getline(line,sizeof(line),'\n');
+            Bottle b(line);
+            Value firstItem=b.get(0);
+            bool isNumber=firstItem.isInt() || firstItem.isDouble();
+
+            if (state==0)
+            {
+                string tmp=firstItem.asString().c_str();
+                std::transform(tmp.begin(),tmp.end(),tmp.begin(),::toupper);
+
+                if (tmp==tag)
+                    state++;
+            }
+            else if (state==1)
+            {
+                if (isNumber)
+                {
+                    nPoints=firstItem.asInt();
+                    state++;
+                }
+            }
+            else if (state==2)
+            {
+                if (isNumber && (b.size()>=3))
+                {
+                    point_tmp[0]=b.get(0).asDouble();
+                    point_tmp[1]=b.get(1).asDouble();
+                    point_tmp[2]=b.get(2).asDouble();
+                    point_tmp[3]=b.get(3).asDouble();
+                    point_tmp[4]=b.get(4).asDouble();
+                    point_tmp[5]=b.get(5).asDouble();
+
+                    if (tag=="ARM_Q"|| tag=="ARM" || tag=="HEAD")
+                    {
+                        point_tmp[6]=b.get(6).asDouble();
+                    }
+                    points_tmp.push_back(point_tmp);
+
+                    if (--nPoints<=0)
+                    {
+                        for( size_t i=0; i<points_tmp.size();i++)
+                        {
+                            point_tmp=points_tmp[i];
+                            if (tag =="ARM_Q")
+                                q_poses_arm.push_back(point_tmp);
+                            else if (tag=="ARM")
+                                acquisition_poses_arm.push_back(point_tmp);
+                            if (tag =="HEAD_Q")
+                                q_poses_head.push_back(point_tmp);
+                            else if (tag=="HEAD")
+                                acquisition_poses_head.push_back(point_tmp);
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
 };
