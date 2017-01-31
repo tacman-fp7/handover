@@ -27,7 +27,7 @@ The modules are located under the `src` directory:
 
 ### Compiling the code
 
-Currently, the `closed-chain` module has to be compiled separatly, since its structure is temporary. An example of compilation for `pose-selection` and `in-hand-localization` modules for Linux system is following:
+ An example of compilation  for Linux system is following:
 
 ```
  git clone https://github.com/tacman-fp7/handover.git
@@ -37,10 +37,10 @@ Currently, the `closed-chain` module has to be compiled separatly, since its str
  ccmake ..
  make install
 ```
-If you want to compile `closed-chain` module:
+If you prefer instead compiling _separately_ each module:
 
 ```
-cd handover/src/closed-chain
+cd handover/src/<moule_name>
 mkdir build
 cd build
 ccmake ..
