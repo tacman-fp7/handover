@@ -33,19 +33,29 @@ service localizer_IDL
     * Set acquire variable true and acquire points
     * @return true
     */
-    bool go_acquire()
+    bool go_acquire();
 
     /**
     * Set localize variable true and start localization
     * @return true
     */
-    bool go_localize()
+    bool go_localize();
 
     /**
     * Set localize variable false and stop localization
     * @return true
     */
-    bool stop_localize()
+    bool stop_localize();
 
+    /**
+    * Get measurements used for localization
+    * @return measurements used for localization
+    */
+    Bottle get_meas();
 
+    /**
+    * Get statistics about i-th solution
+    * @return Bottle with solution information
+    */
+    Bottle get_solution_statistics(1: i32 entry);
 }

@@ -122,6 +122,54 @@ public:
 
         return pose;
     }
+
+    /*******************************************************************************/
+    Bottle get_solution_statistics(const int i)
+    {
+        Bottle sol;
+        Bottle &bsol=sol.addList();
+        if (pose_computed)
+        {
+            cout<<endl;
+
+            for (size_t j=0; j<solutions.getCol(0).size(); j++)
+            {
+                 cout<<" Solution "<<j<<endl;
+                 cout<<" Localization error: "<< solutions(j,0)<<endl;
+                 cout<<" Execution time    : "<< solutions(j,1)<<endl;
+            }
+            cout<<endl;
+
+           bsol.addString("Localization error"); bsol.addDouble(solutions(i,0));
+           bsol.addString("Execution time"); bsol.addDouble(solutions(i,1));
+        }
+
+        return sol;
+    }
+
+
+    /*******************************************************************************/
+    Bottle get_meas()
+    {
+        Bottle bmeas;
+
+        if (measurements.size()>0)
+        {
+            for (size_t i=0; i<measurements.size(); i++)
+            {
+                Bottle &bbmeas=bmeas.addList();
+                bbmeas.addDouble(measurements[i][0]); bbmeas.addDouble(measurements[i][1]); bbmeas.addDouble(measurements[i][2]);
+            }
+        }
+        else
+        {
+            yError()<< "No measurements received!";
+            bmeas.addList();
+        }
+
+        return bmeas;
+    }
+
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -236,6 +284,10 @@ public:
                                     solutions(i,2)=error_indices[8];
                                     solutions(i,3)=error_indices[9];
 
+                                    cout<<endl<<endl<<" Solution computed"<<endl;
+                                    cout<<" Localization error: "<< error_indices[6]<<endl;
+                                    cout<<" Execution time    : "<< error_indices[7]<<endl<<endl;
+
                                     delete loc5;
                                     pose_computed=true;
                                     pose_saved=false;
@@ -243,7 +295,6 @@ public:
                                 else
                                 {
                                     localize=false;
-                                    j=num_objs; k=num_m_values; l=num_particles; m=num_Q;
                                     delete loc5;
                                     return false;
                                 }
@@ -259,7 +310,6 @@ public:
                 }
             }
         }
-
 
         if (online)
         {
@@ -289,9 +339,11 @@ public:
                 point[1]=blist->get(1).asDouble();
                 point[2]=blist->get(2).asDouble();
                 measurements.push_back(point);
-                cout<<point.toString()<<endl;
+                //cout<<point.toString()<<endl;
 
             }
+
+            cout<<endl<<" " <<measurements.size()<< " points have been received"<<endl<<endl;
             acquire=false;
         }
 

@@ -82,7 +82,7 @@ bool UnscentedParticleFilter::step()
     t++;
     ParametersUPF &params=get_parameters();
 
-    cout<<"t "<<t <<"/"<<params.numMeas<<"\n";
+    cout<<" "<<t <<"/"<<params.numMeas<<"\n";
 
     if( t>params.numMeas)
     {
@@ -839,7 +839,6 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
     }
 
     string modelFileName=rf.find("modelFile"+str_obj).asString().c_str();
-    //downsampling=rf.check("downsampling", Value(1)).asInt();
     max_num_meas=rf.check("max_num_meas", Value(100)).asInt();
 
     ifstream modelFile((homeContextPath+"/"+modelFileName).c_str());
@@ -938,11 +937,10 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         measurements.push_back(fingers[0]);
         measurements.push_back(fingers[1]);
         measurements.push_back(fingers[2]);
-    }
+    }  
 
-
-    for (size_t i=0; i<measurements.size(); i++)
-        cout<<measurements[i]<<endl;
+//    for (size_t i=0; i<measurements.size(); i++)
+//        cout<<measurements[i]<<endl;
 
     ParametersUPF &parameters=get_parameters();
     parameters.numMeas=measurements.size();
@@ -1102,7 +1100,7 @@ void UnscentedParticleFilter::saveData(const yarp::sig::Vector &ms_particle, con
      string str_i3 = ss4.str();
      ssQ<<m;
      string str_Q=ssQ.str();
-     string outputFileName=this->rf->check("outputFileMUPF",Value("../../outputs/outputMUPF_trial"+str_i+"_object"+str_obj+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
+     string outputFileName=this->rf->check("outputFileMUPF",Value("outputs/outputMUPF_trial"+str_i+"_object"+str_obj+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
                        asString().c_str();
 
     ofstream fout((homeContextPath+"/"+outputFileName).c_str());
@@ -1129,7 +1127,7 @@ void UnscentedParticleFilter::saveStatisticsData( const yarp::sig::Matrix &solut
     string str_i3 = ss4.str();
     ssQ<<m;
     string str_Q=ssQ.str();
-    string outputFileName2=this->rf->check("outputFileMUPF",Value("../../outputs/outputStatisticsMUPF_object"+str_i+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
+    string outputFileName2=this->rf->check("outputFileMUPF",Value("outputs/outputStatisticsMUPF_object"+str_i+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
                        asString().c_str();
     double average1, average_time,average_lik, stdev;
     average1=0; average_time=0.0; average_lik=0.0, stdev=0.0;
@@ -1164,6 +1162,8 @@ void UnscentedParticleFilter::saveStatisticsData( const yarp::sig::Matrix &solut
 yarp::sig::Vector UnscentedParticleFilter::localization()
 {
     yarp::sig::Vector result;
+
+    cout<<" "<< measurements.size()<< " subsampled points "<<endl<<endl;
 
     init();
     solve();
