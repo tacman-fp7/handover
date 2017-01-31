@@ -42,7 +42,6 @@ protected:
     vector<Vector> acquisition_poses_arm;
     vector<Vector> acquisition_poses_head;
 
-
     Matrix H_hand;
 
     Vector encoders;
