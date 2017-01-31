@@ -226,18 +226,27 @@ public:
                             if (localize)
                             {
                                 Localizer *loc5=new UnscentedParticleFilter();
-                                loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch);
-                                error_indices=loc5->localization();
-                                result=error_indices.subVector(0,5);
-                                loc5->saveData(error_indices,i,k,l,m);
-                                solutions(i,0)=error_indices[6];
-                                solutions(i,1)=error_indices[7];
-                                solutions(i,2)=error_indices[8];
-                                solutions(i,3)=error_indices[9];
+                                if (loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
+                                {
+                                    error_indices=loc5->localization();
+                                    result=error_indices.subVector(0,5);
+                                    loc5->saveData(error_indices,i,k,l,m);
+                                    solutions(i,0)=error_indices[6];
+                                    solutions(i,1)=error_indices[7];
+                                    solutions(i,2)=error_indices[8];
+                                    solutions(i,3)=error_indices[9];
 
-                                delete loc5;
-                                pose_computed=true;
-                                pose_saved=false;
+                                    delete loc5;
+                                    pose_computed=true;
+                                    pose_saved=false;
+                                }
+                                else
+                                {
+                                    localize=false;
+                                    j=num_objs; k=num_m_values; l=num_particles; m=num_Q;
+                                    delete loc5;
+                                    return false;
+                                }
                             }
                         }
 
@@ -302,7 +311,7 @@ int main(int argc,char *argv[])
 
     localizingModule mod;
     ResourceFinder rf;
-    rf.setDefaultContext("cloudFiltering");
+    rf.setDefaultContext("localizerHandover");
     rf.configure(argc,argv);
     return mod.runModule(rf);
 }

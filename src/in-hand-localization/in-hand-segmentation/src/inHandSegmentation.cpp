@@ -121,7 +121,6 @@ protected:
     PolyDriver clientGazeCtrl;
 
     ICartesianControl *icart_arm;
-    ICartesianControl *icart_arm2;
     IAnalogSensor *analog;
     IGazeControl *igaze;
     IEncoders *enc;
@@ -870,7 +869,8 @@ public:
 
             analogDevice.view(analog);
 
-            H_hand=computePose();            
+            H_hand=computePose();
+            filter=false;
         }
         else
             filter=true;
@@ -949,8 +949,8 @@ public:
     {
         Vector colors(3,0.0);
 
-        //if (online)
-        if (!online)
+        //if (!online)
+        if (online)
         {
             if (prepare_hand)
                 moveHand(pos_to_reach, orient_to_reach);

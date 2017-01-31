@@ -214,6 +214,8 @@ class UnscentedParticleFilter : public GeometryCGAL, public Localizer
     int max_num_meas;
     bool online;
 
+    std::string homeContextPath;
+
     std::deque<yarp::sig::Vector> points;
 
     /*******************************************************************/

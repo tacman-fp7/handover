@@ -1,4 +1,4 @@
-trial 0: 0
+trial 0: 0.0025767
 trial 1: 0
 trial 2: 0
 trial 3: 0
@@ -9,9 +9,9 @@ trial 7: 0
 trial 8: 0
 trial 9: 0
 
-Average (over trials): 0
+Average (over trials): 0.00025767
 
-Standard deviation (over trials) 0
+Standard deviation (over trials) 0.000814823
 
-Average Execution Time (over trials): 0
+Average Execution Time (over trials): 7.34557
 

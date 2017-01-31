@@ -826,6 +826,7 @@ bool UnscentedParticleFilter::readFingers(ifstream &fin)
 
 bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, const int &k, const int &n_m, const int &l, const int &n_N, const int &m, bool online, deque<Vector> &points, bool enabled_touch)
 {
+    homeContextPath=rf.getHomeContextPath().c_str();
     stringstream ss2;
     ss2 << n_obj;
     str_obj = ss2.str();
@@ -841,7 +842,7 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
     //downsampling=rf.check("downsampling", Value(1)).asInt();
     max_num_meas=rf.check("max_num_meas", Value(100)).asInt();
 
-    ifstream modelFile(modelFileName.c_str());
+    ifstream modelFile((homeContextPath+"/"+modelFileName).c_str());
     if (!modelFile.is_open())
     {
         yError()<<"problem opening model file!";
@@ -871,7 +872,7 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         if(rf.find("measurementsFile").isNull())
             measurementsFileName="../measurements.off";
 
-        ifstream measurementsFile(measurementsFileName.c_str());
+        ifstream measurementsFile((homeContextPath+"/"+measurementsFileName).c_str());
         if (!measurementsFile.is_open())
         {
             yError()<<"problem opening measurements file!";
@@ -918,7 +919,7 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         if(rf.find("fingersFile").isNull())
            fingersFileName="../fingerss.off";
 
-        ifstream fingersFile(fingersFileName.c_str());
+        ifstream fingersFile((homeContextPath+"/"+fingersFileName).c_str());
         if (!fingersFile.is_open())
         {
             yError()<<"problem opening fingers file!";
@@ -1104,7 +1105,7 @@ void UnscentedParticleFilter::saveData(const yarp::sig::Vector &ms_particle, con
      string outputFileName=this->rf->check("outputFileMUPF",Value("../../outputs/outputMUPF_trial"+str_i+"_object"+str_obj+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
                        asString().c_str();
 
-    ofstream fout(outputFileName.c_str());
+    ofstream fout((homeContextPath+"/"+outputFileName).c_str());
     if(fout.is_open())
     {
         fout<<get_model();
@@ -1132,7 +1133,7 @@ void UnscentedParticleFilter::saveStatisticsData( const yarp::sig::Matrix &solut
                        asString().c_str();
     double average1, average_time,average_lik, stdev;
     average1=0; average_time=0.0; average_lik=0.0, stdev=0.0;
-    ofstream fout2(outputFileName2.c_str());
+    ofstream fout2((homeContextPath+"/"+outputFileName2).c_str());
     if(fout2.is_open())
     {
         for(int j=0; j<solutions.rows(); j++)
