@@ -11,6 +11,6 @@ include(ICUBcontribOptions)
 include(ICUBcontribHelpers)
 
 add_subdirectory(src)
-#add_subdirectory(app)
+add_subdirectory(app)
 
 icubcontrib_add_uninstall_target()

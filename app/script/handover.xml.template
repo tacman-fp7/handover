@@ -12,6 +12,11 @@
     </module>
 
     <module>
+        <name>stableGrasp</name>
+        <node>icub21</node>
+    </module>
+
+    <module>
         <name>yarpview</name>
         <parameters>--name /matchViewer --x 0</parameters>
         <node>icub22</node>
