@@ -238,4 +238,18 @@ service inHandSegmentation_IDL
     * @return true
     */
     bool reset_count_pose();
+
+    /**
+    * Say if enabled depth2kin calibration
+    *@return yes or no
+    */
+    string get_calib_cam();
+
+    /**
+    * Enable or not depth2kin calibration
+    *@param yes or no
+    *@return true/false on success/failure
+    */
+    bool set_calib_cam(1:string calib_or_not);
+
 }

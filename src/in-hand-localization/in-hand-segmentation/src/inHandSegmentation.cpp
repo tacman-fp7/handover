@@ -104,6 +104,7 @@ protected:
     bool online;
     bool fixate;
     bool acquire;
+    bool calib_cam;
     bool tactile_on;
     bool hand_filter;
     bool prepare_hand;
@@ -139,6 +140,7 @@ protected:
 
     RpcClient portSFM;
     RpcServer portRpc;
+    RpcClient portCalib;
 
     /************************************************************************/
     bool attach(RpcServer &source)
@@ -645,6 +647,29 @@ protected:
         return true;
     }
 
+    /************************************************************************/
+    bool set_calib_cam(const string &calibration_or_not)
+    {
+        if (calibration_or_not=="yes")
+            calib_cam=true;
+        else
+            calib_cam=false;
+
+        return true;
+    }
+
+    /************************************************************************/
+    string get_calib_cam()
+    {
+        string value;
+
+        if (calib_cam)
+            value="yes";
+         else
+            value="no";
+        return value;
+    }
+
 public:
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
@@ -665,6 +690,7 @@ public:
         test=(rf.check("test", Value("no")).asString()=="yes");
         fixate=(rf.check("fixate", Value("no")).asString()=="yes");
         acquire=(rf.check("acquire", Value("no")).asString()=="yes");
+        calib_cam=(rf.check("calib_cam", Value("yes"))=="yes");
         prepare_hand=(rf.check("prepare_hand", Value("no")).asString()=="yes");
         frame=rf.check("frame", Value("hand"), "in which frame save finger positions").asString();
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
@@ -819,6 +845,7 @@ public:
 
         if (online)
         {
+            portCalib.open("/"+module_name+"/calib:rpc");
             Property option_arm2("(device remote_controlboard)");
             option_arm2.put("remote","/"+robot+"/"+left_or_right+"_arm");
             option_arm2.put("local","/"+module_name+"/joint/"+left_or_right+"_arm");
@@ -1161,6 +1188,9 @@ public:
 
                         if ((norm(point)>0))
                         {
+                            if (calib_cam)
+                                point=calibCameras(point);
+
                             pointsIn.push_back(point);
                         }
                         }
@@ -2051,5 +2081,33 @@ public:
         }
         return false;
     }
+
+    /****************************************************************/
+    Vector calibCameras(Vector &v)
+    {
+        Bottle cmd,reply;
+        cmd.clear();
+        cmd.addString("getPoint");
+        cmd.addString(left_or_right);
+        Vector v_calib;
+        v_calib=v;
+
+        yDebug()<<"Vector before calibration: "<<v.toString();
+
+        cmd.addDouble(v[0]);
+        cmd.addDouble(v[1]);
+        cmd.addDouble(v[2]);
+
+        portCalib.write(cmd, reply);
+        if (reply.get(0).asString()=="ok")
+        {
+            v_calib[0]=reply.get(1).asDouble();
+            v_calib[1]=reply.get(2).asDouble();
+            v_calib[2]=reply.get(3).asDouble();
+        }
+
+        yDebug()<<"Vector after calibration: "<<v_calib.toString();
+        return v_calib;
+     }
 
 };

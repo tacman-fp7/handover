@@ -3,35 +3,35 @@
 
     <module>
         <name>SFM</name>
-        <node>icub22</node>
+        <node>icub19</node>
     </module>
 
     <module>
         <name>dispBlobber</name>
-        <node>icub21</node>
+        <node>icub19</node>
     </module>
 
     <module>
         <name>stableGrasp</name>
-        <node>icub21</node>
+        <node>icub19</node>
     </module>
 
     <module>
         <name>yarpview</name>
         <parameters>--name /matchViewer --x 0</parameters>
-        <node>icub22</node>
+        <node>icub19</node>
     </module>
 
     <module>
         <name>yarpview</name>
         <parameters>--name /dispViewer --x 330</parameters>
-        <node>icub22</node>
+        <node>icub19</node>
     </module>
 
     <module>
             <name>yarpview</name>
             <parameters>--name /nearBlobberViewer</parameters>
-            <node>icub22</node>
+            <node>icub19</node>
     </module>
 
     <connection>
@@ -72,12 +72,12 @@
     
     <module>
        <name>in-hand-segmentation</name>
-       <node>icub21</node>
+       <node>icub19</node>
     </module>
     <module>
        <name>yarpview</name>
        <parameters>--name /dispCloud --out /dispBlobs/out --x 1600 --y 370 --w 600 --h 600 --p 200</parameters>
-       <node>icub22</node>
+       <node>icub19</node>
     </module>
 
     <connection>
@@ -113,12 +113,12 @@
     <module>
        <name>localizer</name>
         <parameters> --from config-domino.ini</parameters>
-       <node>icub21</node>
+       <node>icub19</node>
     </module>
 
     <module>
        <name>closed-chain</name>
-       <node>icub21</node>
+       <node>icub19</node>
     </module>
 
     <connection>
@@ -135,12 +135,12 @@
 
     <module>
        <name>pose-selection</name>
-       <node>icub21</node>
+       <node>icub19</node>
     </module>
     <module>
        <name>yarpview</name>
        <parameters>--name /dispPose --out /dispPose/out --x 1600 --y 370 --w 600 --h 600 --p 200</parameters>
-       <node>icub22</node>
+       <node>icub19</node>
     </module>
 
     <connection>
@@ -170,6 +170,12 @@
     <connection>
         <from>/closed-chain/ps:rpc</from>
         <to>/pose-selection/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+   <connection>
+        <from>/in-hand-segmentation/calib:rpc</from>
+        <to>/depth2kin/rpc</to>
         <protocol>tcp</protocol>
     </connection>
 
