@@ -638,9 +638,9 @@ protected:
     }
 
     /************************************************************************/
-    bool reset_count_pose()
+    bool reset_count_pose(const int entry)
     {
-        count_pose=0;
+        count_pose=entry;
 
         cout<<endl<<" Rset count_pose variable: "<<count_pose<<endl<<endl;
 
@@ -814,7 +814,7 @@ public:
         Property optionG;
         optionG.put("device","gazecontrollerclient");
         optionG.put("remote","/iKinGazeCtrl");
-        optionG.put("local","/"+module_name+"gaze");
+        optionG.put("local","/"+module_name+"/gaze");
 
         clientGazeCtrl.open(optionG);
         igaze=NULL;
@@ -840,8 +840,13 @@ public:
 
         icart_arm->getPose(pos_to_reach, orient_to_reach);
         pos_to_reach[0]=-0.35;
-        pos_to_reach[2]=0.2;
-        pos_to_reach[1]=0.0;
+        pos_to_reach[1]=-0.15;
+        pos_to_reach[2]=0.15;
+
+	orient_to_reach[0]= -0.032;
+	orient_to_reach[1]=  0.599;
+	orient_to_reach[2]= -0.800;
+	orient_to_reach[3]= 2.843;
 
         if (online)
         {
@@ -1929,9 +1934,28 @@ public:
     {
         if (norm(pos)>0.0 && norm(pos)<1.0)
         {
+            Vector dof(10,1.0);
+            dof[0]=dof[1]=dof[2]=0.0;
+
+            icart_arm->setDOF(dof,dof);
+	    
+            cout<< " [Test] Desired pose "<<pos.toString(3,3)<<" "<<orient.toString(3,3)<<endl;
+	    icart_arm->setInTargetTol(0.02);
+	    double tol;
+            icart_arm->getInTargetTol(&tol);
+            cout<<" to be reached with tollerance "<<tol<<endl;
             icart_arm->goToPoseSync(pos,orient);
             icart_arm->waitMotionDone();
             prepare_hand=false;
+            Vector x(3,0.0);
+            Vector o(4,0.0);
+            Vector q(7,0.0);
+	    icart_arm->getDesired(x,o, q);
+	    cout<< " [Test] Reached pose "<<x.toString(3,3)<<" "<<o.toString(3,3)<<endl;
+            cout<< " [Test] Reached q "<<(q).toString(3,3)<<endl;
+
+            cout<< " [Test] Error " << norm(x-pos)<<endl;
+
             icart_arm->stopControl();
         }
         else
@@ -1965,18 +1989,29 @@ public:
             icart_arm->waitMotionDone();
             yInfo()<<" Arm movement completed!";
             cout<<endl;
+	    Vector x(3,0.0);
+	    Vector o(4,0.0);
+            icart_arm->getPose(x,o);
+            cout<<"pose "<<x.toString()<<" "<<o.toString()<<endl;
 
             icart_arm->restoreContext(context);
             icart_arm->deleteContext(context);
 
             icart_arm->stopControl();
 
+	    double min,max;
+
+	    for (size_t j=0; j<7; j++)
+            {
+                icart_arm->getLimits(j+3, &min, &max);
+		cout<<"min "<<min<< " max "<<max<<endl;
+            }
+
 
             igaze->setTrackingMode(true);
 
             yDebug()<<" q poses head "<<q_poses_head[i].toString();
-
-            cout<<"block "<<igaze->blockNeckPitch(q_poses_head[i][0])<<endl;
+            igaze->blockNeckPitch(q_poses_head[i][0]);
             igaze->blockNeckRoll(q_poses_head[i][1]);
             igaze->blockNeckYaw(q_poses_head[i][2]);
             igaze->waitMotionDone();

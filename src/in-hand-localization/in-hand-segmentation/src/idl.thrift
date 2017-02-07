@@ -237,7 +237,7 @@ service inHandSegmentation_IDL
     * Reset count_pose variable
     * @return true
     */
-    bool reset_count_pose();
+    bool reset_count_pose(1:i32 entry);
 
     /**
     * Say if enabled depth2kin calibration
