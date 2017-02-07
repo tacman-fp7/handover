@@ -25,7 +25,7 @@ source_group("Source Files" FILES ${sources})
 
 include_directories(${YARP_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${ICUB_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME} ${sources} src/idl.thrift ${IDL_GEN_FILES})
-target_link_libraries(${PROJECT_NAME} ${YARP_LIBRARIES} ${OpenCV_LIBRARIES} ${ICUB_LIBRARIES} iKin ctrlLib perceptiveModels)
+target_link_libraries(${PROJECT_NAME} ${YARP_LIBRARIES} ${OpenCV_LIBRARIES} ${ICUB_LIBRARIES} iKin ctrlLib)
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
 file(GLOB conf ${CMAKE_CURRENT_SOURCE_DIR}/app/conf/*.ini)

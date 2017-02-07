@@ -1100,7 +1100,7 @@ void UnscentedParticleFilter::saveData(const yarp::sig::Vector &ms_particle, con
      string str_i3 = ss4.str();
      ssQ<<m;
      string str_Q=ssQ.str();
-     string outputFileName=this->rf->check("outputFileMUPF",Value("outputs/outputMUPF_trial"+str_i+"_object"+str_obj+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
+     string outputFileName=this->rf->check("outputFileMUPF",Value("outputMUPF_trial"+str_i+"_object"+str_obj+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
                        asString().c_str();
 
     ofstream fout((homeContextPath+"/"+outputFileName).c_str());
@@ -1127,7 +1127,7 @@ void UnscentedParticleFilter::saveStatisticsData( const yarp::sig::Matrix &solut
     string str_i3 = ss4.str();
     ssQ<<m;
     string str_Q=ssQ.str();
-    string outputFileName2=this->rf->check("outputFileMUPF",Value("outputs/outputStatisticsMUPF_object"+str_i+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
+    string outputFileName2=this->rf->check("outputFileMUPF",Value("outputStatisticsMUPF_object"+str_i+"_m_value_"+str_i2+"_N_"+str_i3+"Q"+str_Q+".off")).
                        asString().c_str();
     double average1, average_time,average_lik, stdev;
     average1=0; average_time=0.0; average_lik=0.0, stdev=0.0;

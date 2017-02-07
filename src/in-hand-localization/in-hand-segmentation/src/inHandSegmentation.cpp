@@ -1228,6 +1228,7 @@ public:
             }
         }
 
+
         portDispOut.write();
 
         return true;
@@ -1940,7 +1941,7 @@ public:
     /*******************************************************************************/
     void findPose(int i)
     {
-        if (i<acquisition_poses_arm.size())
+        if (i<acquisition_poses_arm.size() && (pointsIn.size()==0 && pointsOut.size()==0))
         {
             cout<<endl;
             int context;
@@ -1976,8 +1977,8 @@ public:
             yDebug()<<" q poses head "<<q_poses_head[i].toString();
 
             cout<<"block "<<igaze->blockNeckPitch(q_poses_head[i][0])<<endl;
-            igaze->blockNeckYaw(q_poses_head[i][1]);
-            igaze->blockNeckRoll(q_poses_head[i][2]);
+            igaze->blockNeckRoll(q_poses_head[i][1]);
+            igaze->blockNeckYaw(q_poses_head[i][2]);
             igaze->waitMotionDone();
             igaze->setTrackingMode(false);
 
@@ -1985,10 +1986,10 @@ public:
 
             //count_pose++;
         }
-        else
-        {
-            yError()<<" Tested all possible poses!";
-        }
+       // else
+       // {
+       //     yError()<<" Tested all possible poses!";
+       // }
 
     }
 

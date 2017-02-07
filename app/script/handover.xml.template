@@ -13,6 +13,13 @@
 
     <module>
         <name>stableGrasp</name>
+	<parameters>--from confHandover.ini --whichHand left</parameters>
+        <node>icub19</node>
+    </module>
+
+   <module>
+        <name>stableGrasp</name>
+	<parameters>--from confHandover.ini --whichHand right</parameters>
         <node>icub19</node>
     </module>
 
