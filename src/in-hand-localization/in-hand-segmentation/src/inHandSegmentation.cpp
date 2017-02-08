@@ -1934,26 +1934,27 @@ public:
     {
         if (norm(pos)>0.0 && norm(pos)<1.0)
         {
+            double tol;
+            Vector x(3,0.0);
+            Vector o(4,0.0);
+            Vector q(7,0.0);
             Vector dof(10,1.0);
             dof[0]=dof[1]=dof[2]=0.0;
 
             icart_arm->setDOF(dof,dof);
-	    
-            cout<< " [Test] Desired pose "<<pos.toString(3,3)<<" "<<orient.toString(3,3)<<endl;
-	    icart_arm->setInTargetTol(0.02);
-	    double tol;
+            icart_arm->setInTargetTol(0.02);
             icart_arm->getInTargetTol(&tol);
+	    
+            cout<< " [Test] Desired pose "<<pos.toString(3,3)<<" "<<orient.toString(3,3)<<endl;          
             cout<<" to be reached with tollerance "<<tol<<endl;
+
             icart_arm->goToPoseSync(pos,orient);
             icart_arm->waitMotionDone();
-            prepare_hand=false;
-            Vector x(3,0.0);
-            Vector o(4,0.0);
-            Vector q(7,0.0);
-	    icart_arm->getDesired(x,o, q);
-	    cout<< " [Test] Reached pose "<<x.toString(3,3)<<" "<<o.toString(3,3)<<endl;
-            cout<< " [Test] Reached q "<<(q).toString(3,3)<<endl;
+            prepare_hand=false;          
+            icart_arm->getDesired(x,o, q);
 
+            cout<< " [Test] Reached pose "<<x.toString(3,3)<<" "<<o.toString(3,3)<<endl;
+            cout<< " [Test] Reached q "<<(q).toString(3,3)<<endl;
             cout<< " [Test] Error " << norm(x-pos)<<endl;
 
             icart_arm->stopControl();
@@ -1966,9 +1967,10 @@ public:
     void findPose(int i)
     {
         if (i<acquisition_poses_arm.size() && (pointsIn.size()==0 && pointsOut.size()==0))
-        {
-            cout<<endl;
+        {            
             int context;
+            Vector x(3,0.0);
+            Vector o(4,0.0);
             icart_arm->storeContext(&context);
 
             Vector dof(10,1.0);
@@ -1976,42 +1978,45 @@ public:
 
             icart_arm->setDOF(dof,dof);
 
-            yDebug()<<" q pose arm "<<q_poses_arm[i].toString();
+            cout<<endl;
+            yDebug()<<" Q pose arm "<<q_poses_arm[i].toString();
 
             for (size_t j=0; j<7; j++)
             {
                 icart_arm->setLimits(j+3, q_poses_arm[i][j], q_poses_arm[i][j]);
             }
 
-            yDebug()<<" acquisition pose arm "<<acquisition_poses_arm[i].toString();
+            yDebug()<<" Acquisition pose arm "<<acquisition_poses_arm[i].toString();
 
             icart_arm->goToPoseSync(acquisition_poses_arm[i].subVector(0,2), acquisition_poses_arm[i].subVector(3,6));
             icart_arm->waitMotionDone();
+
             yInfo()<<" Arm movement completed!";
             cout<<endl;
-	    Vector x(3,0.0);
-	    Vector o(4,0.0);
+
             icart_arm->getPose(x,o);
-            cout<<"pose "<<x.toString()<<" "<<o.toString()<<endl;
+
+            cout<<" Pose: "<<x.toString()<<" "<<o.toString()<<endl;
 
             icart_arm->restoreContext(context);
             icart_arm->deleteContext(context);
 
             yDebug()<< " Stopped control: "<<icart_arm->stopControl();
-	    icart_arm->setTrackingMode(false);
 
-	    double min,max;
+            icart_arm->setTrackingMode(false);
 
-	   // for (size_t j=0; j<7; j++)
-            //{
-            //    icart_arm->getLimits(j+3, &min, &max);
-		//cout<<"min "<<min<< " max "<<max<<endl;
-            //}
+//            double min,max;
+//            for (size_t j=0; j<7; j++)
+//            {
+//                icart_arm->getLimits(j+3, &min, &max);
+//                cout<<"min "<<min<< " max "<<max<<endl;
+//            }
 
 
             igaze->setTrackingMode(true);
 
-            yDebug()<<" q poses head "<<q_poses_head[i].toString();
+            yDebug()<<" Q poses head "<<q_poses_head[i].toString();
+
             igaze->blockNeckPitch(q_poses_head[i][0]);
             igaze->blockNeckRoll(q_poses_head[i][1]);
             igaze->blockNeckYaw(q_poses_head[i][2]);
@@ -2022,10 +2027,10 @@ public:
 
             //count_pose++;
         }
-       // else
-       // {
-       //     yError()<<" Tested all possible poses!";
-       // }
+//        else
+//        {
+//            yError()<<" Tested all possible poses!";
+//        }
 
     }
 
@@ -2141,9 +2146,13 @@ public:
             v_calib[0]=reply.get(1).asDouble();
             v_calib[1]=reply.get(2).asDouble();
             v_calib[2]=reply.get(3).asDouble();
-        }
 
-        yDebug()<<"Vector after calibration: "<<v_calib.toString();
+             yDebug()<<"Vector after calibration: "<<v_calib.toString();
+        }
+        else
+            yInfo()<<"Depth2kin not available! ";
+
+
         return v_calib;
      }
 
