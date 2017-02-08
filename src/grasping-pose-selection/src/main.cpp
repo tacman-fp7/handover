@@ -1831,6 +1831,7 @@ class poseSelection : public RFModule,
    /*******************************************************************************/
    bool reachFinalPoint()
    {
+       yDebug()<< " Reaching final pose ...";
        Matrix orient(3,3);
        orient.setCol(0,(x_axis_rotated[index]-positions_rotated[index])/norm(x_axis_rotated[index]-positions_rotated[index]));
        orient.setCol(1,(y_axis_rotated[index]-positions_rotated[index])/norm(y_axis_rotated[index]-positions_rotated[index]));
@@ -1862,10 +1863,12 @@ class poseSelection : public RFModule,
        icart_arm_move->goToPoseSync(positions_rotated[index], odhat_wp);
        icart_arm_move->waitMotionDone();
 
+	yDebug()<< " Reached final pose!";
+
        icart_arm_move->restoreContext(context);
        icart_arm_move->deleteContext(context);
 
-       icart_arm_move->stopControl();
+       yDebug()<<" Stopped control: "<<icart_arm_move->stopControl();
 
        reach_final_pose=false;
 

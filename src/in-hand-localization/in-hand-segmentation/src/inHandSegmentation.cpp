@@ -1997,15 +1997,16 @@ public:
             icart_arm->restoreContext(context);
             icart_arm->deleteContext(context);
 
-            icart_arm->stopControl();
+            yDebug()<< " Stopped control: "<<icart_arm->stopControl();
+	    icart_arm->setTrackingMode(false);
 
 	    double min,max;
 
-	    for (size_t j=0; j<7; j++)
-            {
-                icart_arm->getLimits(j+3, &min, &max);
-		cout<<"min "<<min<< " max "<<max<<endl;
-            }
+	   // for (size_t j=0; j<7; j++)
+            //{
+            //    icart_arm->getLimits(j+3, &min, &max);
+		//cout<<"min "<<min<< " max "<<max<<endl;
+            //}
 
 
             igaze->setTrackingMode(true);
