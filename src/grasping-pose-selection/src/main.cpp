@@ -83,6 +83,7 @@ class poseSelection : public RFModule,
     string frame;
     string robot;
 
+    bool select_defined_pose;
     bool reach_final_pose;
     bool update_hand_pose;   
     bool select_new_pose;
@@ -177,6 +178,7 @@ class poseSelection : public RFModule,
                 icart_arm_move->askForPose(positions_rotated[index], od[index], xd_h, od_h, qdhat);
 
             select_new_pose=false;
+            select_defined_pose=false;
             return true;
         }
         else
@@ -628,6 +630,12 @@ class poseSelection : public RFModule,
 
             choosePose();
 
+            if (waypoint)
+                addWaypoint(n_waypoint, index);
+        }
+
+        if (select_defined_pose)
+        {
             if (waypoint)
                 addWaypoint(n_waypoint, index);
         }
