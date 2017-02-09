@@ -1236,6 +1236,8 @@ class poseSelection : public RFModule,
                     axis_hand[3]=bpos->get(4).asDouble();
                 }    
             }
+
+            yDebug()<< " Received pose "<<pos_hand.toString(3,3)<<" "<<axis_hand.toString(3,3);
         }
         else
         {
