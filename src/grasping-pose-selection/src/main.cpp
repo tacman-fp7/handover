@@ -178,7 +178,7 @@ class poseSelection : public RFModule,
                 icart_arm_move->askForPose(positions_rotated[index], od[index], xd_h, od_h, qdhat);
 
             select_new_pose=false;
-            select_defined_pose=false;
+            select_defined_pose=true;
             return true;
         }
         else
@@ -449,6 +449,7 @@ class poseSelection : public RFModule,
         update_pose=false;
         reach_waypoint=false;
         reach_final_pose=false;
+        select_defined_pose=false;
 
         if (online)
         {
@@ -1702,9 +1703,9 @@ class poseSelection : public RFModule,
            {
                Matrix orient_hat=axis2dcm(odhat[i]);
 
-               waypoints.push_back(xdhat[i].subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+               waypoints.push_back(xdhat[i].subVector(0,2) + (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
 
-               z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+               z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) + (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
                x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
                y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
 
