@@ -636,6 +636,8 @@ class poseSelection : public RFModule,
 
         if (select_defined_pose)
         {
+            askXdOdHat();
+
             if (waypoint)
                 addWaypoint(n_waypoint, index);
         }
@@ -1237,7 +1239,7 @@ class poseSelection : public RFModule,
                 }    
             }
 
-            yDebug()<< " Received pose "<<pos_hand.toString(3,3)<<" "<<axis_hand.toString(3,3);
+            //yDebug()<< " Received pose "<<pos_hand.toString(3,3)<<" "<<axis_hand.toString(3,3);
         }
         else
         {
