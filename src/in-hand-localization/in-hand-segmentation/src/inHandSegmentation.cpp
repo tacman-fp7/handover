@@ -43,6 +43,7 @@ protected:
     vector<Vector> acquisition_poses_head;
 
     Matrix H_hand;
+    Matrix analog_limits;
 
     Vector encoders;
     Vector position;
@@ -477,9 +478,10 @@ protected:
             {
                 Vector point=pointsTobeSent[i];
                 Bottle &bpoint=bpoints.addList();
-                bpoint.addDouble(point[0]); bpoint.addDouble(point[1]);bpoint.addDouble(point[2]);
-                yDebug()<<"number of points sent "<<pointsTobeSent.size();
+                bpoint.addDouble(point[0]); bpoint.addDouble(point[1]);bpoint.addDouble(point[2]);               
             }
+
+            yDebug()<<"number of points sent "<<pointsTobeSent.size();
         }
         else
             yError()<<" No points available!";
@@ -786,6 +788,18 @@ public:
         a_offset=rf.check("a_offset", Value(0.03)).asDouble();
         b_offset=rf.check("b_offset", Value(0.015)).asDouble();
         radius_volume_offset=rf.check("radius_volume_offset", Value(0.03)).asDouble();
+
+        analog_limits.resize(15,2);
+        bool check=readLimits( rf,analog_limits);
+
+        if (check)
+            cout<<" New analog limits: "<< analog_limits.toString()<<endl;
+        else
+        {
+            yError()<<" No analog limits found in config";
+            yInfo()<<" Default values will be used";
+
+        }
 
         cout<<endl<<" Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl;
 
@@ -1482,17 +1496,17 @@ public:
 
         if (finger_str == "thumb")
         {
-            finger_thumb.getChainJoints(encoders,enc_from_port, joints);
+            finger_thumb.getChainJoints(encoders,enc_from_port, joints, analog_limits);
             tipFrame=finger_thumb.getH((M_PI/180.0)*joints);
         }
         if (finger_str == "index")
         {
-            finger_index.getChainJoints(encoders, enc_from_port,joints);
+            finger_index.getChainJoints(encoders, enc_from_port,joints, analog_limits);
             tipFrame=finger_index.getH((M_PI/180.0)*joints);
         }
         if (finger_str == "middle")
         {
-            finger_middle.getChainJoints(encoders, enc_from_port,joints);
+            finger_middle.getChainJoints(encoders, enc_from_port,joints, analog_limits);
             tipFrame=finger_middle.getH((M_PI/180.0)*joints);
         }
 
@@ -2155,5 +2169,38 @@ public:
 
         return v_calib;
      }
+
+    /****************************************************************/
+    bool readLimits(ResourceFinder &rf, Matrix &limit)
+    {
+        bool ok=false;
+
+        if (Bottle *b=rf.find("analog_max").asList())
+        {
+            if (b->size()>=15)
+            {
+                for(size_t i; i<15; i++)
+                    limit(i,1)=b->get(i).asDouble();
+
+
+                ok=true;
+            }
+        }
+
+        if (Bottle *b=rf.find("analog_min").asList())
+        {
+            if (b->size()>=15)
+            {
+                for(size_t i; i<15; i++)
+                    limit(i,0)=b->get(i).asDouble();
+
+                ok=ok && true;
+            }
+        }
+
+        cout<<" ok "<<ok<<endl;
+
+        return ok;
+    }
 
 };
