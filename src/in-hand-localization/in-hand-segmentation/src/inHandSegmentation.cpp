@@ -881,6 +881,14 @@ public:
 
             lim_deque.push_back(lim);
 
+	    double min, max;
+
+	    for (int i=0; i<21; i++)
+	    {
+		lim->getLimits(i,&min, &max);
+cout<<"min "<<min<< " max "<<max<<endl;
+	    }
+
             finger_thumb=iCubFinger(left_or_right+"_thumb");
             finger_index=iCubFinger(left_or_right+"_index");
             finger_middle=iCubFinger(left_or_right+"_middle");
@@ -891,6 +899,8 @@ public:
                 yError(" Problem in alignJoints!Bounds");
             if (!finger_middle.alignJointsBounds(lim_deque))
                 yError(" Problem in alignJoints!Bounds");
+
+
 
             int jnts;
             enc->getAxes(&jnts);
@@ -1494,19 +1504,26 @@ public:
         enc->getEncoders(encoders.data());
         analog->read(enc_from_port);
 
+	cout<<"analog "<<enc_from_port.toString(3,2)<<endl;
+
         if (finger_str == "thumb")
         {
             finger_thumb.getChainJoints(encoders,enc_from_port, joints, analog_limits);
+
+            cout<<"joints thumb "<<joints.toString(3,3)<<endl;
+
             tipFrame=finger_thumb.getH((M_PI/180.0)*joints);
         }
         if (finger_str == "index")
         {
             finger_index.getChainJoints(encoders, enc_from_port,joints, analog_limits);
+cout<<"joints index "<<joints.toString(3,3)<<endl;
             tipFrame=finger_index.getH((M_PI/180.0)*joints);
         }
         if (finger_str == "middle")
         {
             finger_middle.getChainJoints(encoders, enc_from_port,joints, analog_limits);
+cout<<"joints middle "<<joints.toString(3,3)<<endl;
             tipFrame=finger_middle.getH((M_PI/180.0)*joints);
         }
 
@@ -2175,28 +2192,33 @@ public:
     {
         bool ok=false;
 
+ 	if (Bottle *b=rf.find("analog_min").asList())
+        {
+            if (b->size()>=15)
+            {
+                for(size_t i; i<15; i++)
+		{
+                    limit(i,0)=b->get(i).asDouble();
+		}
+                ok=true;
+            }
+        }
+
+
         if (Bottle *b=rf.find("analog_max").asList())
         {
             if (b->size()>=15)
             {
                 for(size_t i; i<15; i++)
+		{
                     limit(i,1)=b->get(i).asDouble();
-
-
-                ok=true;
-            }
-        }
-
-        if (Bottle *b=rf.find("analog_min").asList())
-        {
-            if (b->size()>=15)
-            {
-                for(size_t i; i<15; i++)
-                    limit(i,0)=b->get(i).asDouble();
+		}
 
                 ok=ok && true;
             }
         }
+
+       
 
         cout<<" ok "<<ok<<endl;
 
