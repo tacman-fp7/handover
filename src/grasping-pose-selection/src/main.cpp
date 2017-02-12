@@ -410,7 +410,12 @@ class poseSelection : public RFModule,
         left_or_right=rf.check("which_hand", Value("left")).asString();
 
         n_waypoint=rf.check("n_waypoint", Value(1)).asInt();
-        theta=rf.check("theta", Value(-20.0)).asDouble();
+
+	if (left_or_right=="left")
+            theta=rf.check("theta", Value(20.0)).asDouble();
+	else
+	    theta=rf.check("theta", Value(-20.0)).asDouble();
+
         offset_z_final=rf.check("offset_z_final", Value(0.02)).asDouble();
         offset_x_approach=rf.check("offset_x_approach", Value(0.08)).asDouble();
         offset_x_final=rf.check("offset_x_final", Value(0.02)).asDouble();
@@ -1166,6 +1171,13 @@ class poseSelection : public RFModule,
                 Matrix orient(4,4);
                 orient=axis2dcm(odhat[index]);
 
+//                Matrix orient(3,3);
+//                orient.setCol(0,(x_axis_rotated[index]-positions_rotated[index])/norm(x_axis_rotated[index]-positions_rotated[index]));
+//                orient.setCol(1,(y_axis_rotated[index]-positions_rotated[index])/norm(y_axis_rotated[index]-positions_rotated[index]));
+//                orient.setCol(2,(z_axis_rotated[index]-positions_rotated[index])/norm(z_axis_rotated[index]-positions_rotated[index]));
+
+
+
                 igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
 
@@ -1203,6 +1215,53 @@ class poseSelection : public RFModule,
                     cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
                 }
             }
+//            else
+//            {
+//                igaze->get2DPixel(camera, num_position,center_bb);
+//                cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+
+//                igaze->get2DPixel(camera, positions_rotated[index], position_2D);
+//                cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+//                Matrix orient(4,4);
+//                orient=axis2dcm(odhat[index]);
+
+//                igaze->get2DPixel(camera, positions_rotated[index] + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+//                igaze->get2DPixel(camera, positions_rotated[index] + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+//                igaze->get2DPixel(camera,positions_rotated[index] + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+
+//                for (size_t i=0; i<n_waypoint;i++)
+//                {
+
+//                    igaze->get2DPixel(camera, waypoints[i], position_2D);
+//                    cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+//                    Matrix orient(3,3);
+//                    orient.setCol(0,(x_axis_wp[i]-waypoints[i])/norm(x_axis_wp[i]-waypoints[i]));
+//                    orient.setCol(1,(y_axis_wp[i]-waypoints[i])/norm(y_axis_wp[i]-waypoints[i]));
+//                    orient.setCol(2,(z_axis_wp[i]-waypoints[i])/norm(z_axis_wp[i]-waypoints[i]));
+
+//                    igaze->get2DPixel(camera, waypoints[i] + 0.05 *orient.getCol(0),axis_2D);
+//                    cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+//                    igaze->get2DPixel(camera, waypoints[i] + 0.05 *orient.getCol(1),axis_2D);
+//                    cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+//                    igaze->get2DPixel(camera,waypoints[i] + 0.05 *orient.getCol(2),axis_2D);
+//                    cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+//                }
+//            }
         }
 
         portImgOut.write();
@@ -1419,8 +1478,19 @@ class poseSelection : public RFModule,
                 cout<<endl;
             }
 
-            
+           int size_manip=manip.size();
+           manip_notordered=manip;
+           manip.clear();
+
+           for (size_t i=0; i<size_manip; i++)
+           {
+               manip.push_back(manip_notordered[i]+1/(err_orient[i]));
+           }
+
+
+            manip_notordered.clear();
             manip_notordered=manip;
+
             sort(manip.begin(), manip.end());
 
             for (size_t i=0; i<manip_notordered.size(); i++)
@@ -1432,7 +1502,10 @@ class poseSelection : public RFModule,
                 {
                     if (manip_notordered[i]==*it && first_time)
                     {
-                        index_poses[i] += (count-8)*(err_orient[i]+err_pos[i]);
+                        //index_poses[i] += (count-8)*(err_orient[i]+err_pos[i]);
+                       // index_poses[i] += (count-8)*(err_pos[i]*1000);
+                        index_poses[i] += (count-8);
+                        cout<<"index poses "<<index_poses[i]<<endl;
                         first_time=false;
                     }
                     count++;
@@ -1556,9 +1629,9 @@ class poseSelection : public RFModule,
            qdhat.clear();
            first_arm_pose.clear();
 
-           cout<<endl;
-           yDebug()<<" Received joints solutions";
-           cout<<reply.toString()<<endl<<endl;
+           //cout<<endl;
+           //yDebug()<<" Received joints solutions";
+           //cout<<reply.toString()<<endl<<endl;
 
            Bottle *cont=reply.get(0).asList();
 
@@ -1573,7 +1646,7 @@ class poseSelection : public RFModule,
                    }
                    qdhat.push_back(tmp);
 
-                   yDebug()<<" Qd hat saved"<<qdhat[i].toString(3,3);
+                   //yDebug()<<" Qd hat saved"<<qdhat[i].toString(3,3);
                }
            }
            else
@@ -1601,10 +1674,10 @@ class poseSelection : public RFModule,
             second_arm_pose=ikin_second_arm.EndEffPose(qm);
             first_arm_pose.push_back(ikin_first_arm.EndEffPose(qs));
 
-            cout<<endl;
-            yDebug()<<" Second hand pose: "<<second_arm_pose.toString(3,3);
-            yDebug()<<" First arm pose: "<<first_arm_pose[j].toString(3,3);
-            cout<<endl;
+            //cout<<endl;
+            //yDebug()<<" Second hand pose: "<<second_arm_pose.toString(3,3);
+            //yDebug()<<" First arm pose: "<<first_arm_pose[j].toString(3,3);
+            //cout<<endl;
 
             xdhat.push_back(second_arm_pose.subVector(0,2));
             odhat.push_back(second_arm_pose.subVector(3,6));
@@ -1670,11 +1743,17 @@ class poseSelection : public RFModule,
             {
                 Matrix orient_hat=axis2dcm(odhat[i]);
 
-                waypoints.push_back(xdhat[i].subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+                //waypoints.push_back(xdhat[i].subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
 
-                z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
-                x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
-                y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+                waypoints.push_back(positions_rotated[i].subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))));
+
+//                z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+//                x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+//                y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+
+                z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))));
+                x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))));
+                y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))));
 
                 if (offset_x_approach > 0.0)
                 {
@@ -1703,11 +1782,17 @@ class poseSelection : public RFModule,
            {
                Matrix orient_hat=axis2dcm(odhat[i]);
 
-               waypoints.push_back(xdhat[i].subVector(0,2) + (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+               //waypoints.push_back(xdhat[i].subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
 
-               z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) + (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
-               x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
-               y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+               waypoints.push_back(positions_rotated[i].subVector(0,2) + (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))));
+
+//                z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+//                x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+//                y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-xdhat[i].subVector(0,2))));
+
+               z_axis_wp.push_back(orient_hat.getCol(2).subVector(0,2) + (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))));
+               x_axis_wp.push_back(orient_hat.getCol(0).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))));
+               y_axis_wp.push_back(orient_hat.getCol(1).subVector(0,2) - (j+1)*offset_z_approach*(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))/(norm(orient_hat.getCol(2).subVector(0,2)-positions_rotated[i].subVector(0,2))));
 
                if (offset_x_approach > 0.0)
                {
@@ -1796,6 +1881,7 @@ class poseSelection : public RFModule,
 
        cout<<" Reached pose with"<<endl<<" position error: "<<norm(x_tmp - waypoints[i])<<endl<< " and orientation error: "<<norm(o_tmp- odhat_wp)<<endl<<endl;
 
+       icart_arm_move->setTrackingMode(false);
        icart_arm_move->stopControl();
        reach_waypoint=false;
    }
@@ -1819,22 +1905,33 @@ class poseSelection : public RFModule,
        icart_arm_move->setDOF(dof,dof);
 
        cout<<"qdhat  "<<(qdhat[index]*iCub::ctrl::CTRL_RAD2DEG).toString()<<endl;
-       for (size_t j=3; j<10; j++)
-           icart_arm_move->setLimits(j,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG);
+//       for (size_t j=3; j<10; j++)
+//           icart_arm_move->setLimits(j,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG);
 
        Vector xtmp(3,0.0);
        Vector otmp(4,0.0);
        Vector qtmp(7,0.0);
-       icart_arm_move->askForPose(positions_rotated[index], odhat_wp, xtmp, otmp, qtmp);
+       icart_arm_move->askForPose(waypoints[i], odhat_wp, xtmp, otmp, qtmp);
+
+	cout<<"waypoint "<<waypoints[i].toString()<<endl;
+	cout<<"xtmp "<<xtmp.toString()<<endl;
 
        icart_arm_move->restoreContext(context);
        icart_arm_move->deleteContext(context);
 
 
-       icart_arm_move->goToPoseSync(waypoints[i], otmp);
+       //icart_arm_move->goToPoseSync(waypoints[i], otmp);
+       icart_arm_move->goToPoseSync(waypoints[i], odhat_wp);
        icart_arm_move->waitMotionDone();
 
+	Vector x_tmp(3,0.0);
+       Vector o_tmp(4,0.0);
+       icart_arm_move->getPose(x_tmp, o_tmp);
 
+       cout<<" Reached pose with"<<endl<<" position error: "<<norm(xtmp - x_tmp)<<endl<< " and orientation error: "<<norm(otmp- o_tmp)<<endl<<endl;
+
+
+       icart_arm_move->setTrackingMode(false);
 
        icart_arm_move->stopControl();
 
@@ -1860,21 +1957,34 @@ class poseSelection : public RFModule,
 
        icart_arm_move->setDOF(dof,dof);
 
-       for (size_t j=3; j<10; j++)
-           icart_arm_move->setLimits(j,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG);
+       //for (size_t j=3; j<10; j++)
+       //    icart_arm_move->setLimits(j,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG,qdhat[index][j+4]*iCub::ctrl::CTRL_RAD2DEG);
 
-       Vector xtmp(3,0.0);
-       Vector otmp(4,0.0);
-       Vector qtmp(7,0.0);
-       icart_arm_move->askForPose(positions_rotated[index], odhat_wp, xtmp, otmp, qtmp);
+//       Vector xtmp(3,0.0);
+//       Vector otmp(4,0.0);
+//       Vector qtmp(7,0.0);
+//       icart_arm_move->askForPose(positions_rotated[index], odhat_wp, xtmp, otmp, qtmp);
 
-//       cout<<" difference between positions "<<norm(positions_rotated[index]-xtmp)<<endl;
-//       cout<<" difference between orientations "<<norm(odhat_wp-otmp)<<endl;
+//cout<<"qdhat "<<qdhat[index].subVector(7,13).toString()<<endl;
+//cout<<"qdhat "<<qtmp.toString()<<endl;
 
-//       cout<<" difference between qs "<<norm(qdhat[index].subVector(7,13)*iCub::ctrl::CTRL_RAD2DEG-qtmp.subVector(3,9))<<endl;
+//	cout<<"Difference between q  "<<((qdhat[index].subVector(7,13))*iCub::ctrl::CTRL_RAD2DEG-qtmp.subVector(3,9)).toString()<<endl;
+//        cout<<"positions_rotated[index] "<<positions_rotated[index].toString()<<endl;
+//	cout<<"xtmp "<<xtmp.toString()<<endl;
+
+//       cout<<" Difference between positions "<<norm(positions_rotated[index]-xtmp)<<endl;
+//       cout<<" Difference between orientations "<<norm(odhat_wp-otmp)<<endl;
+
+////       cout<<" difference between qs "<<norm(qdhat[index].subVector(7,13)*iCub::ctrl::CTRL_RAD2DEG-qtmp.subVector(3,9))<<endl;
 
        icart_arm_move->goToPoseSync(positions_rotated[index], odhat_wp);
        icart_arm_move->waitMotionDone();
+
+       Vector x_tmp(3,0.0);
+       Vector o_tmp(4,0.0);
+       icart_arm_move->getPose(x_tmp, o_tmp);
+
+        cout<<" Reached pose with"<<endl<<" position error: "<<norm(x_tmp - positions_rotated[index])<<endl<< " and orientation error: "<<norm(o_tmp- odhat_wp)<<endl<<endl;
 
 	yDebug()<< " Reached final pose!";
 
@@ -1882,6 +1992,8 @@ class poseSelection : public RFModule,
        icart_arm_move->deleteContext(context);
 
        yDebug()<<" Stopped control: "<<icart_arm_move->stopControl();
+
+       icart_arm_move->setTrackingMode(false);
 
        reach_final_pose=false;
 

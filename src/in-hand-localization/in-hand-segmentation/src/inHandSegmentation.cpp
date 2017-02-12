@@ -114,6 +114,7 @@ protected:
     bool density_filter;
     bool ellipse_filter;
     bool cylinder_filter;
+    bool motions_completed;
     bool automatic_acquisition;
 
 
@@ -687,7 +688,6 @@ public:
         poseFileName=rf.check("poseFileName", Value("hand_pose.off"), "Default pose file name").asString();
         handPoseFileName=rf.check("handPoseFileName", Value("recorded_hand_pose.off"), "Default pose file name").asString();
         fingersFileName=rf.check("fingersFileName", Value("tactile_hand_pose.off"), "Default fingers positions file name").asString();
-        acquisitionPoseFileName=rf.check("acquisitionPoseFileName", Value("acquisition_poses.txt"), "Default fingers positions file name").asString();
 
         test=(rf.check("test", Value("no")).asString()=="yes");
         fixate=(rf.check("fixate", Value("no")).asString()=="yes");
@@ -713,6 +713,10 @@ public:
         density_filter=(rf.check("density_filter", Value("yes")).asString()=="yes");
         cylinder_filter=(rf.check("cylinder_filter", Value("no")).asString()=="yes");
         automatic_acquisition=(rf.check("automatic_acquisition", Value("no")).asString()=="yes");
+
+	acquisitionPoseFileName=rf.check("acquisitionPoseFileName", Value("acquisition_poses_"+left_or_right+".txt"), "Default fingers positions file name").asString();
+	
+	yDebug()<<"acquisition pose file name "<<acquisitionPoseFileName;
 
         if(!automatic_acquisition)
             min_blob_size=0;
@@ -804,6 +808,7 @@ public:
         cout<<endl<<" Files will be saved in "<<homeContextPath<<" folder, as "<<savename<<"N."<<fileOutFormat<<", with increasing numeration N"<< endl;
 
         fileCount=0;
+        motions_completed=false;
 
         cout<<endl<<" Opening ports"<<endl<<endl;
 
@@ -1997,7 +2002,7 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
     /*******************************************************************************/
     void findPose(int i)
     {
-        if (i<acquisition_poses_arm.size() && (pointsIn.size()==0 && pointsOut.size()==0))
+        if (i<acquisition_poses_arm.size() && (pointsIn.size()==0 && pointsOut.size()==0) && motions_completed==false)
         {            
             int context;
             Vector x(3,0.0);
@@ -2020,9 +2025,12 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
             yDebug()<<" Acquisition pose arm "<<acquisition_poses_arm[i].toString();
 
             icart_arm->goToPoseSync(acquisition_poses_arm[i].subVector(0,2), acquisition_poses_arm[i].subVector(3,6));
-            icart_arm->waitMotionDone();
+            motions_completed=icart_arm->waitMotionDone();
 
-            yInfo()<<" Arm movement completed!";
+            if (motions_completed)
+                yInfo()<<" Arm movement completed!";
+            else
+                yError()<<" Arm movement not completed!";
             cout<<endl;
 
             icart_arm->getPose(x,o);
@@ -2036,25 +2044,40 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
 
             icart_arm->setTrackingMode(false);
 
-//            double min,max;
-//            for (size_t j=0; j<7; j++)
-//            {
-//                icart_arm->getLimits(j+3, &min, &max);
-//                cout<<"min "<<min<< " max "<<max<<endl;
-//            }
+            Vector x_to_fix(3,0.0);
+            Vector o_to_fix(4,0.0);
 
+            icart_arm->getPose(x_to_fix, o_to_fix);
 
             igaze->setTrackingMode(true);
 
             yDebug()<<" Q poses head "<<q_poses_head[i].toString();
 
-            igaze->blockNeckPitch(q_poses_head[i][0]);
-            igaze->blockNeckRoll(q_poses_head[i][1]);
-            igaze->blockNeckYaw(q_poses_head[i][2]);
-            igaze->waitMotionDone();
-            igaze->setTrackingMode(false);
+//            igaze->blockNeckPitch(q_poses_head[i][0]);
+//            igaze->blockNeckRoll(q_poses_head[i][1]);
+//            igaze->blockNeckYaw(q_poses_head[i][2]);
+//            igaze->blockEyes(5.0);
 
-            yInfo()<<" Gaze movement completed!";
+            igaze->blockNeckRoll();
+            igaze->lookAtFixationPoint(x_to_fix);
+
+            motions_completed=motions_completed && igaze->waitMotionDone();
+
+            Vector x_test(3,0.0);
+            igaze->getFixationPoint(x_test);
+            cout<< " Fixed point "<<x_test.toString()<<endl;
+            cout<<"final error = "<<norm(x_to_fix-x_test)<<endl; //
+
+            igaze->setTrackingMode(false);
+            yDebug()<< " Stopped control: "<<igaze->stopControl();
+
+            if (motions_completed)
+                yInfo()<<" Gaze movement completed!";
+            else
+                yError()<<" Gaze movement not completed!";
+            cout<<endl;
+
+
 
             //count_pose++;
         }

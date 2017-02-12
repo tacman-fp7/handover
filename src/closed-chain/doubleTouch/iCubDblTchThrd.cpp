@@ -172,7 +172,7 @@ void doubleTouchThread::run()
 
                 break;
             case 2:
-                configureHands();
+                //configureHands();
                 goToPose();
                 step++;
 
@@ -501,11 +501,11 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
     {
         iposM->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeM[i]);
     }
-    for (int i = 7; i < 16; i++)
-    {
-        if (i==7)   iposM -> positionMove(i,60.0);
-        else        iposM -> positionMove(i,0.0);
-    }
+//    for (int i = 7; i < 16; i++)
+//    {
+//        if (i==7)   iposM -> positionMove(i,60.0);
+//        else        iposM -> positionMove(i,0.0);
+//    }
 
     Time::delay(2.0);
     
