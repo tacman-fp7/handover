@@ -89,6 +89,7 @@ bool doubleTouchThread::threadInit()
         ok = ok && ddR.view(imodeR);
         ok = ok && ddR.view(iimpR);
         ok = ok && ddR.view(ilimR);
+        ok = ok && ddR.view(crtlmodeR);
     }
     iencsR->getAxes(&jntsR);
     encsR = new Vector(jntsR,0.0);
@@ -100,6 +101,7 @@ bool doubleTouchThread::threadInit()
         ok = ok && ddL.view(imodeL);
         ok = ok && ddL.view(iimpL);
         ok = ok && ddL.view(ilimL);
+        ok = ok && ddR.view(crtlmodeL);
     }
     iencsL->getAxes(&jntsL);
     encsL = new Vector(jntsL,0.0);
@@ -246,6 +248,7 @@ bool doubleTouchThread::selectTask()
          ilimM =  ilimR;
          jntsM =  jntsR;
           armM =   armR;
+     crtlmodeM =   crtlmodeR;
 
         iencsS = iencsL;
         imodeS = imodeL;
@@ -254,6 +257,7 @@ bool doubleTouchThread::selectTask()
          ilimS =  ilimL;
          jntsS =  jntsL;
           armS =   armL;
+     crtlmodeS =   crtlmodeL;
     }
     else if (curTaskType=="RHtoL")
     {
@@ -264,6 +268,7 @@ bool doubleTouchThread::selectTask()
          ilimM =  ilimL;
          jntsM =  jntsL;
           armM =   armL;
+     crtlmodeM =   crtlmodeL;
 
 
         iencsS = iencsR;
@@ -272,7 +277,8 @@ bool doubleTouchThread::selectTask()
          encsS =  encsR;
          ilimS =  ilimR;
          jntsS =  jntsR;
-          armS =   armR;        
+          armS =   armR;
+     crtlmodeS =   crtlmodeS;
     }
     else
     {
@@ -417,6 +423,11 @@ void doubleTouchThread::goToPoseMaster()
     Vector qM(nJnts,0.0);
     std::vector<int> Ejoints;
 
+    for (size_t i=0; i<7;i++)
+    {
+        crtlmodeM->setControlMode(i,VOCAB_CM_POSITION);
+    }
+
     if (verbosity>1)
     {
         cout<<" Moving master links: "<<endl;
@@ -443,6 +454,12 @@ void doubleTouchThread::goToPoseMaster()
 /************************************************************************/
 void doubleTouchThread::goToPoseSlave()
 {
+
+    for (size_t i=0; i<7;i++)
+    {
+        crtlmodeS->setControlMode(i,VOCAB_CM_POSITION);
+    }
+
     if (verbosity>1)
     {
         cout<<" Moving slave  links: "<<endl;
@@ -470,6 +487,17 @@ void doubleTouchThread::steerArmsHome()
     printf(" Moving arms to home, i.e. %s...\n",
                  (iCub::ctrl::CTRL_RAD2DEG*armPossHome).toString(3,3).c_str());
 
+    for (size_t i=0; i<7;i++)
+    {
+        cout<<" control mode L "<<crtlmodeL->setControlMode(i,VOCAB_CM_POSITION)<<endl;
+    }
+
+
+    for (size_t i=0; i<7;i++)
+    {
+        cout<<" control mode R "<<crtlmodeR->setControlMode(i,VOCAB_CM_POSITION)<<endl;
+    }
+
     if ( moving_arm=="left")
     {
         for (int i = 0; i < 7; i++)
@@ -496,6 +524,17 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
 
     printf(" Moving slave arm to home, i.e. %s...\n",
                  (iCub::ctrl::CTRL_RAD2DEG*armPossHomeS).toString(3,3).c_str());
+
+    for (size_t i=0; i<7;i++)
+    {
+        cout<<" control mode L "<<crtlmodeL->setControlMode(i,VOCAB_CM_POSITION)<<endl;
+    }
+
+
+    for (size_t i=0; i<7;i++)
+    {
+        cout<<" control mode r "<<crtlmodeR->setControlMode(i,VOCAB_CM_POSITION)<<endl;
+    }
 
     for (int i = 0; i < 7; i++)
     {

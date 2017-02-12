@@ -96,6 +96,7 @@ protected:
     IControlLimits    *ilimL;
     Vector            *encsL;
     iCubArm           *armL;
+    IControlMode2      *crtlmodeL;
     int jntsL;
         
     // "Classical" interfaces - MASTER ARM
@@ -106,6 +107,7 @@ protected:
     IControlLimits    *ilimR;
     Vector            *encsR;
     iCubArm           *armR;
+    IControlMode2      *crtlmodeR;
     int jntsR;
 
     // "Classical" interfaces - SLAVE ARM
@@ -116,6 +118,7 @@ protected:
     IControlLimits    *ilimS;
     Vector            *encsS;
     iCubArm           *armS;
+    IControlMode2      *crtlmodeS;
     int jntsS;
         
     // "Classical" interfaces - MASTER ARM
@@ -126,6 +129,7 @@ protected:
     IControlLimits    *ilimM;
     Vector            *encsM;
     iCubArm           *armM;
+    IControlMode2      *crtlmodeM;
     int jntsM;
 
     doubleTouch_Variables *gue;
