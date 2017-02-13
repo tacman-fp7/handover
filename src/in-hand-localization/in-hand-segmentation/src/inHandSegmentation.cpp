@@ -2045,6 +2045,7 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
             icart_arm->setTrackingMode(false);
 
             Vector x_to_fix(3,0.0);
+
             Vector o_to_fix(4,0.0);
 
             icart_arm->getPose(x_to_fix, o_to_fix);

@@ -278,7 +278,7 @@ bool doubleTouchThread::selectTask()
          ilimS =  ilimR;
          jntsS =  jntsR;
           armS =   armR;
-     crtlmodeS =   crtlmodeS;
+     crtlmodeS =   crtlmodeR;
     }
     else
     {
@@ -454,10 +454,11 @@ void doubleTouchThread::goToPoseMaster()
 /************************************************************************/
 void doubleTouchThread::goToPoseSlave()
 {
+    cout<< "debug "<<endl;
 
     for (size_t i=0; i<7;i++)
     {
-        crtlmodeS->setControlMode(i,VOCAB_CM_POSITION);
+        cout<<" mode "<<crtlmodeS->setControlMode(i,VOCAB_CM_POSITION)<<endl;
     }
 
     if (verbosity>1)
