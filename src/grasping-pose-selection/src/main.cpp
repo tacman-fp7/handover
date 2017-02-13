@@ -651,6 +651,39 @@ class poseSelection : public RFModule,
         {
             askXdOdHat();
 
+            yInfo()<<" First hand selected pose"<<first_arm_pose[index].toString(3,3);
+            //yInfo()<<" Second hand selected pose"<<xdhat[index].toString(3,3)<< " "<< odhat[index].toString();
+
+            /********************************/
+            Matrix Hfinal_first(4,4);
+            Hfinal_first.zero();
+            Hfinal_first=axis2dcm(first_arm_pose[index].subVector(3,6));
+            Hfinal_first(0,3)=first_arm_pose[index][0];
+            Hfinal_first(1,3)=first_arm_pose[index][1];
+            Hfinal_first(2,3)=first_arm_pose[index][2];
+            Hfinal_first(3,3)=1;
+
+            //cout<<" Hfinal_first"<<Hfinal_first.toString()<<endl;
+
+            Matrix orient(4,4);
+            orient(3,3)=1;
+            orient.setSubcol((x_axis[index]-positions[index].subVector(0,2))/norm(x_axis[index]-positions[index].subVector(0,2)), 0, 0);
+            orient.setSubcol((y_axis[index]-positions[index].subVector(0,2))/norm(y_axis[index]-positions[index].subVector(0,2)), 0, 1);
+            orient.setSubcol((z_axis[index]-positions[index].subVector(0,2))/norm(z_axis[index]-positions[index].subVector(0,2)), 0, 2);
+
+            //cout<<" Hfinal_first"<<orient.toString()<<endl;
+
+            //cout<<" pos index "<<positions[index].subVector(0,2).toString()<<endl;
+            //cout<< " Ho object"<<H_object.toString()<<endl;
+
+
+            Vector tmp(4,1.0);
+            tmp.setSubvector(0,positions[index].subVector(0,2));
+            pose_second.setSubvector(0,Hfinal_first*H_object*tmp);
+            pose_second.setSubvector(3, dcm2axis(Hfinal_first*H_object*orient));
+
+
+
             if (waypoint)
                 addWaypoint(n_waypoint, index);
         }

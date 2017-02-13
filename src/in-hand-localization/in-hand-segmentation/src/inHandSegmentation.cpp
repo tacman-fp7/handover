@@ -78,6 +78,7 @@ protected:
     int down;
     int count_pose;
     int diff_rgb;
+    int context_0;
     int fileCount;
     int diff_ycbcr;
     int nnThreshold;
@@ -122,11 +123,13 @@ protected:
     PolyDriver robotDevice2;
     PolyDriver analogDevice;
     PolyDriver clientGazeCtrl;
+    PolyDriver robotDevice_mode;
 
     ICartesianControl *icart_arm;
     IAnalogSensor *analog;
     IGazeControl *igaze;
     IEncoders *enc;
+    IControlMode2 *ctrlmode;
 
     Bottle limits;
 
@@ -770,19 +773,26 @@ public:
         radius_color=rf.check("radius_color", Value(0.0003)).asDouble();
         nnThreshold_color=rf.check("nn-threshold_color", Value(10)).asInt();
 
-        x_lim_up=rf.check("x_lim_up", Value(0.15)).asDouble();        
-        y_lim_up=rf.check("y_lim_up", Value(0.05)).asDouble();
-        x_lim_down=rf.check("x_lim_down", Value(-0.1)).asDouble();
-        y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
+
 
         if (left_or_right == "right")
         {
+            x_lim_up=rf.check("x_lim_up", Value(0.15)).asDouble();
+            y_lim_up=rf.check("y_lim_up", Value(0.08)).asDouble();
+            x_lim_down=rf.check("x_lim_down", Value(-0.03)).asDouble();
+            y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
             z_lim_up=rf.check("z_lim_up", Value(0.25)).asDouble();
-            z_lim_down=rf.check("z_lim_down", Value(-0.08)).asDouble();
+            z_lim_down=rf.check("z_lim_down", Value(0.04)).asDouble();
+            //z_lim_down=rf.check("z_lim_down", Value(-0.08)).asDouble();
         }
         else
         {
-            z_lim_up=rf.check("z_lim_up", Value(0.08)).asDouble();
+            x_lim_up=rf.check("x_lim_up", Value(0.15)).asDouble();
+            y_lim_up=rf.check("y_lim_up", Value(0.15)).asDouble();
+            x_lim_down=rf.check("x_lim_down", Value(-0.1)).asDouble();
+            y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
+            //z_lim_up=rf.check("z_lim_up", Value(0.08)).asDouble();
+            z_lim_up=rf.check("z_lim_up", Value(0.02)).asDouble();
             z_lim_down=rf.check("z_lim_down", Value(-0.25)).asDouble();
         }
 
@@ -930,6 +940,8 @@ cout<<"min "<<min<< " max "<<max<<endl;
 
             analogDevice.view(analog);
 
+            robotDevice2.view(ctrlmode);
+
             H_hand=computePose();
             filter=false;
         }
@@ -975,6 +987,7 @@ cout<<"min "<<min<< " max "<<max<<endl;
         if (analogDevice.isValid())
             analogDevice.close();
 
+        igaze->restoreContext(context_0);
         if (clientGazeCtrl.isValid())
             clientGazeCtrl.close();
 
@@ -2003,7 +2016,12 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
     void findPose(int i)
     {
         if (i<acquisition_poses_arm.size() && (pointsIn.size()==0 && pointsOut.size()==0) && motions_completed==false)
-        {            
+        {
+            for (size_t j=0; j<7;j++)
+            {
+                ctrlmode->setControlMode(j,VOCAB_CM_POSITION_DIRECT);
+            }
+
             int context;
             Vector x(3,0.0);
             Vector o(4,0.0);
@@ -2050,6 +2068,9 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
 
             icart_arm->getPose(x_to_fix, o_to_fix);
 
+
+            igaze->storeContext(&context_0);
+
             igaze->setTrackingMode(true);
 
             yDebug()<<" Q poses head "<<q_poses_head[i].toString();
@@ -2057,9 +2078,21 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
 //            igaze->blockNeckPitch(q_poses_head[i][0]);
 //            igaze->blockNeckRoll(q_poses_head[i][1]);
 //            igaze->blockNeckYaw(q_poses_head[i][2]);
-//            igaze->blockEyes(5.0);
+            //igaze->blockEyes(5.0);
 
-            igaze->blockNeckRoll();
+            if (left_or_right=="right")
+            {
+                x_to_fix[1]-=0.16;
+                x_to_fix[2]+=0.08;
+            }
+            else
+            {
+                x_to_fix[1]+=0.12;
+                x_to_fix[2]+=0.08;
+            }
+
+            cout<< " Point to fix "<<x_to_fix.toString()<<endl;
+           // igaze->blockNeckRoll();
             igaze->lookAtFixationPoint(x_to_fix);
 
             motions_completed=motions_completed && igaze->waitMotionDone();
@@ -2067,10 +2100,14 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
             Vector x_test(3,0.0);
             igaze->getFixationPoint(x_test);
             cout<< " Fixed point "<<x_test.toString()<<endl;
-            cout<<"final error = "<<norm(x_to_fix-x_test)<<endl; //
+            cout<<"final error = "<<norm(x_to_fix-x_test)<<endl;
 
             igaze->setTrackingMode(false);
             yDebug()<< " Stopped control: "<<igaze->stopControl();
+
+            igaze->restoreContext(context_0);
+
+            cout<<"vergence "<<igaze->blockEyes(5.0)<<endl;
 
             if (motions_completed)
                 yInfo()<<" Gaze movement completed!";
@@ -2078,7 +2115,10 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
                 yError()<<" Gaze movement not completed!";
             cout<<endl;
 
-
+            for (size_t j=0; j<7;j++)
+            {
+                ctrlmode->setControlMode(j,VOCAB_CM_POSITION);
+            }
 
             //count_pose++;
         }
