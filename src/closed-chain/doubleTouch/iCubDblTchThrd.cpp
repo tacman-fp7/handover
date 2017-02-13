@@ -163,6 +163,7 @@ void doubleTouchThread::run()
     {
         switch (step)
         {
+        cout<<"step "<<step<<endl;
             case 0:
                 if (go)
                     step++;
@@ -181,7 +182,7 @@ void doubleTouchThread::run()
                 break;
             case 3:
 
-                Time::delay(3.0);
+                Time::delay(0.5);
                 testAchievement();
                 step ++;
 
@@ -208,7 +209,7 @@ void doubleTouchThread::run()
                 break;
             default:
                 yError(" DoubleTouchThread should never be here!!!\nStep: %d",step);
-                Time::delay(2.0);
+                Time::delay(0.5);
                 break;
         }
     }
@@ -454,11 +455,9 @@ void doubleTouchThread::goToPoseMaster()
 /************************************************************************/
 void doubleTouchThread::goToPoseSlave()
 {
-    cout<< "debug "<<endl;
 
     for (size_t i=0; i<7;i++)
-    {
-        cout<<" mode "<<crtlmodeS->setControlMode(i,VOCAB_CM_POSITION)<<endl;
+    {crtlmodeS->setControlMode(i,VOCAB_CM_POSITION);
     }
 
     if (verbosity>1)
@@ -490,13 +489,13 @@ void doubleTouchThread::steerArmsHome()
 
     for (size_t i=0; i<7;i++)
     {
-        cout<<" control mode L "<<crtlmodeL->setControlMode(i,VOCAB_CM_POSITION)<<endl;
+        crtlmodeL->setControlMode(i,VOCAB_CM_POSITION);
     }
 
 
     for (size_t i=0; i<7;i++)
     {
-        cout<<" control mode R "<<crtlmodeR->setControlMode(i,VOCAB_CM_POSITION)<<endl;
+        crtlmodeR->setControlMode(i,VOCAB_CM_POSITION);
     }
 
     if ( moving_arm=="left")
@@ -506,7 +505,7 @@ void doubleTouchThread::steerArmsHome()
             iposL->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHome[i]);
         }
 
-        Time::delay(2.0);
+        Time::delay(1.0);
     }
     else
     {
@@ -528,13 +527,13 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
 
     for (size_t i=0; i<7;i++)
     {
-        cout<<" control mode L "<<crtlmodeL->setControlMode(i,VOCAB_CM_POSITION)<<endl;
+        crtlmodeM->setControlMode(i,VOCAB_CM_POSITION);
     }
 
 
     for (size_t i=0; i<7;i++)
     {
-        cout<<" control mode r "<<crtlmodeR->setControlMode(i,VOCAB_CM_POSITION)<<endl;
+        crtlmodeS->setControlMode(i,VOCAB_CM_POSITION);
     }
 
     for (int i = 0; i < 7; i++)
@@ -547,7 +546,7 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
 //        else        iposM -> positionMove(i,0.0);
 //    }
 
-    Time::delay(2.0);
+    Time::delay(0.5);
     
     for (int i = 0; i < 7; i++)
     {
@@ -686,6 +685,7 @@ bool doubleTouchThread::askSelectedPose()
         if (reply.get(0).asInt()<1000)
         {
             index=reply.get(0).asInt();
+            cout<<"Selected pose "<<index<<endl;
         }
         else
             return false;
@@ -849,11 +849,14 @@ bool doubleTouchThread::move(const string &entry)
     {
         go_slave=true;
         go_master=false;
+        step=1;
+        cout<<"step "<<step<<endl;
     }
     else if (entry=="second_hand")
     {
         go_master=true;
         go_slave=false;
+        step=1;
     }
     else if (entry=="both")
         go_slave=go_master=true;

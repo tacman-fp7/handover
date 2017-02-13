@@ -127,6 +127,7 @@ class poseSelection : public RFModule,
     IControlLimits* lim_first_arm;
     IControlLimits* lim_second_arm;
     ICartesianControl *icart_arm_move;
+    IControlMode2     *ctrlmode;
 
     PolyDriver clientGazeCtrl;
     PolyDriver robotDevice_move;
@@ -509,7 +510,8 @@ class poseSelection : public RFModule,
             return false;
         }
 
-        robotDevice_move.view(icart_arm_move);
+        robotDevice_move.view(icart_arm_move);       
+
         icart_arm_move->storeContext(&startup_context_id);
         icart_arm_move->getPose(x_init_moving_arm, o_init_moving_arm);
 
@@ -551,6 +553,7 @@ class poseSelection : public RFModule,
         }
 
         robotDevice2.view(lim_second_arm);
+        robotDevice2.view(ctrlmode);
 
         Property option_arm4("(device remote_controlboard)");
         if (left_or_right=="left")
@@ -1933,6 +1936,11 @@ class poseSelection : public RFModule,
 
 //       Vector odhat_wp=dcm2axis(orient);
 
+       for (size_t i=0; i<7;i++)
+       {
+           ctrlmode->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
+       }
+
        int context;
        icart_arm_move->storeContext(&context);
 
@@ -1971,6 +1979,11 @@ class poseSelection : public RFModule,
 
        icart_arm_move->stopControl();
 
+       for (size_t i=0; i<7;i++)
+       {
+           ctrlmode->setControlMode(i,VOCAB_CM_POSITION);
+       }
+
        reach_waypoint=false;
    }
 
@@ -1984,6 +1997,11 @@ class poseSelection : public RFModule,
 //       orient.setCol(2,(z_axis_rotated[index]-positions_rotated[index])/norm(z_axis_rotated[index]-positions_rotated[index]));
 
 //       Vector odhat_wp=dcm2axis(orient);
+
+       for (size_t i=0; i<7;i++)
+       {
+           ctrlmode->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
+       }
 
        int context;
        icart_arm_move->storeContext(&context);
@@ -2034,6 +2052,11 @@ class poseSelection : public RFModule,
        icart_arm_move->setTrackingMode(false);
 
        reach_final_pose=false;
+
+       for (size_t i=0; i<7;i++)
+       {
+           ctrlmode->setControlMode(i,VOCAB_CM_POSITION);
+       }
 
        return true;
 
