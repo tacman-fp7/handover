@@ -259,7 +259,6 @@ public:
             askForPoints();
         }
 
-
         for (size_t j=0; j<num_objs;j++)
         {
             for (size_t k=0; k<num_m_values; k++)
@@ -273,31 +272,36 @@ public:
                         {
                             if (localize)
                             {
-                                Localizer *loc5=new UnscentedParticleFilter();
-                                if (loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
+                                if (measurements.size()>0)
                                 {
-                                    error_indices=loc5->localization();
-                                    result=error_indices.subVector(0,5);
-                                    loc5->saveData(error_indices,i,k,l,m);
-                                    solutions(i,0)=error_indices[6];
-                                    solutions(i,1)=error_indices[7];
-                                    solutions(i,2)=error_indices[8];
-                                    solutions(i,3)=error_indices[9];
+                                    Localizer *loc5=new UnscentedParticleFilter();
+                                    if (loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
+                                    {
+                                        error_indices=loc5->localization();
+                                        result=error_indices.subVector(0,5);
+                                        loc5->saveData(error_indices,i,k,l,m);
+                                        solutions(i,0)=error_indices[6];
+                                        solutions(i,1)=error_indices[7];
+                                        solutions(i,2)=error_indices[8];
+                                        solutions(i,3)=error_indices[9];
 
-                                    cout<<endl<<endl<<" Solution computed"<<endl;
-                                    cout<<" Localization error: "<< error_indices[6]<<endl;
-                                    cout<<" Execution time    : "<< error_indices[7]<<endl<<endl;
+                                        cout<<endl<<endl<<" Solution computed"<<endl;
+                                        cout<<" Localization error: "<< error_indices[6]<<endl;
+                                        cout<<" Execution time    : "<< error_indices[7]<<endl<<endl;
 
-                                    delete loc5;
-                                    pose_computed=true;
-                                    pose_saved=false;
+                                        delete loc5;
+                                        pose_computed=true;
+                                        pose_saved=false;
+                                    }
+                                    else
+                                    {
+                                        localize=false;
+                                        delete loc5;
+                                        return false;
+                                    }
                                 }
                                 else
-                                {
-                                    localize=false;
-                                    delete loc5;
-                                    return false;
-                                }
+                                    yError()<< " No measurements received!! ";
                             }
                         }
 

@@ -140,6 +140,7 @@ protected:
 
 
     Vector armPossHome;
+    Vector armInitPose;
     Vector armPossHomeM;
     Vector armPossHomeS;
 
@@ -245,6 +246,8 @@ public:
     bool move(const string &entry);
 
     void extractInitialQ(IEncoders *ienc);
+
+    void initialPoseMaster();
 
 //    bool set_waypoint(const int entry);
 //    bool reach_final_pose();

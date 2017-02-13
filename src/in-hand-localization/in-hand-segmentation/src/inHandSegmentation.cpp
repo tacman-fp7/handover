@@ -126,10 +126,10 @@ protected:
     PolyDriver robotDevice_mode;
 
     ICartesianControl *icart_arm;
+    IControlMode2 *ctrlmode;
     IAnalogSensor *analog;
     IGazeControl *igaze;
     IEncoders *enc;
-    IControlMode2 *ctrlmode;
 
     Bottle limits;
 
@@ -717,9 +717,7 @@ public:
         cylinder_filter=(rf.check("cylinder_filter", Value("no")).asString()=="yes");
         automatic_acquisition=(rf.check("automatic_acquisition", Value("no")).asString()=="yes");
 
-	acquisitionPoseFileName=rf.check("acquisitionPoseFileName", Value("acquisition_poses_"+left_or_right+".txt"), "Default fingers positions file name").asString();
-	
-	yDebug()<<"acquisition pose file name "<<acquisitionPoseFileName;
+        acquisitionPoseFileName=rf.check("acquisitionPoseFileName", Value("acquisition_poses_"+left_or_right+".txt"), "Default fingers positions file name").asString();
 
         if(!automatic_acquisition)
             min_blob_size=0;
@@ -727,8 +725,6 @@ public:
         {
             readAcquisitionPoses(acquisitionPoseFileName,"ARM_Q");
             readAcquisitionPoses(acquisitionPoseFileName,"ARM");
-            readAcquisitionPoses(acquisitionPoseFileName,"HEAD_Q");
-            readAcquisitionPoses(acquisitionPoseFileName,"HEAD");
 
             count_pose=0;
 
@@ -745,20 +741,6 @@ public:
             {
                 cout<<q_poses_arm[i].toString()<<endl;
             }
-
-            cout<<"head poses "<<endl;
-
-            for (size_t i=0; i<acquisition_poses_head.size(); i++)
-            {
-                cout<<acquisition_poses_head[i].toString()<<endl;
-            }
-
-            cout<<"head qs "<<endl;
-
-            for (size_t i=0; i<q_poses_head.size(); i++)
-            {
-                cout<<q_poses_head[i].toString()<<endl;
-            }
         }
 
         if (tactile_on==false)
@@ -772,8 +754,6 @@ public:
         nnThreshold=rf.check("nn-threshold", Value(40)).asInt();
         radius_color=rf.check("radius_color", Value(0.0003)).asDouble();
         nnThreshold_color=rf.check("nn-threshold_color", Value(10)).asInt();
-
-
 
         if (left_or_right == "right")
         {
@@ -847,6 +827,7 @@ public:
 
         clientGazeCtrl.open(optionG);
         igaze=NULL;
+
         if (clientGazeCtrl.isValid())
         {
             clientGazeCtrl.view(igaze);
@@ -867,15 +848,15 @@ public:
 
         robotDevice.view(icart_arm);
 
-        icart_arm->getPose(pos_to_reach, orient_to_reach);
-        pos_to_reach[0]=-0.35;
-        pos_to_reach[1]=-0.15;
-        pos_to_reach[2]=0.15;
+//        icart_arm->getPose(pos_to_reach, orient_to_reach);
+//        pos_to_reach[0]=-0.35;
+//        pos_to_reach[1]=-0.15;
+//        pos_to_reach[2]=0.15;
 
-	orient_to_reach[0]= -0.032;
-	orient_to_reach[1]=  0.599;
-	orient_to_reach[2]= -0.800;
-	orient_to_reach[3]= 2.843;
+//        orient_to_reach[0]= -0.032;
+//        orient_to_reach[1]=  0.599;
+//        orient_to_reach[2]= -0.800;
+//        orient_to_reach[3]= 2.843;
 
         if (online)
         {
@@ -896,13 +877,12 @@ public:
 
             lim_deque.push_back(lim);
 
-	    double min, max;
+            double min, max;
 
-	    for (int i=0; i<21; i++)
-	    {
-		lim->getLimits(i,&min, &max);
-cout<<"min "<<min<< " max "<<max<<endl;
-	    }
+            for (int i=0; i<21; i++)
+            {
+                 lim->getLimits(i,&min, &max);
+            }
 
             finger_thumb=iCubFinger(left_or_right+"_thumb");
             finger_index=iCubFinger(left_or_right+"_index");
@@ -914,8 +894,6 @@ cout<<"min "<<min<< " max "<<max<<endl;
                 yError(" Problem in alignJoints!Bounds");
             if (!finger_middle.alignJointsBounds(lim_deque))
                 yError(" Problem in alignJoints!Bounds");
-
-
 
             int jnts;
             enc->getAxes(&jnts);
@@ -943,6 +921,7 @@ cout<<"min "<<min<< " max "<<max<<endl;
             robotDevice2.view(ctrlmode);
 
             H_hand=computePose();
+
             filter=false;
         }
         else
@@ -988,6 +967,7 @@ cout<<"min "<<min<< " max "<<max<<endl;
             analogDevice.close();
 
         igaze->restoreContext(context_0);
+
         if (clientGazeCtrl.isValid())
             clientGazeCtrl.close();
 
@@ -1023,7 +1003,6 @@ cout<<"min "<<min<< " max "<<max<<endl;
     {
         Vector colors(3,0.0);
 
-        //if (!online)
         if (online)
         {
             if (prepare_hand)
@@ -1535,13 +1514,13 @@ cout<<"min "<<min<< " max "<<max<<endl;
         if (finger_str == "index")
         {
             finger_index.getChainJoints(encoders, enc_from_port,joints, analog_limits);
-cout<<"joints index "<<joints.toString(3,3)<<endl;
+
             tipFrame=finger_index.getH((M_PI/180.0)*joints);
         }
         if (finger_str == "middle")
         {
             finger_middle.getChainJoints(encoders, enc_from_port,joints, analog_limits);
-cout<<"joints middle "<<joints.toString(3,3)<<endl;
+
             tipFrame=finger_middle.getH((M_PI/180.0)*joints);
         }
 
@@ -2023,26 +2002,29 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
             }
 
             int context;
+            Vector dof(10,1.0);
             Vector x(3,0.0);
             Vector o(4,0.0);
+
+
             icart_arm->storeContext(&context);
 
-            Vector dof(10,1.0);
             dof[0]=dof[1]=dof[2]=0.0;
-
             icart_arm->setDOF(dof,dof);
+            icart_arm->setTrajTime(2.0);
 
             cout<<endl;
-            yDebug()<<" Q pose arm "<<q_poses_arm[i].toString();
+            yDebug()<<" Q pose arm: "<<q_poses_arm[i].toString();
 
             for (size_t j=0; j<7; j++)
             {
                 icart_arm->setLimits(j+3, q_poses_arm[i][j], q_poses_arm[i][j]);
             }
 
-            yDebug()<<" Acquisition pose arm "<<acquisition_poses_arm[i].toString();
+            yDebug()<<" Acquired pose arm: "<<acquisition_poses_arm[i].toString();
 
             icart_arm->goToPoseSync(acquisition_poses_arm[i].subVector(0,2), acquisition_poses_arm[i].subVector(3,6));
+
             motions_completed=icart_arm->waitMotionDone();
 
             if (motions_completed)
@@ -2062,23 +2044,19 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
 
             icart_arm->setTrackingMode(false);
 
-            Vector x_to_fix(3,0.0);
+            for (size_t j=0; j<7;j++)
+            {
+                ctrlmode->setControlMode(j,VOCAB_CM_POSITION);
+            }
 
+            Vector x_to_fix(3,0.0);
             Vector o_to_fix(4,0.0);
 
             icart_arm->getPose(x_to_fix, o_to_fix);
 
-
             igaze->storeContext(&context_0);
 
             igaze->setTrackingMode(true);
-
-            yDebug()<<" Q poses head "<<q_poses_head[i].toString();
-
-//            igaze->blockNeckPitch(q_poses_head[i][0]);
-//            igaze->blockNeckRoll(q_poses_head[i][1]);
-//            igaze->blockNeckYaw(q_poses_head[i][2]);
-            //igaze->blockEyes(5.0);
 
             if (left_or_right=="right")
             {
@@ -2092,7 +2070,7 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
             }
 
             cout<< " Point to fix "<<x_to_fix.toString()<<endl;
-           // igaze->blockNeckRoll();
+//          igaze->blockNeckRoll();
             igaze->lookAtFixationPoint(x_to_fix);
 
             motions_completed=motions_completed && igaze->waitMotionDone();
@@ -2100,14 +2078,15 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
             Vector x_test(3,0.0);
             igaze->getFixationPoint(x_test);
             cout<< " Fixed point "<<x_test.toString()<<endl;
-            cout<<"final error = "<<norm(x_to_fix-x_test)<<endl;
+            cout<< " Final error: "<<norm(x_to_fix-x_test)<<endl;
 
             igaze->setTrackingMode(false);
+
             yDebug()<< " Stopped control: "<<igaze->stopControl();
 
             igaze->restoreContext(context_0);
 
-            cout<<"vergence "<<igaze->blockEyes(5.0)<<endl;
+            igaze->blockEyes(5.0);
 
             if (motions_completed)
                 yInfo()<<" Gaze movement completed!";
@@ -2119,14 +2098,7 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
             {
                 ctrlmode->setControlMode(j,VOCAB_CM_POSITION);
             }
-
-            //count_pose++;
         }
-//        else
-//        {
-//            yError()<<" Tested all possible poses!";
-//        }
-
     }
 
     /*********************************************************************************/
@@ -2141,16 +2113,17 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
 
         if (tag=="ARM_Q")
             point_tmp.resize(7,0.0);
-        else if (tag=="HEAD_Q")
-            point_tmp.resize(6,0.0);
-        else if (tag=="HEAD")
-            point_tmp.resize(7,0.0);
+//        else if (tag=="HEAD_Q")
+//            point_tmp.resize(6,0.0);
+//        else if (tag=="HEAD")
+//            point_tmp.resize(7,0.0);
         else if (tag=="ARM")
             point_tmp.resize(7,0.0);
 
         cout<< " In cloud file "<<homeContextPath+"/"+filename<<endl;
 
         ifstream cloudFile((homeContextPath+"/"+filename).c_str());
+
         if (!cloudFile.is_open())
         {
             yError()<<" Problem opening cloud file!";
@@ -2206,10 +2179,10 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
                                 q_poses_arm.push_back(point_tmp);
                             else if (tag=="ARM")
                                 acquisition_poses_arm.push_back(point_tmp);
-                            if (tag =="HEAD_Q")
-                                q_poses_head.push_back(point_tmp);
-                            else if (tag=="HEAD")
-                                acquisition_poses_head.push_back(point_tmp);
+//                            if (tag =="HEAD_Q")
+//                                q_poses_head.push_back(point_tmp);
+//                            else if (tag=="HEAD")
+//                                acquisition_poses_head.push_back(point_tmp);
                         }
                         return true;
                     }
@@ -2229,7 +2202,7 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
         Vector v_calib;
         v_calib=v;
 
-        yDebug()<<"Vector before calibration: "<<v.toString();
+        yDebug()<<" Vector before calibration: "<<v.toString();
 
         cmd.addDouble(v[0]);
         cmd.addDouble(v[1]);
@@ -2242,10 +2215,10 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
             v_calib[1]=reply.get(2).asDouble();
             v_calib[2]=reply.get(3).asDouble();
 
-             yDebug()<<"Vector after calibration: "<<v_calib.toString();
+             yDebug()<<" Vector after calibration: "<<v_calib.toString();
         }
         else
-            yInfo()<<"Depth2kin not available! ";
+            yInfo()<<" Depth2kin not available! ";
 
 
         return v_calib;
@@ -2281,10 +2254,6 @@ cout<<"joints middle "<<joints.toString(3,3)<<endl;
                 ok=ok && true;
             }
         }
-
-       
-
-        cout<<" ok "<<ok<<endl;
 
         return ok;
     }

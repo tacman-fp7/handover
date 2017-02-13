@@ -20,6 +20,11 @@ doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const strin
     armPossHome[1]=80.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHome[3]=45.0*iCub::ctrl::CTRL_DEG2RAD;
 
+    armInitPose.resize(7,0.0);
+    armInitPose[0]=-30.0*iCub::ctrl::CTRL_DEG2RAD;
+    armInitPose[1]=60.0*iCub::ctrl::CTRL_DEG2RAD;
+    armInitPose[3]=45.0*iCub::ctrl::CTRL_DEG2RAD;
+
     armPossHomeM.resize(7,0.0);
     armPossHomeM[0]=-30.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHomeM[1]=80.0*iCub::ctrl::CTRL_DEG2RAD;
@@ -145,13 +150,7 @@ bool doubleTouchThread::threadInit()
     home=false;
     go=go_slave=go_master=false;
 
-
-    //HIndex=receivePose("arm");
-
-//    if (moving_arm=="right")
-//        extractInitialQ(iencsR);
-//    else if (moving_arm=="left")
-//        extractInitialQ(iencsL);
+    initialPoseMaster();
 
     return true;
 }
@@ -175,7 +174,6 @@ void doubleTouchThread::run()
 
                 break;
             case 2:
-                //configureHands();
                 goToPose();
                 step++;
 
@@ -314,22 +312,6 @@ bool doubleTouchThread::clearTask()
 }
 
 /************************************************************************/
-void doubleTouchThread::configureHands()
-{
-    Vector vels(9,100.0);    
-    vels[8]=200.0; 
-
-    cout<<endl<<" Configuring master hand..."<<endl;
-
-    for (int i=7; i<jntsM; i++)
-    {
-        iposM->setRefAcceleration(i,1e9);
-        iposM->setRefSpeed(i,vels[i-7]);
-        iposM->positionMove(i,handPossMaster[i-7]);
-    }
-}
-
-/************************************************************************/
 bool doubleTouchThread::checkMotionDone()
 {
     if (step == 4 || step == 2 || step == 3)
@@ -457,7 +439,8 @@ void doubleTouchThread::goToPoseSlave()
 {
 
     for (size_t i=0; i<7;i++)
-    {crtlmodeS->setControlMode(i,VOCAB_CM_POSITION);
+    {
+        crtlmodeS->setControlMode(i,VOCAB_CM_POSITION);
     }
 
     if (verbosity>1)
@@ -540,23 +523,13 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
     {
         iposM->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeM[i]);
     }
-//    for (int i = 7; i < 16; i++)
-//    {
-//        if (i==7)   iposM -> positionMove(i,60.0);
-//        else        iposM -> positionMove(i,0.0);
-//    }
 
-    Time::delay(0.5);
+    Time::delay(1.5);
     
     for (int i = 0; i < 7; i++)
     {
         iposS->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeS[i]);
     }
-//    for (int i = 7; i < 16; i++)
-//    {
-//        if (i==7)   iposS -> positionMove(i,60.0);
-//        else        iposS -> positionMove(i,0.0);
-//    }
 }
 
 /************************************************************************/
@@ -865,21 +838,43 @@ bool doubleTouchThread::move(const string &entry)
     return true;
 }
 
-/************************************************************************/
-void doubleTouchThread::extractInitialQ(IEncoders *iencs)
-{
-    double v;
-//    for (size_t i=0; i<7; i++)
-//    {
-//        iencs->getEncoder(i,&v);
-//        armPossHomeS[i]=v;
-//        cout<<armPossHomeS[i]<<endl;
-//    }
 
-    //iencsR->getEncoders(armPossHomeS.data());
-    //cout<<"test "<<armL->getAng().toString()<<endl;
-    armPossHomeS=armL->getAng();
-    //cout<<"armPossHomeS "<<armPossHomeS.toString()<<endl;
+/************************************************************************/
+void doubleTouchThread::initialPoseMaster()
+{
+    cout<<endl;
+    printf(" Moving second arm to initial pose, i.e. %s...\n",
+                 (iCub::ctrl::CTRL_RAD2DEG*armInitPose).toString(3,3).c_str());
+
+    for (size_t i=0; i<7;i++)
+    {
+        crtlmodeL->setControlMode(i,VOCAB_CM_POSITION);
+    }
+
+
+    for (size_t i=0; i<7;i++)
+    {
+        crtlmodeR->setControlMode(i,VOCAB_CM_POSITION);
+    }
+
+    if ( moving_arm == "left")
+    {
+        for (int i = 0; i < 7; i++)
+        {
+            iposL->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armInitPose[i]);
+        }
+
+        Time::delay(1.0);
+    }
+    else
+    {
+        for (int i = 0; i < 7; i++)
+        {
+            iposR->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armInitPose[i]);
+        }
+    }
+
+    cout<< " Second arm ready! " <<endl<<endl;
 }
 
 
