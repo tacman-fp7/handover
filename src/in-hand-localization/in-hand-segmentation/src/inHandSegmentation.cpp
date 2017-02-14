@@ -700,24 +700,29 @@ protected:
     {
         Vector final_position(3,0.0);
         final_position[0]=-0.7;
-        final_position[2]=0.4;
+        final_position[2]=0.25;
 
         cout<<" Looking in front ... "<<endl;
+        cout<< " Point: "<<final_position.toString()<<endl;
 
         igaze->setTrackingMode(false);
 
         igaze->storeContext(&context_0);
 
-        igaze->setNeckTrajTime(0.75);
-        igaze->setEyesTrajTime(0.75);
+        igaze->setNeckTrajTime(1.75);
+        igaze->setEyesTrajTime(1.75);
         igaze->setSaccadesMode(false);
         igaze->blockNeckRoll();
         igaze->lookAtFixationPoint(final_position);
-        igaze->waitMotionDone();
+        igaze->waitMotionDone(0.1, 3.0);
 
         igaze->restoreContext(context_0);
         igaze->deleteContext(context_0);
         igaze->setTrackingMode(false);
+
+        cout<< " Staring in front!"<<endl;
+
+        fixate=false;
 
         return true;
     }
@@ -2002,14 +2007,18 @@ public:
 
             if ((norm(position)>0.0 && norm(position)<2.0))
             {
-                cout<<"See ... "<<endl;
+                cout<<" Looking new hand pose ... "<<endl;
+                cout<<" Hand position: "<< position.toString()<<endl;
+                igaze->setTrackingMode(false);
                 igaze->setNeckTrajTime(0.75);
                 igaze->setEyesTrajTime(0.75);
                 igaze->setSaccadesMode(false);
                 igaze->blockNeckRoll();
                 igaze->lookAtFixationPoint(position+ shift);
-                igaze->waitMotionDone();
+                igaze->waitMotionDone(0.1, 3.0);
                 igaze->setTrackingMode(false);
+
+                cout<<" Now looking new hand pose! "<<endl;
             }
             else
                 yError()<< " Unrealistic values for hand position!";
@@ -2088,7 +2097,7 @@ public:
 
             icart_arm->goToPoseSync(acquisition_poses_arm[i].subVector(0,2), acquisition_poses_arm[i].subVector(3,6));
 
-            motions_completed=icart_arm->waitMotionDone();
+            motions_completed=icart_arm->waitMotionDone(0.1, 4.0);
 
             if (motions_completed)
                 yInfo()<<" Arm movement completed!";
@@ -2119,7 +2128,7 @@ public:
 
             igaze->storeContext(&context_0);
 
-            //igaze->setTrackingMode(true);
+            igaze->setTrackingMode(false);
 
             if (left_or_right=="right")
             {
@@ -2133,7 +2142,7 @@ public:
             }
 
             cout<< " Point to fix "<<x_to_fix.toString()<<endl;
-//          igaze->blockNeckRoll();
+            igaze->blockNeckRoll();
             igaze->lookAtFixationPoint(x_to_fix);
 
             motions_completed=motions_completed && igaze->waitMotionDone();

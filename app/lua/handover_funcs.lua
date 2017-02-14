@@ -110,3 +110,13 @@ function HANDOVER_close_hand(port)
     yarp.Time_delay(4.0)
     return reply:get(0):asString()
 end
+
+function HANDOVER_look_in_front(port)
+   local wb = yarp.Bottle()
+   local reply = yarp.Bottle()
+   wb:clear()
+    wb:addString("look_in_front")
+    port:write(wb,reply)
+    yarp.Time_delay(4.0)
+    return reply:get(0):asString()
+end
