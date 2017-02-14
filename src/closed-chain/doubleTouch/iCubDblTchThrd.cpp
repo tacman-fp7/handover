@@ -17,7 +17,7 @@ doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const strin
 
     armPossHome.resize(7,0.0);
     armPossHome[0]=-30.0*iCub::ctrl::CTRL_DEG2RAD;
-    armPossHome[1]=80.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHome[1]=60.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHome[3]=45.0*iCub::ctrl::CTRL_DEG2RAD;
 
     armInitPose.resize(7,0.0);
@@ -27,15 +27,19 @@ doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const strin
 
     armPossHomeM.resize(7,0.0);
     armPossHomeM[0]=-30.0*iCub::ctrl::CTRL_DEG2RAD;
-    armPossHomeM[1]=80.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeM[1]=60.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHomeM[3]=45.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeM[4]=-50.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeM[6]=-15.0*iCub::ctrl::CTRL_DEG2RAD;
+
 
     armPossHomeS.resize(7,0.0);
-    armPossHomeS[0]=-60.0*iCub::ctrl::CTRL_DEG2RAD;
-    armPossHomeS[1]=24.0*iCub::ctrl::CTRL_DEG2RAD;
-    armPossHomeS[2]=56.0*iCub::ctrl::CTRL_DEG2RAD;
-    armPossHomeS[3]=40.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeS[0]=-30.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeS[1]=60.0*iCub::ctrl::CTRL_DEG2RAD;
+    //armPossHomeS[2]=45.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeS[3]=45.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHomeS[4]=-50.0*iCub::ctrl::CTRL_DEG2RAD;
+    armPossHomeS[6]=-15.0*iCub::ctrl::CTRL_DEG2RAD;
 
     armL = new iCubArm("left");
     armR = new iCubArm("right");

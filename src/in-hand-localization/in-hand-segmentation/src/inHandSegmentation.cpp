@@ -1008,8 +1008,8 @@ public:
             if (prepare_hand)
                 moveHand(pos_to_reach, orient_to_reach);
 
-            if (fixate)
-                lookHand();
+            //if (fixate)
+            //    lookHand();
 
             if (automatic_acquisition)
             {
@@ -1939,6 +1939,8 @@ public:
         Vector position_new(3,0.0);
         Vector orientation_new(4,0.0);
 
+        igaze->storeContext(&context_0);
+
         if (test)
             icart_arm->getPose(position_new,orientation_new);
 
@@ -1949,12 +1951,15 @@ public:
 
             if ((norm(position)>0.0 && norm(position)<2.0))
             {
+                igaze->blockNeckRoll();
                 igaze->lookAtFixationPoint(position+ shift);
                 igaze->waitMotionDone();
             }
             else
                 yError()<< " Unrealistic values for hand position!";
-        }            
+        }
+
+        igaze->restoreContext(context_0);
     }
 
     /*******************************************************************************/
