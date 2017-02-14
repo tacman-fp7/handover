@@ -32,7 +32,7 @@ return rfsm.state {
                    ret =  ret and yarp.NetworkBase_connect(in_hand_loc_port:getName(), "/in-hand-localizer/rpc")
                    ret =  ret and yarp.NetworkBase_connect(pose_sel_port:getName(), "/pose-selection/rpc")
                    ret =  ret and yarp.NetworkBase_connect(clos_chain_port:getName(), "/closed-chain/rpc")
-                   -- ret =  ret and yarp.NetworkBase_connect(stable_grasp_l_port:getName(), "/stableGrasp/left_hand/cmd:i
+                   -- ret =  ret and yarp.NetworkBase_connect(stable_grasp_l_port:getName(), "/stableGrasp/left_hand/cmd:i")
                    -- ret =  ret and yarp.NetworkBase_connect(stable_grasp_r_port:getName(), "/stableGrasp/right_hand/cmd:i")
                    if ret == false then
                            print("\n\nERROR WITH CONNECTIONS, PLEASE CHECK\n\n")
@@ -82,8 +82,8 @@ return rfsm.state {
   ST_PREPARE = rfsm.state{
           entry=function()
                   print(" preparing hands ..")
-                  HANDOVER_prepare(stable_grasp_l_port)
-                  HANDOVER_prepare(stable_grasp_r_port)
+                  HANDOVER_OPEN_FIRST_HAND(stable_grasp_l_port)
+                  HANDOVER_OPEN_FIRST_HAND(stable_grasp_r_port)
           end
 },
 
@@ -200,6 +200,20 @@ return rfsm.state {
 },
 
 ----------------------------------
+  -- state SET_WAYPOINT_BACK                --
+  ----------------------------------
+  ST_SET_WAYPOINT_BACK = rfsm.state{
+          entry=function()
+                  print(" moving second hand to waypoint...")
+                  local ret = HANDOVER_set_waypoint(pose_sel_port)
+
+                  if ret == "fail" then
+                      rfsm.send_events(fsm, 'e_error')
+                  end
+          end
+},
+
+----------------------------------
   -- state CLOSE_SECOND_HAND                  --
   ----------------------------------
   ST_CLOSE_HAND = rfsm.state{
@@ -243,7 +257,8 @@ ST_INTERACT = interact_fsm,
  rfsm.transition { src='ST_INITPORTS', tgt='ST_CONNECTPORTS', events={ 'e_connect' } },
  rfsm.transition { src='ST_INITPORTS', tgt='ST_FATAL', events={ 'e_error' } },
  rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_FINI', events={ 'e_error' } },
- -- rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_PC_ACQ', events={ 'e_done' } },
+ -- rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_PREPARE', events={ 'e_done' } },
+ -- rfsm.transition { src='ST_PREPARE', tgt='ST_PC_ACQ', events={ 'e_done' } },
  -- rfsm.transition { src='ST_PC_ACQ', tgt='ST_PC_FILT', events={ 'e_done' } },
  -- rfsm.transition { src='ST_PC_FILT', tgt='ST_LOC_POINTS_ACQ', events={ 'e_done' } },
   rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_LOC_POINTS_ACQ', events={ 'e_done' } },
@@ -255,7 +270,11 @@ ST_INTERACT = interact_fsm,
   -- rfsm.transition { src='ST_REACH_FINAL', tgt='ST_CLOSE_HAND', events={ 'e_done' } },
   -- rfsm.transition { src='ST_CLOSE_HAND', tgt='ST_OPEN_HAND', events={ 'e_done' } },
   -- rfsm.transition { src='ST_OPEN_HAND', tgt='ST_GO_HOME', events={ 'e_done' } },
-  rfsm.transition { src='ST_REACH_FINAL', tgt='ST_GO_HOME', events={ 'e_done' } },
+  rfsm.transition { src='ST_REACH_FINAL', tgt='ST_SET_WAYPOINT_BACK', events={ 'e_done' } },
+  -- rfsm.transition { src='ST_REACH_FINAL', tgt='ST_CLOSE_SECOND_HAND', events={ 'e_done' } },
+  -- rfsm.transition { src='ST_CLOSE_SECOND_HAND', tgt='ST_OPEN_FIRST_HAND', events={ 'e_done' } },
+  -- rfsm.transition { src='ST_OPEN_FIRST_HAND', tgt='ST_SET_WAYPOINT', events={ 'e_done' } },
+  rfsm.transition { src='ST_SET_WAYPOINT_BACK', tgt='ST_GO_HOME', events={ 'e_done' } },
   rfsm.transition { src='ST_GO_HOME', tgt='ST_FINI', events={ 'e_done' } },
 
  }
