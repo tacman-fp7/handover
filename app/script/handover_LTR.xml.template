@@ -25,19 +25,19 @@
 
     <module>
         <name>yarpview</name>
-        <parameters>--name /matchViewer --x 0</parameters>
+        <parameters>--name /matchViewer --x 800 --y 50</parameters>
         <node>icub19</node>
     </module>
 
     <module>
         <name>yarpview</name>
-        <parameters>--name /dispViewer --x 330</parameters>
+        <parameters>--name /dispViewer --x 1500 --y 50</parameters>
         <node>icub19</node>
     </module>
 
     <module>
             <name>yarpview</name>
-            <parameters>--name /nearBlobberViewer</parameters>
+            <parameters>--name /nearBlobberViewer --x 1150  --y 50</parameters>
             <node>icub19</node>
     </module>
 
@@ -79,11 +79,12 @@
     
     <module>
        <name>in-hand-segmentation</name>
+       <parameters> --from config-left.ini</parameters>
        <node>icub19</node>
     </module>
     <module>
        <name>yarpview</name>
-       <parameters>--name /dispCloud --out /dispBlobs/out --x 1600 --y 370 --w 600 --h 600 --p 200</parameters>
+       <parameters>--name /dispCloud --out /dispBlobs/out --x 650 --y 400 --w 600 --h 600 --p 200</parameters>
        <node>icub19</node>
     </module>
 
@@ -125,6 +126,7 @@
 
     <module>
        <name>closed-chain</name>
+       <parameters> --from config.ini</parameters>  
        <node>icub19</node>
     </module>
 
@@ -142,11 +144,12 @@
 
     <module>
        <name>pose-selection</name>
+        <parameters> --from config-right.ini</parameters>
        <node>icub19</node>
     </module>
     <module>
        <name>yarpview</name>
-       <parameters>--name /dispPose --out /dispPose/out --x 1600 --y 370 --w 600 --h 600 --p 200</parameters>
+       <parameters>--name /dispPose --out /dispPose/out --x 1300 --y 400 --w 600 --h 600 --p 200</parameters>
        <node>icub19</node>
     </module>
 
