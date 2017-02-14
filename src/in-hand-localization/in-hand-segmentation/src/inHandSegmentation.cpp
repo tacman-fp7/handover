@@ -676,6 +676,52 @@ protected:
         return value;
     }
 
+    /************************************************************************/
+    bool try_again(const int entry)
+    {
+        //if (entry<acquisition_poses_arm.size())
+        //{
+            cout<<" Let's try again! ... "<<endl;
+
+            pointsIn.clear();
+            pointsOut.clear();
+            motions_completed=false;
+
+            findPose(entry);
+
+            return true;
+        //}
+        //else
+            //return false;
+    }
+
+    /************************************************************************/
+    bool look_in_front()
+    {
+        Vector final_position(3,0.0);
+        final_position[0]=-0.7;
+        final_position[2]=0.4;
+
+        cout<<" Looking in front ... "<<endl;
+
+        igaze->setTrackingMode(false);
+
+        igaze->storeContext(&context_0);
+
+        igaze->setNeckTrajTime(0.75);
+        igaze->setEyesTrajTime(0.75);
+        igaze->setSaccadesMode(false);
+        igaze->blockNeckRoll();
+        igaze->lookAtFixationPoint(final_position);
+        igaze->waitMotionDone();
+
+        igaze->restoreContext(context_0);
+        igaze->deleteContext(context_0);
+        igaze->setTrackingMode(false);
+
+        return true;
+    }
+
 public:
     /*******************************************************************************/
     bool configure(ResourceFinder &rf)
@@ -762,7 +808,7 @@ public:
             x_lim_down=rf.check("x_lim_down", Value(-0.03)).asDouble();
             y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
             z_lim_up=rf.check("z_lim_up", Value(0.25)).asDouble();
-            z_lim_down=rf.check("z_lim_down", Value(0.04)).asDouble();
+            z_lim_down=rf.check("z_lim_down", Value(0.0)).asDouble();
             //z_lim_down=rf.check("z_lim_down", Value(-0.08)).asDouble();
         }
         else
@@ -967,6 +1013,8 @@ public:
             analogDevice.close();
 
         igaze->restoreContext(context_0);
+        igaze->deleteContext(context_0);
+        igaze->setTrackingMode(false);
 
         if (clientGazeCtrl.isValid())
             clientGazeCtrl.close();
@@ -1051,9 +1099,6 @@ public:
                 readPoints(fingersFileName, "fingers");
         }
 
-        if (fixate)
-            lookHand();
-
         if (filter && pointsIn.size()>0)
         {            
             if (coarse_filter)
@@ -1134,6 +1179,12 @@ public:
                 true;
             else
                 false;
+        }
+
+        if (pointsOut.size()>0)
+        {
+            if (fixate)
+                lookHand();
         }
 
         return true;
@@ -1951,15 +2002,22 @@ public:
 
             if ((norm(position)>0.0 && norm(position)<2.0))
             {
+                cout<<"See ... "<<endl;
+                igaze->setNeckTrajTime(0.75);
+                igaze->setEyesTrajTime(0.75);
+                igaze->setSaccadesMode(false);
                 igaze->blockNeckRoll();
                 igaze->lookAtFixationPoint(position+ shift);
                 igaze->waitMotionDone();
+                igaze->setTrackingMode(false);
             }
             else
                 yError()<< " Unrealistic values for hand position!";
         }
 
         igaze->restoreContext(context_0);
+        igaze->deleteContext(context_0);
+        igaze->setTrackingMode(false);
     }
 
     /*******************************************************************************/
@@ -2061,11 +2119,11 @@ public:
 
             igaze->storeContext(&context_0);
 
-            igaze->setTrackingMode(true);
+            //igaze->setTrackingMode(true);
 
             if (left_or_right=="right")
             {
-                x_to_fix[1]-=0.16;
+                x_to_fix[1]-=0.20;
                 x_to_fix[2]+=0.08;
             }
             else
@@ -2090,6 +2148,8 @@ public:
             yDebug()<< " Stopped control: "<<igaze->stopControl();
 
             igaze->restoreContext(context_0);
+            igaze->deleteContext(context_0);
+            igaze->setTrackingMode(false);
 
             igaze->blockEyes(5.0);
 

@@ -1,7 +1,7 @@
 #!/usr/bin/lua
 
 require("yarp")
-require("rfsm")
+require("rFSM")
 
 yarp.Network()
 

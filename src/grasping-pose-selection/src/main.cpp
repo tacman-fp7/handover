@@ -1877,7 +1877,7 @@ class poseSelection : public RFModule,
        dof[0]=dof[1]=dof[2]=0.0;
 
        icart_arm_move->setDOF(dof,dof);
-       icart_arm_move->setTrajTime(1.0);
+       icart_arm_move->setTrajTime(2.0);
 
        cout<< " Going to waypoint: "<< waypoints[i].toString(3,3)<<" "<<pose_second.subVector(3,6).toString(3,3)<<endl<<endl;
 
@@ -1920,7 +1920,7 @@ class poseSelection : public RFModule,
        dof[0]=dof[1]=dof[2]=0.0;
 
        icart_arm_move->setDOF(dof,dof);
-       icart_arm_move->setTrajTime(1.0);
+       icart_arm_move->setTrajTime(2.0);
 
        cout<< " Going to  final pose: "<< pose_second.subVector(0,2).toString(3,3)<<" "<<pose_second.subVector(3,6).toString(3,3)<<endl<<endl;
 

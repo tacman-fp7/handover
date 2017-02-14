@@ -521,18 +521,18 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
     for (size_t i=0; i<7;i++)
     {
         crtlmodeS->setControlMode(i,VOCAB_CM_POSITION);
-    }
-
-    for (int i = 0; i < 7; i++)
-    {
-        iposM->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeM[i]);
-    }
-
-    Time::delay(1.5);
+    }  
     
     for (int i = 0; i < 7; i++)
     {
         iposS->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeS[i]);
+    }
+
+    Time::delay(1.5);
+
+    for (int i = 0; i < 7; i++)
+    {
+        iposM->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeM[i]);
     }
 }
 

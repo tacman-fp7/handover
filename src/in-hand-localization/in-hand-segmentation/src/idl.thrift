@@ -252,4 +252,19 @@ service inHandSegmentation_IDL
     */
     bool set_calib_cam(1:string calib_or_not);
 
+
+    /**
+    * Set in initial pose 0
+    *@param entry number of pose
+    *@return true/false on success/failure
+    */
+    bool try_again(1:i32 entry);
+
+
+    /**
+    * look people in front of the robot
+    *@return true
+    */
+    bool look_in_front();
+
 }
