@@ -711,14 +711,20 @@ protected:
 
         igaze->setNeckTrajTime(1.75);
         igaze->setEyesTrajTime(1.75);
-        igaze->setSaccadesMode(false);
-        igaze->blockNeckRoll();
+        //igaze->setSaccadesMode(false);
+        //igaze->blockNeckRoll();
         igaze->lookAtFixationPoint(final_position);
-        igaze->waitMotionDone(0.1, 3.0);
+        igaze->waitMotionDone();
+
+        Vector x_test(3,0.0);
+        igaze->getFixationPoint(x_test);
+        cout<< " Fixed point "<<x_test.toString()<<endl;
+        cout<< " Final error: "<<norm(final_position - x_test)<<endl;
 
         igaze->restoreContext(context_0);
         igaze->deleteContext(context_0);
         igaze->setTrackingMode(false);
+        igaze->stopControl();
 
         cout<< " Staring in front!"<<endl;
 
@@ -1995,8 +2001,6 @@ public:
         Vector position_new(3,0.0);
         Vector orientation_new(4,0.0);
 
-        igaze->storeContext(&context_0);
-
         if (test)
             icart_arm->getPose(position_new,orientation_new);
 
@@ -2009,14 +2013,26 @@ public:
             {
                 cout<<" Looking new hand pose ... "<<endl;
                 cout<<" Hand position: "<< position.toString()<<endl;
+
+
+                igaze->storeContext(&context_0);
                 igaze->setTrackingMode(false);
                 igaze->setNeckTrajTime(0.75);
                 igaze->setEyesTrajTime(0.75);
-                igaze->setSaccadesMode(false);
-                igaze->blockNeckRoll();
+                //igaze->setSaccadesMode(false);
+                //igaze->blockNeckRoll();
                 igaze->lookAtFixationPoint(position+ shift);
-                igaze->waitMotionDone(0.1, 3.0);
+                igaze->waitMotionDone();
+
+                Vector x_test(3,0.0);
+                igaze->getFixationPoint(x_test);
+                cout<< " Fixed point "<<x_test.toString()<<endl;
+                cout<< " Final error: "<<norm(position+shift-x_test)<<endl;
+
+                igaze->restoreContext(context_0);
+                igaze->deleteContext(context_0);
                 igaze->setTrackingMode(false);
+                igaze->stopControl();
 
                 cout<<" Now looking new hand pose! "<<endl;
             }
@@ -2024,9 +2040,7 @@ public:
                 yError()<< " Unrealistic values for hand position!";
         }
 
-        igaze->restoreContext(context_0);
-        igaze->deleteContext(context_0);
-        igaze->setTrackingMode(false);
+
     }
 
     /*******************************************************************************/
@@ -2097,7 +2111,7 @@ public:
 
             icart_arm->goToPoseSync(acquisition_poses_arm[i].subVector(0,2), acquisition_poses_arm[i].subVector(3,6));
 
-            motions_completed=icart_arm->waitMotionDone(0.1, 4.0);
+            motions_completed=icart_arm->waitMotionDone();
 
             if (motions_completed)
                 yInfo()<<" Arm movement completed!";
