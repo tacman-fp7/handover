@@ -113,6 +113,8 @@ class poseSelection : public RFModule,
 
     int index;
     int camera;
+    int num_obj;
+    int num_objs;
     int n_waypoint;
     int init_num_pos;
     int current_waypoint;
@@ -145,6 +147,8 @@ class poseSelection : public RFModule,
     RpcServer portRpc;
 
     Bottle reply;
+
+    ResourceFinder *rf;
 
     ImageOf<PixelRgb> *imgIn;
     BufferedPort<ImageOf<PixelRgb> > portImgIn;
@@ -408,11 +412,14 @@ class poseSelection : public RFModule,
     /*********************************************************/
     bool configure(ResourceFinder &rf)
     {
+        this->rf=&rf;
         homeContextPath=rf.getHomeContextPath().c_str();
         module_name=rf.check("module_name", Value("pose-selection"), "Getting module name").asString();
 
+        num_objs=rf.check("num_objs", Value(1)).asInt();
+
         handPoseFileName=rf.check("handPoseFileName", Value("hand-pose.txt"), "Hand pose").asString();
-        positionFileName=rf.check("positionFileName", Value("positions.off"), "Default positions file name").asString();        
+        positionFileName=rf.check("positionFileName", Value("positions0.off"), "Default positions file name").asString();
         objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default object pose file name").asString();
         orientationFileName=rf.check("orientationFileName", Value("orientations-right.txt"), "Default orientations file name").asString();
 
@@ -428,10 +435,10 @@ class poseSelection : public RFModule,
 
         n_waypoint=rf.check("n_waypoint", Value(1)).asInt();
 
-	if (left_or_right=="left")
+        if (left_or_right=="left")
             theta=rf.check("theta", Value(20.0)).asDouble();
-	else
-	    theta=rf.check("theta", Value(-20.0)).asDouble();
+        else
+            theta=rf.check("theta", Value(-20.0)).asDouble();
 
         offset_z_final=rf.check("offset_z_final", Value(0.02)).asDouble();
         offset_x_approach=rf.check("offset_x_approach", Value(0.08)).asDouble();
@@ -465,6 +472,7 @@ class poseSelection : public RFModule,
         index_poses.resize(positions.size(), 0.0);
 
         index=-1;
+        num_obj=0;
 
         update_hand_pose=false;
         to_be_sent=true;
@@ -1021,7 +1029,8 @@ class poseSelection : public RFModule,
 
             euler_angles[0]=rec->get(3).asDouble();
             euler_angles[1]=rec->get(4).asDouble();
-            euler_angles[2]=rec->get(5).asDouble();            
+            euler_angles[2]=rec->get(5).asDouble();
+            num_obj=rec->get(6).asInt();
         }
         else
         {
@@ -1040,6 +1049,17 @@ class poseSelection : public RFModule,
 
         if (norm(pos)>0.0)
             update_pose=false;
+
+        if (num_obj<num_objs)
+        {
+            stringstream ss2;
+            ss2 << "positions"<<num_obj<<".off";
+            string str_num_obj = ss2.str();
+
+            cout<<" Object selected "<< num_obj<<endl;
+
+            readPoses(str_num_obj, orientationFileName);
+        }
 
         return H;
     }

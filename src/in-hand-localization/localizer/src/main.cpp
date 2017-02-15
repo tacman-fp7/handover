@@ -43,6 +43,7 @@ class localizingModule : public RFModule,
     bool enabled_touch;
 
     int down;
+    int j_obj;
     int fileCount;
     int num_objs;
     int num_m_values;
@@ -101,6 +102,7 @@ public:
         {
             pose.addDouble(result[0]);pose.addDouble(result[1]);pose.addDouble(result[2]);
             pose.addDouble(result[3]);pose.addDouble(result[4]);pose.addDouble(result[5]);
+            pose.addInt(j_obj);
         
 
             ofstream fout;
@@ -176,6 +178,22 @@ public:
     }
 
     /*******************************************************************************/
+    bool set_object_name(const string &object)
+    {
+        object_name=object;
+        if (object=="domino")
+            j_obj=0;
+        else if (object=="jello")
+            j_obj=1;
+        else
+            return false;
+
+        cout<<" Object selected "<< j_obj<<endl;
+
+        return true;
+    }
+
+    /*******************************************************************************/
     bool configure(ResourceFinder &rf)
     {
         module_name=rf.check("module_name", Value("in-hand-localizer"), "Getting module name").asString();
@@ -199,6 +217,8 @@ public:
         pose_computed=false;
         acquire=false;
         pose_saved=false;
+
+        j_obj=0;
 
         if (online)
             localize=false;
@@ -264,8 +284,8 @@ public:
             askForPoints();
         }
 
-        for (size_t j=0; j<num_objs;j++)
-        {
+        //for (size_t j=0; j<num_objs;j++)
+        //{
             for (size_t k=0; k<num_m_values; k++)
             {
                 for (size_t l=0; l<num_particles; l++)
@@ -280,7 +300,8 @@ public:
                                 if (measurements.size()>0)
                                 {
                                     Localizer *loc5=new UnscentedParticleFilter();
-                                    if (loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
+                                    //if (loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
+                                    if (loc5->configure(this->rf,j_obj,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
                                     {
                                         error_indices=loc5->localization();
                                         result=error_indices.subVector(0,5);
@@ -311,14 +332,18 @@ public:
                         }
 
                         Localizer *loc5=new UnscentedParticleFilter();
-                        loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, measurements, enabled_touch);
-                        loc5->saveStatisticsData(solutions,j,k,l,m);
+                        //loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, measurements, enabled_touch);
+                        if (loc5->configure(this->rf,j_obj,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
+                        //loc5->saveStatisticsData(solutions,j,k,l,m);
+                       loc5->saveStatisticsData(solutions,j_obj,k,l,m);
+
 
                         delete loc5;
                     }
+
                 }
             }
-        }
+        //}
 
         if (online)
         {

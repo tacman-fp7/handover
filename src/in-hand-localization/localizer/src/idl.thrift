@@ -58,4 +58,10 @@ service localizer_IDL
     * @return Bottle with solution information
     */
     Bottle get_solution_statistics(1: i32 entry);
+
+    /**
+    * Set object name 
+    * @return true if the name is one of the known objects
+    */
+    bool set_object_name(1: string entry);
 }
