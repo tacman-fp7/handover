@@ -189,4 +189,24 @@
         <protocol>tcp</protocol>
     </connection>
 
+    <connection>
+	<from>/icub/camcalib/left/out</from>
+	<to>/SFM/left:i</to>
+	<protocol>tcp</protocol>
+	<geometry>(Pos ((x 227.5) (y 177)) ((x 192) (y 174)) ((x 284) (y 180))  )</geometry>
+    </connection>
+    <connection>
+	<from>/SFM/match:o</from>
+	<to>/matchViewer</to>
+	<protocol>tcp</protocol>
+	<geometry>(Pos ((x 438.5) (y 226)) ((x 397) (y 217)) ((x 501) (y 235))  )</geometry>
+    </connection>
+
+    <connection>
+	<from>/SFM/disp:o</from>
+        <to>/dispViewer</to>
+	<protocol>tcp</protocol>
+	<geometry>(Pos ((x 437.5) (y 190.5)) ((x 397) (y 192)) ((x 499) (y 189))  )</geometry>
+    </connection>
+
 </application>
