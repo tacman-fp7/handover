@@ -1,90 +1,9 @@
 <application>
-    <name>handover</name>
-
-    <module>
-        <name>SFM</name>
-        <node>icub19</node>
-    </module>
-
-    <module>
-        <name>dispBlobber</name>
-        <node>icub19</node>
-    </module>
-
-    <module>
-        <name>stableGrasp</name>
-	<parameters>--from confHandover.ini --whichHand left</parameters>
-        <node>icub19</node>
-    </module>
-
-   <module>
-        <name>stableGrasp</name>
-	<parameters>--from confHandover.ini --whichHand right</parameters>
-        <node>icub19</node>
-    </module>
-
-    <module>
-        <name>yarpview</name>
-        <parameters>--name /matchViewer --x 800 --y 50</parameters>
-        <node>icub19</node>
-    </module>
-
-    <module>
-        <name>yarpview</name>
-        <parameters>--name /dispViewer --x 1500 --y 50</parameters>
-        <node>icub19</node>
-    </module>
-
-    <module>
-            <name>yarpview</name>
-            <parameters>--name /nearBlobberViewer --x 1150  --y 50</parameters>
-            <node>icub19</node>
-    </module>
-
-    <connection>
-        <from>/icub/camcalib/left/out</from>
-        <to>/SFM/left:i</to>
-        <protocol>tcp</protocol>
-    </connection>
-
-    <connection>
-        <from>/SFM/disp:o</from>
-        <to>/dispBlobber/img:i</to>
-        <protocol>tcp</protocol>
-    </connection> 
-
-    <connection>
-        <from>/dispBlobber/sfm/rpc</from>
-        <to>/SFM/rpc</to>
-        <protocol>tcp</protocol>
-    </connection>
-
-    <connection>
-        <from>/SFM/match:o</from>
-        <to>/matchViewer</to>
-        <protocol>tcp</protocol>
-    </connection>
-
-    <connection>
-        <from>/SFM/disp:o</from>
-        <to>/dispViewer</to>
-        <protocol>tcp</protocol>
-    </connection>
-
-    <connection>
-        <from>/dispBlobber/opt:o</from>
-        <to>/nearBlobberViewer</to>
-        <protocol>tcp</protocol>
-    </connection> 
+    <name>handover_RTL</name>
     
     <module>
        <name>in-hand-segmentation</name>
        <parameters> --from config-right.ini</parameters>
-       <node>icub19</node>
-    </module>
-    <module>
-       <name>yarpview</name>
-       <parameters>--name /dispCloud --out /dispBlobs/out --x 650 --y 400 --w 600 --h 600 --p 200</parameters>
        <node>icub19</node>
     </module>
 
@@ -145,11 +64,6 @@
     <module>
        <name>pose-selection</name>
         <parameters> --from config-left.ini</parameters>
-       <node>icub19</node>
-    </module>
-    <module>
-       <name>yarpview</name>
-       <parameters>--name /dispPose --out /dispPose/out --x 1300 --y 400 --w 600 --h 600 --p 200</parameters>
        <node>icub19</node>
     </module>
 

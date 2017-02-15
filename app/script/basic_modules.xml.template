@@ -1,0 +1,116 @@
+<application>
+    <name>basics_handover</name>
+
+     <module>
+            <name>SFM</name>
+            <node>icub19</node>
+        </module>
+
+        <module>
+            <name>dispBlobber</name>
+            <node>icub19</node>
+        </module>
+
+        <module>
+            <name>stableGrasp</name>
+	    <parameters>--from confHandover.ini --whichHand left</parameters>
+            <node>icub19</node>
+        </module>
+
+       <module>
+            <name>stableGrasp</name>
+	    <parameters>--from confHandover.ini --whichHand right</parameters>
+            <node>icub19</node>
+        </module>
+
+        <module>
+            <name>yarpview</name>
+            <parameters>--name /matchViewer --x 800 --y 50</parameters>
+            <node>icub19</node>
+        </module>
+
+        <module>
+            <name>yarpview</name>
+            <parameters>--name /dispViewer --x 1500 --y 50</parameters>
+            <node>icub19</node>
+        </module>
+
+        <module>
+                <name>yarpview</name>
+                <parameters>--name /nearBlobberViewer --x 1150  --y 50</parameters>
+                <node>icub19</node>
+        </module>
+
+        <module>
+           <name>yarpview</name>
+           <parameters>--name /dispPose --out /dispPose/out --x 1300 --y 400 --w 600 --h 600 --p 200</parameters>
+           <node>icub19</node>
+        </module>
+
+        <module>
+           <name>yarpview</name>
+           <parameters>--name /dispCloud --out /dispBlobs/out --x 650 --y 400 --w 600 --h 600 --p 200</parameters>
+           <node>icub19</node>
+        </module>
+
+
+           <connection>
+	        <from>/icub/camcalib/left/out</from>
+	        <to>/SFM/left:i</to>
+	        <protocol>tcp</protocol>
+	        geometry>(Pos ((x 227.5) (y 177)) ((x 192) (y 174)) ((x 284) (y 180))  )</geometry>
+        </connection>
+
+        <connection>
+	        <from>/SFM/match:o</from>
+	        <to>/matchViewer</to>
+	        <protocol>tcp</protocol>
+	        <geometry>(Pos ((x 438.5) (y 226)) ((x 397) (y 217)) ((x 501) (y 235))  )</geometry>
+        </connection>
+
+        <connection>
+	        <from>/SFM/disp:o</from>
+            <to>/dispViewer</to>
+	        <protocol>tcp</protocol>
+	        <geometry>(Pos ((x 437.5) (y 190.5)) ((x 397) (y 192)) ((x 499) (y 189))  )</geometry>
+        </connection>
+
+ 
+        <connection>
+            <from>/icub/camcalib/left/out</from>
+            <to>/SFM/left:i</to>
+            <protocol>tcp</protocol>
+        </connection>
+
+        <connection>
+            <from>/SFM/disp:o</from>
+            <to>/dispBlobber/img:i</to>
+            <protocol>tcp</protocol>
+        </connection> 
+
+        <connection>
+            <from>/dispBlobber/sfm/rpc</from>
+            <to>/SFM/rpc</to>
+            <protocol>tcp</protocol>
+        </connection>
+
+        <connection>
+            <from>/SFM/match:o</from>
+            <to>/matchViewer</to>
+            <protocol>tcp</protocol>
+        </connection>
+
+        <connection>
+            <from>/SFM/disp:o</from>
+            <to>/dispViewer</to>
+            <protocol>tcp</protocol>
+        </connection>
+
+        <connection>
+            <from>/dispBlobber/opt:o</from>
+            <to>/nearBlobberViewer</to>
+            <protocol>tcp</protocol>
+        </connection> 
+
+</application>
+
