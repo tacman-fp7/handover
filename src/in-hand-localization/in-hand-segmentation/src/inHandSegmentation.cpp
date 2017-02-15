@@ -106,8 +106,9 @@ protected:
     bool online;
     bool fixate;
     bool acquire;
+    bool new_trial;
     bool calib_cam;
-    bool tactile_on;
+    bool tactile_on;    
     bool hand_filter;
     bool prepare_hand;
     bool change_frame;
@@ -683,11 +684,13 @@ protected:
         //{
             cout<<" Let's try again! ... "<<endl;
 
-            pointsIn.clear();
-            pointsOut.clear();
+            //pointsIn.clear();
+            //pointsOut.clear();
             motions_completed=false;
+            new_trial=true;
+            count_pose=entry;
 
-            findPose(entry);
+            //findPose(entry);
 
             return true;
         //}
@@ -699,8 +702,10 @@ protected:
     bool look_in_front()
     {
         Vector final_position(3,0.0);
-        final_position[0]=-0.7;
+        final_position[0]=-0.84;
         final_position[2]=0.25;
+
+        fixate=false;
 
         cout<<" Looking in front ... "<<endl;
         cout<< " Point: "<<final_position.toString()<<endl;
@@ -711,10 +716,12 @@ protected:
 
         igaze->setNeckTrajTime(1.75);
         igaze->setEyesTrajTime(1.75);
-        //igaze->setSaccadesMode(false);
+        igaze->setSaccadesMode(false);
         //igaze->blockNeckRoll();
         igaze->lookAtFixationPoint(final_position);
         igaze->waitMotionDone();
+
+        igaze->setSaccadesMode(true);
 
         Vector x_test(3,0.0);
         igaze->getFixationPoint(x_test);
@@ -726,9 +733,7 @@ protected:
         igaze->setTrackingMode(false);
         igaze->stopControl();
 
-        cout<< " Staring in front!"<<endl;
-
-        fixate=false;
+        cout<< " Staring in front!"<<endl;   
 
         return true;
     }
@@ -856,6 +861,7 @@ public:
 
         fileCount=0;
         motions_completed=false;
+        new_trial=false;
 
         cout<<endl<<" Opening ports"<<endl<<endl;
 
@@ -1025,7 +1031,10 @@ public:
 
         igaze->restoreContext(context_0);
         igaze->deleteContext(context_0);
+        igaze->clearEyes();
+        igaze->clearNeckRoll();
         igaze->setTrackingMode(false);
+        igaze->stopControl();
 
         if (clientGazeCtrl.isValid())
             clientGazeCtrl.close();
@@ -1179,6 +1188,7 @@ public:
             }
 
             filter=false;
+            new_trial=false;
             fileCount++;
 
             if (online)
@@ -1192,7 +1202,7 @@ public:
                 false;
         }
 
-        if (pointsOut.size()>0)
+        if (pointsOut.size()>0 || new_trial)
         {
             if (fixate)
                 lookHand();
@@ -1994,17 +2004,17 @@ public:
     {
         Vector shift(3,0.0);
         if (left_or_right=="left")
-            shift[1]=0.05;
+            shift[1]=0.25;
         else
-            shift[1]=-0.15;
-        shift[2]=0.05;
+            shift[1]=-0.25;
+        shift[2]=0.10;
         Vector position_new(3,0.0);
         Vector orientation_new(4,0.0);
 
         if (test)
             icart_arm->getPose(position_new,orientation_new);
 
-        if ((norm(position_new -position)>=0.05 || pointsOut.size()==0))
+        if ((norm(position_new -position)>=0.05))
         {
             position=position_new;
             orientation=orientation_new;
@@ -2017,17 +2027,20 @@ public:
 
                 igaze->storeContext(&context_0);
                 igaze->setTrackingMode(false);
-                igaze->setNeckTrajTime(0.75);
-                igaze->setEyesTrajTime(0.75);
-                //igaze->setSaccadesMode(false);
-                //igaze->blockNeckRoll();
+                igaze->clearEyes();
+                //igaze->setNeckTrajTime(0.75);
+                //igaze->setEyesTrajTime(0.75);
+                igaze->setSaccadesMode(false);
+                igaze->blockNeckRoll();
                 igaze->lookAtFixationPoint(position+ shift);
-                igaze->waitMotionDone();
+                cout<< "Gaze movement done "<<igaze->waitMotionDone()<<endl;
 
                 Vector x_test(3,0.0);
                 igaze->getFixationPoint(x_test);
                 cout<< " Fixed point "<<x_test.toString()<<endl;
                 cout<< " Final error: "<<norm(position+shift-x_test)<<endl;
+
+                igaze->setSaccadesMode(true);
 
                 igaze->restoreContext(context_0);
                 igaze->deleteContext(context_0);
@@ -2080,7 +2093,7 @@ public:
     /*******************************************************************************/
     void findPose(int i)
     {
-        if (i<acquisition_poses_arm.size() && (pointsIn.size()==0 && pointsOut.size()==0) && motions_completed==false)
+        if (i<acquisition_poses_arm.size() && motions_completed==false)
         {
             for (size_t j=0; j<7;j++)
             {
@@ -2140,52 +2153,62 @@ public:
 
             icart_arm->getPose(x_to_fix, o_to_fix);
 
-            igaze->storeContext(&context_0);
-
-            igaze->setTrackingMode(false);
-
-            if (left_or_right=="right")
+            if (count_pose == 0)
             {
-                x_to_fix[1]-=0.20;
-                x_to_fix[2]+=0.08;
+                igaze->storeContext(&context_0);
+
+                igaze->setTrackingMode(false);
+                igaze->clearEyes();
+
+                if (left_or_right=="right")
+                {
+                    x_to_fix[1]-=0.20;
+                    x_to_fix[2]+=0.08;
+                }
+                else
+                {
+                    x_to_fix[1]+=0.15;
+                    x_to_fix[2]+=0.08;
+                }
+
+                cout<< " Point to fix "<<x_to_fix.toString()<<endl;
+                igaze->setSaccadesMode(false);
+                igaze->blockNeckRoll();
+                igaze->lookAtFixationPoint(x_to_fix);
+
+                motions_completed=motions_completed && igaze->waitMotionDone();
+
+                igaze->setSaccadesMode(true);
+
+                Vector x_test(3,0.0);
+                igaze->getFixationPoint(x_test);
+                cout<< " Fixed point "<<x_test.toString()<<endl;
+                cout<< " Final error: "<<norm(x_to_fix-x_test)<<endl;
+
+                igaze->setTrackingMode(false);
+
+                yDebug()<< " Stopped control: "<<igaze->stopControl();
+
+                igaze->restoreContext(context_0);
+                igaze->deleteContext(context_0);
+                igaze->setTrackingMode(false);
+
+                igaze->blockEyes(5.0);
+
+                if (motions_completed)
+                    yInfo()<<" Gaze movement completed!";
+                else
+                    yError()<<" Gaze movement not completed!";
+                cout<<endl;
+
+                for (size_t j=0; j<7;j++)
+                {
+                    ctrlmode->setControlMode(j,VOCAB_CM_POSITION);
+                }
             }
-            else
-            {
-                x_to_fix[1]+=0.12;
-                x_to_fix[2]+=0.08;
-            }
 
-            cout<< " Point to fix "<<x_to_fix.toString()<<endl;
-            igaze->blockNeckRoll();
-            igaze->lookAtFixationPoint(x_to_fix);
-
-            motions_completed=motions_completed && igaze->waitMotionDone();
-
-            Vector x_test(3,0.0);
-            igaze->getFixationPoint(x_test);
-            cout<< " Fixed point "<<x_test.toString()<<endl;
-            cout<< " Final error: "<<norm(x_to_fix-x_test)<<endl;
-
-            igaze->setTrackingMode(false);
-
-            yDebug()<< " Stopped control: "<<igaze->stopControl();
-
-            igaze->restoreContext(context_0);
-            igaze->deleteContext(context_0);
-            igaze->setTrackingMode(false);
-
-            igaze->blockEyes(5.0);
-
-            if (motions_completed)
-                yInfo()<<" Gaze movement completed!";
-            else
-                yError()<<" Gaze movement not completed!";
-            cout<<endl;
-
-            for (size_t j=0; j<7;j++)
-            {
-                ctrlmode->setControlMode(j,VOCAB_CM_POSITION);
-            }
+            fixate=true;
+            new_trial=false;
         }
     }
 
