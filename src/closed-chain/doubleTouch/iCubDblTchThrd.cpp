@@ -827,7 +827,11 @@ bool doubleTouchThread::move(const string &entry)
         go_slave=true;
         go_master=false;
         step=1;
-        cout<<"step "<<step<<endl;
+        Time::delay(6.0);
+        if (checkMotionDone())
+            return true;
+        else
+            return false;
     }
     else if (entry=="second_hand")
     {

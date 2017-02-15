@@ -59,7 +59,7 @@ function HANDOVER_move_first_hand(port)
     wb:addString("move")
     wb:addString("first_hand")
     port:write(wb,reply)
-    yarp.Time_delay(6.0)
+    yarp.Time_delay(10.0)
     return reply:get(0):asString()
 end
 
@@ -100,7 +100,6 @@ function HANDOVER_open_hand(port)
    wb:clear()
     wb:addString("open")
     port:write(wb)
-    yarp.Time_delay(4.0)
     -- return reply:get(0):asString()
 end
 
@@ -110,7 +109,7 @@ function HANDOVER_close_hand(port)
    wb:clear()
     wb:addString("grasp")
     port:write(wb)
-    yarp.Time_delay(4.0)
+    yarp.Time_delay(2.0)
     -- return reply:get(0):asString()
 end
 
@@ -120,6 +119,5 @@ function HANDOVER_look_in_front(port)
    wb:clear()
     wb:addString("look_in_front")
     port:write(wb,reply)
-    yarp.Time_delay(4.0)
     return reply:get(0):asString()
 end

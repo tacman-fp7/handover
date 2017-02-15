@@ -86,10 +86,12 @@ class poseSelection : public RFModule,
 
     bool select_defined_pose;
     bool reach_final_pose;
-    bool update_hand_pose;   
+    bool update_hand_pose;
+    bool reached_waypoint;
     bool select_new_pose;
     bool reach_waypoint;
     bool torso_enabled;
+    bool reached_final;
     bool change_frame;
     bool closed_chain;
     bool update_pose;    
@@ -363,7 +365,11 @@ class poseSelection : public RFModule,
         {
             current_waypoint=entry;
             reach_waypoint=true;
-            return true;
+            Time::delay(2.5);
+            if (reached_waypoint)
+                return true;
+            else
+                return false;
         }
         else
         {
@@ -376,7 +382,11 @@ class poseSelection : public RFModule,
     bool reach_final()
     {
         reach_final_pose=true;
-        return true;
+        Time::delay(2.5);
+        if (reached_final)
+            return true;
+        else
+            return false;
     }
 
     /************************************************************************/
@@ -464,6 +474,9 @@ class poseSelection : public RFModule,
         reach_waypoint=false;
         reach_final_pose=false;
         select_defined_pose=false;
+
+        reached_waypoint=false;
+        reached_final=false;
 
         if (online)
         {
@@ -1012,7 +1025,7 @@ class poseSelection : public RFModule,
         }
         else
         {
-            pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2];
+            pos[0]=pos[1]=pos[2]=euler_angles[0]=euler_angles[1]=euler_angles[2]=0.0;
         }
 
         yDebug()<<" Received pose: "<<pos.toString(3,3)<<" "<<euler_angles.toString(3,3);
@@ -1923,6 +1936,8 @@ class poseSelection : public RFModule,
        }
 
        reach_waypoint=false;
+
+       reached_waypoint=true;
    }
 
    /*******************************************************************************/
@@ -1968,6 +1983,8 @@ class poseSelection : public RFModule,
        {
            ctrlmode->setControlMode(i,VOCAB_CM_POSITION);
        }
+
+       reached_final=true;
 
        return true;
 
