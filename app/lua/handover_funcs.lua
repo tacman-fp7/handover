@@ -17,6 +17,7 @@ function HANDOVER_acquire(port)
     wb:clear()
     wb:addString("go_acquire")
     port:write(wb,reply)
+    yarp.Time_delay(1.5)
     return reply:get(0):asString()
 end
 
@@ -26,6 +27,7 @@ function HANDOVER_filter(port)
    wb:clear()
     wb:addString("go_filter")
     port:write(wb,reply)
+    yarp.Time_delay(1.5)
     return reply:get(0):asString()
 end
 
@@ -33,9 +35,10 @@ function HANDOVER_localize(port)
    local wb = yarp.Bottle()
    local reply = yarp.Bottle()
    wb:clear()
+    yarp.Time_delay(1.5)
     wb:addString("go_localize")
     port:write(wb,reply)
-    yarp.Time_delay(70.0)
+    yarp.Time_delay(50.0)
     return reply:get(0):asString()
 end
 
@@ -96,9 +99,9 @@ function HANDOVER_open_hand(port)
    local reply = yarp.Bottle()
    wb:clear()
     wb:addString("open")
-    port:write(wb,reply)
+    port:write(wb)
     yarp.Time_delay(4.0)
-    return reply:get(0):asString()
+    -- return reply:get(0):asString()
 end
 
 function HANDOVER_close_hand(port)
@@ -106,9 +109,9 @@ function HANDOVER_close_hand(port)
    local reply = yarp.Bottle()
    wb:clear()
     wb:addString("grasp")
-    port:write(wb,reply)
+    port:write(wb)
     yarp.Time_delay(4.0)
-    return reply:get(0):asString()
+    -- return reply:get(0):asString()
 end
 
 function HANDOVER_look_in_front(port)

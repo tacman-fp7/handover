@@ -12,6 +12,9 @@ in_hand_seg_port = yarp.Port()
 in_hand_loc_port = yarp.Port()
 pose_sel_port    = yarp.Port()
 clos_chain_port  = yarp.Port()
+stable_grasp_l_port  = yarp.Port()
+stable_grasp_r_port  = yarp.Port()
+
 
 -- load state machine model and initalize it
 

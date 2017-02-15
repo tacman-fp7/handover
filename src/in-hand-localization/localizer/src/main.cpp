@@ -83,7 +83,12 @@ public:
     bool go_acquire()
     {
         acquire=true;
-        return true;
+        Time::delay(0.5);
+
+        if (measurements.size()>0)
+            return true;
+        else
+            return false;
     }
 
     /*******************************************************************************/

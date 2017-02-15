@@ -221,7 +221,11 @@ protected:
     bool go_acquire()
     {
         acquire=true;
-        return true;
+        Time::delay(0.8);
+        if (pointsIn.size()>0)
+            return true;
+        else
+            return false;
     }
 
     /*******************************************************************************/
@@ -498,7 +502,11 @@ protected:
     bool go_filter()
     {
         filter=true;
-        return true;
+        Time::delay(1.0);
+        if (pointsOut.size()>0)
+            return true;
+        else
+            return false;
     }
 
     /***********************************************************************/

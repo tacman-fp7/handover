@@ -92,11 +92,12 @@ class poseSelection : public RFModule,
     bool torso_enabled;
     bool change_frame;
     bool closed_chain;
-    bool update_pose;
+    bool update_pose;    
     bool twist_wrist;
     bool to_be_sent;
     bool new_angle;
     bool waypoint;
+    bool manip_ok;
     bool online;
     bool euler;
 
@@ -158,7 +159,11 @@ class poseSelection : public RFModule,
     {
         update_pose=true;
         select_new_pose=true;
-        return true;
+        Time::delay(2.0);
+        if (index>=0)
+            return true;
+        else
+            return false;
     }
 
     /************************************************************************/
@@ -453,6 +458,7 @@ class poseSelection : public RFModule,
 
         update_hand_pose=false;
         to_be_sent=true;
+        manip_ok=false;
         select_new_pose=false;
         update_pose=false;
         reach_waypoint=false;
@@ -639,9 +645,10 @@ class poseSelection : public RFModule,
             if (!closed_chain)
                 manipulability();
             else
-                manipulabilityClosedChain();
+                manip_ok=manipulabilityClosedChain();
 
-            choosePose();
+            if (manip_ok)
+                choosePose();
 
             if (waypoint)
                 addWaypoint(n_waypoint, index);
@@ -661,7 +668,8 @@ class poseSelection : public RFModule,
         {
             changeFrame();
 
-            choosePose();
+            if (manip_ok)
+                choosePose();
 
             if (waypoint)
                 addWaypoint(n_waypoint, index);
@@ -1418,7 +1426,7 @@ class poseSelection : public RFModule,
     }
 
     /*******************************************************************************/
-    void manipulabilityClosedChain()
+    bool manipulabilityClosedChain()
     {
         Vector err_orient;
         Vector err_pos;
@@ -1442,9 +1450,9 @@ class poseSelection : public RFModule,
 
         if (positions_rotated.size()>0)
         {
-            sendToClosedChain(positions_rotated, od);
+            go_on=sendToClosedChain(positions_rotated, od);
 
-           go_on=askXdOdHat();
+            go_on=go_on &&askXdOdHat();
         }
 
         if (go_on)
@@ -1512,9 +1520,13 @@ class poseSelection : public RFModule,
             }
 
             yInfo()<<" Index poses after manipulability: "<<index_poses.toString(3,3);
+            return true;
         }
         else
+        {
             yError()<<" Index poses cannot be computed!";
+            return false;
+        }
     }
 
     /*******************************************************************************/
@@ -1567,7 +1579,7 @@ class poseSelection : public RFModule,
     }
 
      /*******************************************************************************/
-    void sendToClosedChain(vector<Vector> &positions, vector<Vector> & od)
+    bool sendToClosedChain(vector<Vector> &positions, vector<Vector> & od)
     {
         Bottle cmd, reply;
         cmd.addString("compute_manipulability");
@@ -1605,10 +1617,18 @@ class poseSelection : public RFModule,
                 }
             }
             else
+            {
                 yError()<<" Received manipulability bottle empty!";
+                return false;
+            }
         }
         else
+        {
             yError()<<" No manipulability indices received!!";
+            return false;
+        }
+
+        return true;
 
     }
 
