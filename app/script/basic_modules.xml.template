@@ -58,7 +58,7 @@
 	        <from>/icub/camcalib/left/out</from>
 	        <to>/SFM/left:i</to>
 	        <protocol>tcp</protocol>
-	        geometry>(Pos ((x 227.5) (y 177)) ((x 192) (y 174)) ((x 284) (y 180))  )</geometry>
+	        <geometry>(Pos ((x 227.5) (y 177)) ((x 192) (y 174)) ((x 284) (y 180))  )</geometry>
         </connection>
 
         <connection>

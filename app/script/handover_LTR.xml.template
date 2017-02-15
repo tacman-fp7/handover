@@ -9,7 +9,7 @@
 
     <module>
        <name>localizer</name>
-        <parameters> --from config-domino.ini</parameters>
+        <parameters> --from config.ini</parameters>
        <node>icub19</node>
     </module>
 

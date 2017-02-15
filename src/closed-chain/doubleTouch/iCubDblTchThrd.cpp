@@ -679,6 +679,7 @@ void doubleTouchThread::computeManip()
     pos_in_hand.clear();
     orie_in_hand.clear();
     manip.clear();
+    joints_sol.clear();
     Matrix aux(4,4);
     aux.zero();
     aux(2,0)=aux(1,2)=-1.0;
