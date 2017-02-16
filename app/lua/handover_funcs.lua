@@ -121,3 +121,9 @@ function HANDOVER_look_in_front(port)
     port:write(wb,reply)
     return reply:get(0):asString()
 end
+
+function HANDOVER_go_on(port)
+   local reply = yarp.Bottle()
+    port:read(reply)
+    return reply:get(0):asString()
+end
