@@ -2171,12 +2171,12 @@ public:
                 if (left_or_right=="right")
                 {
                     x_to_fix[1]-=0.15;
-                    x_to_fix[2]+=0.08;
+                    x_to_fix[2]+=0.13;
                 }
                 else
                 {
                     x_to_fix[1]+=0.15;
-                    x_to_fix[2]+=0.08;
+                    x_to_fix[2]+=0.13;
                 }
 
                 cout<< " Point to fix "<<x_to_fix.toString()<<endl;
