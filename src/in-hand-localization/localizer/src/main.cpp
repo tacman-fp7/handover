@@ -185,6 +185,10 @@ public:
             j_obj=0;
         else if (object=="jello")
             j_obj=1;
+        else if (object=="soup")
+            j_obj=2;
+        else if (object=="meat")
+            j_obj=3;
         else
             return false;
 
