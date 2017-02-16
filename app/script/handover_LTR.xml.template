@@ -64,7 +64,7 @@
 
     <connection>
         <from>/pose-selection/cc:rpc</from>
-        <to>/closed-chain/rpc</to>
+        <to>/pose-selecti/rpc</to>
         <protocol>tcp</protocol>
     </connection>
 
@@ -77,6 +77,31 @@
     <connection>
         <from>/pose-selection/img:o</from>
         <to>/dispPose</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/in-hand-segmentation/calib:rpc</from>
+        <to>/depth2kin/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+   <connection>
+        <from>/closed-chain/ps:rpc</from>
+        <to>/pose-selection/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+   <connection>
+        <from>/pose-selection/hn:rpc</from>
+        <to>/in-hand-segmentation/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+
+    <connection>
+        <from>/icub/camcalib/left/out</from>
+        <to>/pose-selection/img:i</to>
         <protocol>tcp</protocol>
     </connection>
 
