@@ -1081,6 +1081,9 @@ public:
 
         if (online)
         {
+
+            H_hand=computePose();
+
             if (prepare_hand)
                 moveHand(pos_to_reach, orient_to_reach);
 
@@ -1788,6 +1791,8 @@ public:
     /*******************************************************************************/
     void fromRobotTohandFrame(vector<Vector> &pointstmp)
     {
+        H_hand=computePose();
+
         for (size_t i=0; i<pointstmp.size(); i++)
         {
             Vector aux(4,1.0);
@@ -2171,12 +2176,12 @@ public:
                 if (left_or_right=="right")
                 {
                     x_to_fix[1]-=0.15;
-                    x_to_fix[2]+=0.13;
+                    x_to_fix[2]+=0.08;
                 }
                 else
                 {
                     x_to_fix[1]+=0.15;
-                    x_to_fix[2]+=0.13;
+                    x_to_fix[2]+=0.08;
                 }
 
                 cout<< " Point to fix "<<x_to_fix.toString()<<endl;

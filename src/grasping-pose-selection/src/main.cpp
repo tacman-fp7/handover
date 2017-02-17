@@ -653,12 +653,14 @@ class poseSelection : public RFModule,
                 H_hand=askForHandPose();
             }
 
-            if (update_hand_pose)
+            //if (update_hand_pose)
                 H_hand=askForHandPose();
         }
 
         if (select_new_pose)
         {
+            H_hand=askForHandPose();
+
             changeFrame();
 
             distanceFromHand();
@@ -677,6 +679,8 @@ class poseSelection : public RFModule,
 
         if (select_defined_pose)
         {
+            H_hand=askForHandPose();
+
             askXdOdHat();
 
             chooseSecondHandPose();
@@ -1345,6 +1349,8 @@ class poseSelection : public RFModule,
             select_new_pose=false;
             yError()<< " Some problems in receiving hand pose";
         }
+
+        cout<< "New pose "<<pos_hand.toString()<<" "<<axis_hand.toString()<<endl;
 
         H.resize(4,4);
 
@@ -2028,6 +2034,19 @@ class poseSelection : public RFModule,
 
        Vector tmp(4,1.0);
        tmp.setSubvector(0,positions[index].subVector(0,2));
+
+       addOffset(positions_rotated,x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+
+       addOffset(x_axis_rotated, x_axis_rotated,positions_rotated,offset_x_final, "x_final");
+       addOffset(z_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+       addOffset(y_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+
+       addOffset(positions_rotated,z_axis_rotated,positions_rotated, offset_z_final, "z_final");
+
+       addOffset(z_axis_rotated, z_axis_rotated,positions_rotated,offset_z_final, "z_final");
+       addOffset(x_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z_final");
+       addOffset(y_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z_final");
+
        pose_second.setSubvector(0,Hfinal_first*H_object*tmp);
        pose_second.setSubvector(3, dcm2axis(Hfinal_first*H_object*orient));
 
