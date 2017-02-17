@@ -1129,6 +1129,10 @@ public:
                 colors[1]=255;
                 coarseFilter(pointsIn);
                 info="_CF";
+
+                /*************************************************************************/
+                fromHandToRobotFrame(pointsIn);
+
                 saveNewCloud(colors, pointsIn, info);
             }
 
@@ -1589,6 +1593,7 @@ public:
         if (finger_str == "index")
         {
             finger_index.getChainJoints(encoders, enc_from_port,joints, analog_limits);
+            cout<<"joints thumb "<<joints.toString(3,3)<<endl;
 
             tipFrame=finger_index.getH((M_PI/180.0)*joints);
         }
@@ -1596,19 +1601,30 @@ public:
         {
             finger_middle.getChainJoints(encoders, enc_from_port,joints, analog_limits);
 
+            cout<<"joints thumb "<<joints.toString(3,3)<<endl;
+
             tipFrame=finger_middle.getH((M_PI/180.0)*joints);
         }
 
-        Vector tip_x=tipFrame.getCol(3);
-        Vector tip_o=dcm2axis(tipFrame);
+//        Vector tip_x=tipFrame.getCol(3);
+//        Vector tip_o=dcm2axis(tipFrame);
 
-        icart_arm->attachTipFrame(tip_x.subVector(0,2),tip_o);
+//        icart_arm->attachTipFrame(tip_x.subVector(0,2),tip_o);
 
-        Time::delay(0.1);
-        Vector o(4,0.0);
-        icart_arm->getPose(contactPoint, o);
-        icart_arm->removeTipFrame();
-        Time::delay(0.1);
+//        Time::delay(0.1);
+//        Vector o(4,0.0);
+//        icart_arm->getPose(contactPoint, o);
+//        icart_arm->removeTipFrame();
+//        Time::delay(0.1);
+
+          yDebug()<<" Finger "<<finger_str <<tipFrame.toString(3,3);
+          Vector x,o;
+          icart_arm->getPose(x,o);
+          Matrix M=axis2dcm(o);
+          M.setSubcol(x,0,3);
+          M=M*tipFrame;
+          contactPoint=M.getCol(3).subVector(0,2);
+
     }
 
     /*******************************************************************************/
@@ -1793,6 +1809,21 @@ public:
             pointstmp[i].setSubvector(0,aux.subVector(0,2));
         }
     }
+
+    /*******************************************************************************/
+    void fromHandToRobotFrame(vector<Vector> &pointstmp)
+    {
+        H_hand=computePose();
+
+        for (size_t i=0; i<pointstmp.size(); i++)
+        {
+            Vector aux(4,1.0);
+            aux.setSubvector(0,pointstmp[i].subVector(0,2));
+            aux=SE3inv(H_hand)*(aux);
+            pointstmp[i].setSubvector(0,aux.subVector(0,2));
+        }
+    }
+
 
     /*******************************************************************************/
     void graspableVolume(vector<Vector> &fingerPoses)
