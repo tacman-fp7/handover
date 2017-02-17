@@ -174,4 +174,7 @@ service poseSelection_IDL
 
     bool reach_final();
     double get_tolerance();
+
+    double get_y_correction();
+    bool set_y_correction(1:double entry);
 }

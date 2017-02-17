@@ -97,6 +97,7 @@ class poseSelection : public RFModule,
     bool update_pose;    
     bool twist_wrist;
     bool to_be_sent;
+    bool correct;
     bool new_angle;
     bool waypoint;
     bool manip_ok;
@@ -106,6 +107,7 @@ class poseSelection : public RFModule,
     double theta;
     double length;
     double tolerance;
+    double y_corr;
     double offset_z_final;
     double offset_x_approach;
     double offset_x_final;
@@ -409,6 +411,24 @@ class poseSelection : public RFModule,
         return tolerance;
     }
 
+    /************************************************************************/
+    bool set_y_correction(double entry)
+    {
+        cout<<endl<< "  New y offset: "<<entry<<endl<<endl;
+
+        y_corr=entry;
+        correct=true;
+
+        return true;
+    }
+
+    /************************************************************************/
+    double get_y_correction()
+    {
+        if (correct)
+            return y_corr;
+    }
+
     /*********************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -429,6 +449,7 @@ class poseSelection : public RFModule,
         twist_wrist=(rf.check("twist_wrist", Value("yes")).asString()== "yes");
         closed_chain=(rf.check("closed_chain", Value("no")).asString()== "yes");
         waypoint=(rf.check("use_waypoint", Value("yes")).asString()== "yes");
+        correct=(rf.check("correction", Value("no")).asString()== "yes");
 
         robot=rf.check("robot", Value("icubSim")).asString();
         left_or_right=rf.check("which_hand", Value("left")).asString();
@@ -441,6 +462,7 @@ class poseSelection : public RFModule,
             theta=rf.check("theta", Value(-20.0)).asDouble();
 
         offset_z_final=rf.check("offset_z_final", Value(0.02)).asDouble();
+        y_corr=rf.check("y_corr", Value(0.0)).asDouble();
         offset_x_approach=rf.check("offset_x_approach", Value(0.08)).asDouble();
         offset_x_final=rf.check("offset_x_final", Value(0.02)).asDouble();
         offset_z_approach=rf.check("offset_z_approach", Value(0.04)).asDouble();
@@ -452,6 +474,7 @@ class poseSelection : public RFModule,
         cout<< " An offset_x_final of "<<offset_x_final<< " will be added in order to shift final poses along x-axis of hand frame "<<endl<<endl;
 
         length=0.06;
+
         pos.resize(3,0.0);
         xd_h.resize(3,0.0);
         od_h.resize(4,0.0);
@@ -2040,6 +2063,15 @@ class poseSelection : public RFModule,
 
        pose_second.setSubvector(0,tmp.subVector(0,2));
        pose_second.setSubvector(3, dcm2axis(Hfinal_first*H_object*orient));
+
+       if (correct)
+       {
+           Matrix orient2(4,4);
+           orient2=axis2dcm(pose_second.subVector(3,6));
+
+           pose_second.setSubvector(0,pose_second.subVector(0,2)-y_corr*(orient2.subcol(0,1,3))/norm(orient2.subcol(0,1,3)));
+           correct=false;
+       }
 
        cout<<endl<< " Computed second hand pose "<<pose_second.toString(3,3)<<endl<<endl;
    }
