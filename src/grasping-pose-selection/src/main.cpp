@@ -937,23 +937,23 @@ class poseSelection : public RFModule,
                 z_axis_rotated.push_back(tmp.subVector(0,2));
             }
 
-            if (offset_z_final > 0.0)
-            {
+            //if (offset_z_final > 0.0)
+            //{
                 addOffset(positions_rotated,z_axis_rotated, positions_rotated,offset_z_final, "z");
 
                 addOffset(z_axis_rotated, z_axis_rotated,positions_rotated,offset_z_final, "z");
                 addOffset(x_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z");
                 addOffset(y_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z");
-            }
+            //}
 
-            if (offset_x_final > 0.0)
-            {
+            //if (offset_x_final > 0.0)
+            //{
                 addOffset(positions_rotated,x_axis_rotated,positions_rotated, offset_x_final, "x_final");
 
                 addOffset(x_axis_rotated, x_axis_rotated,positions_rotated,offset_x_final, "x_final");
                 addOffset(z_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
                 addOffset(y_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
-            }
+            //}
 
         }
 

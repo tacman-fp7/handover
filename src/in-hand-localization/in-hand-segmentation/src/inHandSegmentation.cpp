@@ -265,12 +265,17 @@ protected:
     /***********************************************************************/
     bool set_frame(const string &entry)
     {
-        if (entry=="hand" || entry=="robot")
+        if (entry=="hand")
         {
             frame=entry;
+            change_frame=true;
             return true;
         }
-        else
+        else if (entry=="robot")
+        {
+            frame=entry;
+            change_frame=false;
+        }
             return false;
     }
 
@@ -1510,7 +1515,7 @@ public:
 
         if (frame =="robot" && change_frame==true)
             frame="hand";
-        else if (frame =="hand" && change_frame==false)
+        else if (change_frame==false)
             frame="robot";
 
         if (frame == "hand")
