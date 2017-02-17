@@ -919,16 +919,6 @@ public:
 
         robotDevice.view(icart_arm);
 
-//        icart_arm->getPose(pos_to_reach, orient_to_reach);
-//        pos_to_reach[0]=-0.35;
-//        pos_to_reach[1]=-0.15;
-//        pos_to_reach[2]=0.15;
-
-//        orient_to_reach[0]= -0.032;
-//        orient_to_reach[1]=  0.599;
-//        orient_to_reach[2]= -0.800;
-//        orient_to_reach[3]= 2.843;
-
         if (online)
         {
             portCalib.open("/"+module_name+"/calib:rpc");
@@ -1084,11 +1074,8 @@ public:
 
             H_hand=computePose();
 
-            if (prepare_hand)
-                moveHand(pos_to_reach, orient_to_reach);
-
-            //if (fixate)
-            //    lookHand();
+//            if (prepare_hand)
+//                moveHand(pos_to_reach, orient_to_reach);
 
             if (automatic_acquisition)
             {

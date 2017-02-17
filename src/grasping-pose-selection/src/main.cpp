@@ -1350,7 +1350,7 @@ class poseSelection : public RFModule,
             yError()<< " Some problems in receiving hand pose";
         }
 
-        cout<< "New pose "<<pos_hand.toString()<<" "<<axis_hand.toString()<<endl;
+        //cout<< "New pose "<<pos_hand.toString()<<" "<<axis_hand.toString()<<endl;
 
         H.resize(4,4);
 
@@ -2033,21 +2033,12 @@ class poseSelection : public RFModule,
        orient.setSubcol((z_axis[index]-positions[index].subVector(0,2))/norm(z_axis[index]-positions[index].subVector(0,2)), 0, 2);
 
        Vector tmp(4,1.0);
-       tmp.setSubvector(0,positions[index].subVector(0,2));
 
-       addOffset(positions_rotated,x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+       tmp.setSubvector(0,positions_rotated[index].subVector(0,2));
 
-       addOffset(x_axis_rotated, x_axis_rotated,positions_rotated,offset_x_final, "x_final");
-       addOffset(z_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
-       addOffset(y_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+       tmp=Hfinal_first*SE3inv(H_hand)*tmp;
 
-       addOffset(positions_rotated,z_axis_rotated,positions_rotated, offset_z_final, "z_final");
-
-       addOffset(z_axis_rotated, z_axis_rotated,positions_rotated,offset_z_final, "z_final");
-       addOffset(x_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z_final");
-       addOffset(y_axis_rotated, z_axis_rotated,positions_rotated, offset_z_final, "z_final");
-
-       pose_second.setSubvector(0,Hfinal_first*H_object*tmp);
+       pose_second.setSubvector(0,tmp.subVector(0,2));
        pose_second.setSubvector(3, dcm2axis(Hfinal_first*H_object*orient));
 
        cout<<endl<< " Computed second hand pose "<<pose_second.toString(3,3)<<endl<<endl;
