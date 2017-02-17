@@ -1490,7 +1490,7 @@ public:
                 fout<<position.toString()<<endl;
                 fout<<orientation.toString()<<endl;
 
-                cout<<endl<<" Pose saved in "<<fileNameFormat<<endl<<endl;
+                //cout<<endl<<" Pose saved in "<<fileNameFormat<<endl<<endl;
             }
             else
             {
