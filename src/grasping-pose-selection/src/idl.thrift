@@ -177,4 +177,18 @@ service poseSelection_IDL
 
     double get_y_correction();
     bool set_y_correction(1:double entry);
+
+  /**
+    * Set offset in order to shift final poses 
+    * far away from the object surface on y-axis 
+    * @ return true
+    */
+    bool set_offset_y_final(1:double entry);
+
+    /**
+    * Get offset used to shift final poses 
+    * far away from the object surface on y-axis
+    * @ return offset value
+    */
+    double get_offset_y_final();
 }

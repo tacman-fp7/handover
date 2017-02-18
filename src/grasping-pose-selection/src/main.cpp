@@ -111,6 +111,7 @@ class poseSelection : public RFModule,
     double offset_z_final;
     double offset_x_approach;
     double offset_x_final;
+    double offset_y_final;
     double offset_z_approach;
 
     int index;
@@ -333,6 +334,20 @@ class poseSelection : public RFModule,
     }
 
     /************************************************************************/
+    bool set_offset_y_final(double entry)
+    {
+        cout<<endl<< "  New offset_x_final set: "<<entry<<endl<<endl;
+        offset_y_final=entry;
+        return true;
+    }
+
+    /************************************************************************/
+    double get_offset_y_final()
+    {
+        return offset_y_final;
+    }
+
+    /************************************************************************/
     bool set_offset_z_approach(double entry)
     {
         cout<<endl<< "  New offset_z_approach set: "<<entry<<endl<<endl;
@@ -467,6 +482,8 @@ class poseSelection : public RFModule,
         offset_x_final=rf.check("offset_x_final", Value(0.02)).asDouble();
         offset_z_approach=rf.check("offset_z_approach", Value(0.04)).asDouble();
         tolerance=rf.check("tolerance", Value(0.02)).asDouble();
+
+        offset_y_final=rf.check("offset_y_final", Value(0.02)).asDouble();
 
 
         cout<< " An offset_z_final of "<<offset_z_final<< " will be added in order to shift poses along z-axis of hand frame"<<endl;
@@ -948,11 +965,18 @@ class poseSelection : public RFModule,
 
             //if (offset_x_final > 0.0)
             //{
-                addOffset(positions_rotated,x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+                addOffset(positions_rotated,x_axis_rotated,positions_rotated, offset_x_final, "x");
 
-                addOffset(x_axis_rotated, x_axis_rotated,positions_rotated,offset_x_final, "x_final");
-                addOffset(z_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
-                addOffset(y_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x_final");
+                addOffset(x_axis_rotated, x_axis_rotated,positions_rotated,offset_x_final, "x");
+                addOffset(z_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x");
+                addOffset(y_axis_rotated, x_axis_rotated,positions_rotated, offset_x_final, "x");
+
+
+                addOffset(positions_rotated,y_axis_rotated, positions_rotated,offset_y_final, "y");
+
+                addOffset(y_axis_rotated, y_axis_rotated,positions_rotated,offset_y_final, "y");
+                addOffset(z_axis_rotated, y_axis_rotated,positions_rotated, offset_y_final, "y");
+                addOffset(x_axis_rotated, y_axis_rotated,positions_rotated, offset_y_final, "y");
             //}
 
         }
@@ -1767,11 +1791,19 @@ class poseSelection : public RFModule,
             {
                 if (norm(axis[i]-center[i])>0.0)
                 {
-                    vect[i]=vect[i] - offset*(axis[i]-center[i])/(norm(axis[i]-center[i]));
+                    if (ax=="y")
+                        vect[i]=vect[i] + offset*(axis[i]-center[i])/(norm(axis[i]-center[i]));
+                    else
+                        vect[i]=vect[i] - offset*(axis[i]-center[i])/(norm(axis[i]-center[i]));
+
                 }
                 else
                 {
-                    vect[i]=vect[i] - offset*(axis[i])/(norm(axis[i]));
+
+                    if (ax=="y")
+                        vect[i]=vect[i] + offset*(axis[i])/(norm(axis[i]));
+                    else
+                        vect[i]=vect[i] - offset*(axis[i])/(norm(axis[i]));
                 }
 
             }
@@ -1784,14 +1816,18 @@ class poseSelection : public RFModule,
                {
                    if (ax=="z")
                        vect[i]=vect[i] + offset*(axis[i]-center[i])/(norm(axis[i]-center[i]));
-                   else
+                   else if (ax=="x")
+                       vect[i]=vect[i] - offset*(axis[i]-center[i])/(norm(axis[i]-center[i]));
+                   else if (ax=="y")
                        vect[i]=vect[i] - offset*(axis[i]-center[i])/(norm(axis[i]-center[i]));
                }
                else
                {
                    if (ax=="z")
                        vect[i]=vect[i] + offset*(axis[i])/(norm(axis[i]));
-                   else
+                   else if (ax=="x")
+                       vect[i]=vect[i] - offset*(axis[i])/(norm(axis[i]));                   
+                   else if (ax=="y")
                        vect[i]=vect[i] - offset*(axis[i])/(norm(axis[i]));
                }
            }
