@@ -483,7 +483,7 @@ class poseSelection : public RFModule,
         offset_z_approach=rf.check("offset_z_approach", Value(0.04)).asDouble();
         tolerance=rf.check("tolerance", Value(0.02)).asDouble();
 
-        offset_y_final=rf.check("offset_y_final", Value(0.02)).asDouble();
+        offset_y_final=rf.check("offset_y_final", Value(0.0)).asDouble();
 
 
         cout<< " An offset_z_final of "<<offset_z_final<< " will be added in order to shift poses along z-axis of hand frame"<<endl;
@@ -1862,10 +1862,10 @@ class poseSelection : public RFModule,
                     tmp3.push_back(y_axis_wp[j]);
                     tmp4.push_back(z_axis_wp[j]);
 
-                    addOffset(tmp1,tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
-                    addOffset(tmp2, tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
-                    addOffset(tmp4, tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
-                    addOffset(tmp3, tmp2,tmp1, (j+1)* offset_x_approach, "x_approach");
+                    addOffset(tmp1,tmp2,tmp1, (j+1)*offset_x_approach, "x");
+                    addOffset(tmp2, tmp2,tmp1, (j+1)*offset_x_approach, "x");
+                    addOffset(tmp4, tmp2,tmp1, (j+1)*offset_x_approach, "x");
+                    addOffset(tmp3, tmp2,tmp1, (j+1)* offset_x_approach, "x");
 
                     waypoints[j]=tmp1[0];
                     x_axis_wp[j]=tmp2[0];
@@ -1895,10 +1895,10 @@ class poseSelection : public RFModule,
                    tmp3.push_back(y_axis_wp[j]);
                    tmp4.push_back(z_axis_wp[j]);
 
-                   addOffset(tmp1,tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
-                   addOffset(tmp2, tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
-                   addOffset(tmp4, tmp2,tmp1, (j+1)*offset_x_approach, "x_approach");
-                   addOffset(tmp3, tmp2,tmp1, (j+1)* offset_x_approach, "x_approach");
+                   addOffset(tmp1,tmp2,tmp1, (j+1)*offset_x_approach, "x");
+                   addOffset(tmp2, tmp2,tmp1, (j+1)*offset_x_approach, "x");
+                   addOffset(tmp4, tmp2,tmp1, (j+1)*offset_x_approach, "x");
+                   addOffset(tmp3, tmp2,tmp1, (j+1)* offset_x_approach, "x");
 
                    waypoints[j]=tmp1[0];
                    x_axis_wp[j]=tmp2[0];

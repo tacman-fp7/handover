@@ -2199,7 +2199,7 @@ public:
                 if (left_or_right=="right")
                 {
                     x_to_fix[1]-=0.18;
-                    x_to_fix[2]+=0.15;
+                    x_to_fix[2]+=0.18;
                 }
                 else
                 {
