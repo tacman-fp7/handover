@@ -70,6 +70,7 @@ class poseSelection : public RFModule,
     vector<Vector> xdhat_wp;
     vector<Vector> positions;
     vector<Vector> waypoints;
+    vector<Vector> example_poses;
     vector<Vector> orientations;
     vector<Vector> first_arm_pose;
     vector<Vector> positions_rotated;    
@@ -78,6 +79,7 @@ class poseSelection : public RFModule,
     vector<Vector> x_axis_rotated, y_axis_rotated, z_axis_rotated;
 
     string orientationFileName;
+    string computedPosesFileName;
     string correctionMatrixFileName;
     string objectPoseFileName;
     string handPoseFileName;
@@ -464,6 +466,7 @@ class poseSelection : public RFModule,
         objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default object pose file name").asString();
         orientationFileName=rf.check("orientationFileName", Value("orientations-right.txt"), "Default orientations file name").asString();
         correctionMatrixFileName=rf.check("correctionMatrixFileName", Value("correction-matrices.txt"), "Default orientations file name").asString();
+        computedPosesFileName=rf.check("computedPosesFileName", Value("computed-poses.txt"), "Default orientations file name").asString();
 
 
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
@@ -519,8 +522,13 @@ class poseSelection : public RFModule,
 
         readPoses(positionFileName, orientationFileName);
         read(correctionMatrixFileName, "corr_matrix");
+        read(computedPosesFileName, "example_poses");
 
-        yDebug()<<" Correction matrix "<<correction_matrix[0].toString();
+        for (size_t i=0; i<correction_matrix.size(); i++)
+        {
+            yDebug()<<" Correction matrix "<<correction_matrix[i].toString();
+            yDebug()<<" Example poses "<<example_poses[i].toString();
+        }
 
         index_poses.resize(positions.size(), 0.0);
 
@@ -855,9 +863,11 @@ class poseSelection : public RFModule,
         if (tag=="positions")
             positions.clear();
         else if (tag=="orientations")
-            orientations.clear();
+            orientations.clear();        
         else if (tag=="corr_matrix")
             correction_matrix.clear();
+        else if (tag=="example_poses")
+            example_poses.clear();
 
         Vector point_tmp;
 
@@ -867,6 +877,8 @@ class poseSelection : public RFModule,
             point_tmp.resize(9,0.0);
         else if (tag=="corr_matrix")
             point_tmp.resize(16,0.0);
+        else if (tag=="example_poses")
+            point_tmp.resize(7,0.0);
 
         cout<< " In cloud file "<<homeContextPath+"/"+filename<<endl;
 
@@ -910,6 +922,9 @@ class poseSelection : public RFModule,
                     point_tmp[4]=b.get(4).asDouble();
                     point_tmp[5]=b.get(5).asDouble();
 
+                    if (tag=="example_poses")
+                        point_tmp[6]=b.get(6).asDouble();
+
                     if (tag=="orientations" || tag=="corr_matrix")
                     {
                         point_tmp[6]=b.get(6).asDouble();
@@ -939,6 +954,8 @@ class poseSelection : public RFModule,
                                 orientations.push_back(point_tmp);
                             else if (tag=="corr_matrix")
                                 correction_matrix.push_back(point_tmp);
+                            else if (tag=="example_poses")
+                                example_poses.push_back(point_tmp);
                         }
                         return true;
                     }
@@ -2185,7 +2202,10 @@ class poseSelection : public RFModule,
 //       }
 
        if (correct_pose)
-           correctSecondPose(0);
+       {
+           int l=chooseSimilarPose();
+           correctSecondPose(l);
+       }
 
        cout<<endl<< " Computed second hand pose "<<pose_second.toString(3,3)<<endl<<endl;
    }
@@ -2209,6 +2229,37 @@ class poseSelection : public RFModule,
        pose_second_corr.setSubvector(3,dcm2axis(corr_matrix*axis2dcm(pose_second.subVector(3,6))));
 
        yDebug()<<" Corrected second pose"<<pose_second_corr.toString();
+   }
+
+   /*******************************************************************************/
+   int chooseSimilarPose()
+   {
+       int j;
+       double err_p, err_n;
+       deque<double> errors;
+
+
+       for (size_t i=0; i<example_poses.size();i++)
+       {
+           err_p=norm(pose_second.subVector(0,2)-example_poses[i].subVector(0,2));
+           err_n=norm(pose_second.subVector(3,6)-example_poses[i].subVector(3,6));
+           errors.push_back(err_p+err_n);
+           cout<<"error "<<errors[i]<<endl;
+
+           if(i>1)
+           {              
+               if (errors[i]<=errors[i-1])
+               {
+                    j=i;
+               }
+           }
+           else
+               j=0;
+
+       }
+
+       cout<<"selected j "<<j<<endl;
+       return j;
    }
 };
 
