@@ -47,12 +47,15 @@ using namespace iCub::ctrl;
 
 class poseSelection : public RFModule,
                       public poseSelection_IDL
-{
+{  
     Matrix H_object, H_hand;
+
+    vector<Vector> correction_matrix;
 
     Vector xd_h, od_h;
     Vector index_poses;
     Vector pose_second;
+    Vector pose_second_corr;
     Vector pos_hand, axis_hand;
     Vector pos, euler_angles, axis;
     Vector x_init_moving_arm, o_init_moving_arm;
@@ -75,6 +78,7 @@ class poseSelection : public RFModule,
     vector<Vector> x_axis_rotated, y_axis_rotated, z_axis_rotated;
 
     string orientationFileName;
+    string correctionMatrixFileName;
     string objectPoseFileName;
     string handPoseFileName;
     string positionFileName;
@@ -91,16 +95,18 @@ class poseSelection : public RFModule,
     bool select_new_pose;
     bool reach_waypoint;
     bool torso_enabled;
+    bool correct_pose;
     bool reached_final;
     bool change_frame;
     bool closed_chain;
     bool update_pose;    
     bool twist_wrist;
     bool to_be_sent;
-    bool correct;
+    bool use_matrix;
     bool new_angle;
     bool waypoint;
     bool manip_ok;
+    bool correct;
     bool online;
     bool euler;
 
@@ -457,6 +463,8 @@ class poseSelection : public RFModule,
         positionFileName=rf.check("positionFileName", Value("positions0.off"), "Default positions file name").asString();
         objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default object pose file name").asString();
         orientationFileName=rf.check("orientationFileName", Value("orientations-right.txt"), "Default orientations file name").asString();
+        correctionMatrixFileName=rf.check("correctionMatrixFileName", Value("correction-matrices.txt"), "Default orientations file name").asString();
+
 
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
         camera=(rf.check("camera", Value(0), "online or offline processing").asInt());
@@ -465,6 +473,7 @@ class poseSelection : public RFModule,
         closed_chain=(rf.check("closed_chain", Value("no")).asString()== "yes");
         waypoint=(rf.check("use_waypoint", Value("yes")).asString()== "yes");
         correct=(rf.check("correction", Value("no")).asString()== "yes");
+        correct_pose=(rf.check("correct_pose", Value("no")).asString()== "yes");
 
         robot=rf.check("robot", Value("icubSim")).asString();
         left_or_right=rf.check("which_hand", Value("left")).asString();
@@ -501,13 +510,17 @@ class poseSelection : public RFModule,
         pos_hand.resize(3,0.0);
         axis_hand.resize(4,0.0);
         pose_second.resize(7,0.0);
-        euler_angles.resize(3,0.0);       
+        euler_angles.resize(3,0.0);
+        pose_second_corr.resize(7,0.0);
         x_init_moving_arm.resize(3,0.0);
         o_init_moving_arm.resize(4,0.0);
         x_init_resting_arm.resize(3,0.0);
         o_init_resting_arm.resize(4,0.0);
 
         readPoses(positionFileName, orientationFileName);
+        read(correctionMatrixFileName, "corr_matrix");
+
+        yDebug()<<" Correction matrix "<<correction_matrix[0].toString();
 
         index_poses.resize(positions.size(), 0.0);
 
@@ -713,8 +726,10 @@ class poseSelection : public RFModule,
             if (manip_ok)
                 choosePose();
 
-            if (waypoint)
-                addWaypoint(n_waypoint, index);
+            if (waypoint && !correct_pose)
+                addWaypoint(n_waypoint, index, pose_second);
+            else if (waypoint && correct_pose)
+                addWaypoint(n_waypoint, index, pose_second_corr);
         }
 
         if (select_defined_pose)
@@ -725,8 +740,10 @@ class poseSelection : public RFModule,
 
             chooseSecondHandPose();
 
-            if (waypoint)
-                addWaypoint(n_waypoint, index);
+            if (waypoint && !correct_pose)
+                addWaypoint(n_waypoint, index, pose_second);
+            else if (waypoint && correct_pose)
+                addWaypoint(n_waypoint, index, pose_second_corr);
         }
 
         if (update_hand_pose)
@@ -736,8 +753,10 @@ class poseSelection : public RFModule,
             if (manip_ok)
                 choosePose();
 
-            if (waypoint)
-                addWaypoint(n_waypoint, index);
+            if (waypoint && !correct_pose)
+                addWaypoint(n_waypoint, index, pose_second);
+            else if (waypoint && correct_pose)
+                addWaypoint(n_waypoint, index, pose_second_corr);
 
             showPoses();
         }
@@ -837,6 +856,8 @@ class poseSelection : public RFModule,
             positions.clear();
         else if (tag=="orientations")
             orientations.clear();
+        else if (tag=="corr_matrix")
+            correction_matrix.clear();
 
         Vector point_tmp;
 
@@ -844,6 +865,8 @@ class poseSelection : public RFModule,
             point_tmp.resize(6,0.0);
         else if (tag=="orientations")
             point_tmp.resize(9,0.0);
+        else if (tag=="corr_matrix")
+            point_tmp.resize(16,0.0);
 
         cout<< " In cloud file "<<homeContextPath+"/"+filename<<endl;
 
@@ -887,11 +910,21 @@ class poseSelection : public RFModule,
                     point_tmp[4]=b.get(4).asDouble();
                     point_tmp[5]=b.get(5).asDouble();
 
-                    if (tag=="orientations")
+                    if (tag=="orientations" || tag=="corr_matrix")
                     {
                         point_tmp[6]=b.get(6).asDouble();
                         point_tmp[7]=b.get(7).asDouble();
                         point_tmp[8]=b.get(8).asDouble();
+                    }
+                    if (tag=="corr_matrix")
+                    {
+                        point_tmp[9]=b.get(9).asDouble();
+                        point_tmp[10]=b.get(10).asDouble();
+                        point_tmp[11]=b.get(11).asDouble();
+                        point_tmp[12]=b.get(12).asDouble();
+                        point_tmp[13]=b.get(13).asDouble();
+                        point_tmp[14]=b.get(14).asDouble();
+                        point_tmp[15]=b.get(15).asDouble();
                     }
                     points_tmp.push_back(point_tmp);
 
@@ -904,6 +937,8 @@ class poseSelection : public RFModule,
                                 positions.push_back(point_tmp);
                             else if (tag=="orientations")
                                 orientations.push_back(point_tmp);
+                            else if (tag=="corr_matrix")
+                                correction_matrix.push_back(point_tmp);
                         }
                         return true;
                     }
@@ -1352,7 +1387,31 @@ class poseSelection : public RFModule,
                     cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
                     cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
                 }
-            }
+
+                if (correct_pose)
+                {
+                    igaze->get2DPixel(camera, num_position,center_bb);
+                    cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+
+                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2), position_2D);
+                    cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+                    Matrix orient(4,4);
+                    orient=axis2dcm(pose_second_corr.subVector(3,6));
+
+                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+                    cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(200,0,0), 2);
+
+                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+                    cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,200,0), 2);
+
+                    igaze->get2DPixel(camera,pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+                    cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,200), 2);
+                }
+                }
         }
 
         portImgOut.write();
@@ -1835,7 +1894,7 @@ class poseSelection : public RFModule,
    }
 
    /*******************************************************************************/
-   void addWaypoint(int n, int i)
+   void addWaypoint(int n, int i, Vector &pose_second)
    {
        waypoints.clear();
        x_axis_wp.clear();
@@ -2042,17 +2101,33 @@ class poseSelection : public RFModule,
        icart_arm_move->setDOF(dof,dof);
        icart_arm_move->setTrajTime(2.0);
 
-       cout<< " Going to  final pose: "<< pose_second.subVector(0,2).toString(3,3)<<" "<<pose_second.subVector(3,6).toString(3,3)<<endl<<endl;
+       if (!correct_pose)
+       {
+           cout<< " Going to  final pose: "<< pose_second.subVector(0,2).toString(3,3)<<" "<<pose_second.subVector(3,6).toString(3,3)<<endl<<endl;
 
-       icart_arm_move->goToPoseSync(pose_second.subVector(0,2), pose_second.subVector(3,6));
-       icart_arm_move->waitMotionDone();
+           icart_arm_move->goToPoseSync(pose_second.subVector(0,2), pose_second.subVector(3,6));
+           icart_arm_move->waitMotionDone();
 
-       Vector x_tmp(3,0.0);
-       Vector o_tmp(4,0.0);
-       icart_arm_move->getPose(x_tmp, o_tmp);
+           Vector x_tmp(3,0.0);
+           Vector o_tmp(4,0.0);
+           icart_arm_move->getPose(x_tmp, o_tmp);
 
-        cout<<" Reached final pose with position error: "<<norm(x_tmp - pose_second.subVector(0,2))<< " and orientation error: "<<norm(o_tmp- pose_second.subVector(3,6))<<endl<<endl;
+            cout<<" Reached final pose with position error: "<<norm(x_tmp - pose_second.subVector(0,2))<< " and orientation error: "<<norm(o_tmp- pose_second.subVector(3,6))<<endl<<endl;
 
+       }
+       else
+       {
+           cout<< " Going to  final pose: "<< pose_second_corr.subVector(0,2).toString(3,3)<<" "<<pose_second_corr.subVector(3,6).toString(3,3)<<endl<<endl;
+
+           icart_arm_move->goToPoseSync(pose_second_corr.subVector(0,2), pose_second_corr.subVector(3,6));
+           icart_arm_move->waitMotionDone();
+
+           Vector x_tmp(3,0.0);
+           Vector o_tmp(4,0.0);
+           icart_arm_move->getPose(x_tmp, o_tmp);
+
+            cout<<" Reached final pose with position error: "<<norm(x_tmp - pose_second_corr.subVector(0,2))<< " and orientation error: "<<norm(o_tmp- pose_second_corr.subVector(3,6))<<endl<<endl;
+       }
 	yDebug()<< " Reached final pose!";
 
        yDebug()<<" Stopped control: "<<icart_arm_move->stopControl();
@@ -2100,16 +2175,40 @@ class poseSelection : public RFModule,
        pose_second.setSubvector(0,tmp.subVector(0,2));
        pose_second.setSubvector(3, dcm2axis(Hfinal_first*H_object*orient));
 
-       if (correct)
-       {
-           Matrix orient2(4,4);
-           orient2=axis2dcm(pose_second.subVector(3,6));
+//      if (correct)
+//      {
+//           Matrix orient2(4,4);
+//           orient2=axis2dcm(pose_second.subVector(3,6));
 
-           pose_second.setSubvector(0,pose_second.subVector(0,2)-y_corr*(orient2.subcol(0,1,3))/norm(orient2.subcol(0,1,3)));
-           correct=false;
-       }
+//           pose_second.setSubvector(0,pose_second.subVector(0,2)-y_corr*(orient2.subcol(0,1,3))/norm(orient2.subcol(0,1,3)));
+//           correct=false;
+//       }
+
+       if (correct_pose)
+           correctSecondPose(0);
 
        cout<<endl<< " Computed second hand pose "<<pose_second.toString(3,3)<<endl<<endl;
+   }
+
+   /*******************************************************************************/
+   void correctSecondPose(int i)
+   {
+       Vector matrix=correction_matrix[i];
+       Matrix corr_matrix(4,4);
+       corr_matrix(0,0)=matrix[0]; corr_matrix(1,0)=matrix[4]; corr_matrix(2,0)=matrix[8];  corr_matrix(3,0)=matrix[12];
+       corr_matrix(0,1)=matrix[1]; corr_matrix(1,1)=matrix[5]; corr_matrix(2,1)=matrix[9];  corr_matrix(3,1)=matrix[13];
+       corr_matrix(0,2)=matrix[2]; corr_matrix(1,2)=matrix[6]; corr_matrix(2,2)=matrix[10]; corr_matrix(3,2)=matrix[14];
+       corr_matrix(0,3)=matrix[3]; corr_matrix(1,3)=matrix[7]; corr_matrix(2,3)=matrix[11]; corr_matrix(3,3)=matrix[15];
+
+       cout<<" Correct matrix "<<corr_matrix.toString()<<endl;
+
+       Vector tmp(4,1.0);
+       tmp.setSubvector(0,pose_second.subVector(0,2));
+       tmp=corr_matrix*tmp;
+       pose_second_corr.setSubvector(0,tmp.subVector(0,2));
+       pose_second_corr.setSubvector(3,dcm2axis(corr_matrix*axis2dcm(pose_second.subVector(3,6))));
+
+       yDebug()<<" Corrected second pose"<<pose_second_corr.toString();
    }
 };
 
