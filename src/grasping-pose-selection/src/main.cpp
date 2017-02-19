@@ -2237,6 +2237,7 @@ class poseSelection : public RFModule,
        int j;
        double err_p, err_n;
        deque<double> errors;
+       double min_err;
 
 
        for (size_t i=0; i<example_poses.size();i++)
@@ -2246,16 +2247,19 @@ class poseSelection : public RFModule,
            errors.push_back(err_p+err_n);
            cout<<"error "<<errors[i]<<endl;
 
-           if(i>1)
+           if(i>=1)
            {              
-               if (errors[i]<=errors[i-1])
+               if (errors[i]<=min_err)
                {
                     j=i;
+                    min_err=errors[i];
                }
            }
            else
+           {
                j=0;
-
+               min_err=errors[0];
+           }
        }
 
        cout<<"selected j "<<j<<endl;
