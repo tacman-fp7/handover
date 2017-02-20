@@ -124,17 +124,10 @@ bool doubleTouchThread::threadInit()
     if (robot == "icub")
     {
         ok = 1;
-        ok = ok && iimpL->setImpedance(0,  0.4, 0.03);
-        ok = ok && iimpL->setImpedance(1, 0.35, 0.03);
-        ok = ok && iimpL->setImpedance(2, 0.35, 0.03);
-        ok = ok && iimpL->setImpedance(3,  0.2, 0.02);
-        ok = ok && iimpL->setImpedance(4,  0.2, 0.00);
-        
-        ok = ok && iimpL->setImpedance(0,  0.4, 0.03);
-        ok = ok && iimpL->setImpedance(1, 0.35, 0.03);
-        ok = ok && iimpL->setImpedance(2, 0.35, 0.03);
-        ok = ok && iimpL->setImpedance(3,  0.2, 0.02);
-        ok = ok && iimpL->setImpedance(4,  0.2, 0.00);
+        ok = ok && iimpR->setImpedance(0,  0.5, 0.002);
+        ok = ok && iimpR->setImpedance(1,  0.5, 0.002);
+        ok = ok && iimpR->setImpedance(2,  0.5, 0.002);
+        ok = ok && iimpR->setImpedance(3,  0.5, 0.002);
 
         if (!ok)
         {
@@ -207,7 +200,6 @@ void doubleTouchThread::run()
                 {
                     printf(" Switching to compliant interaction mode..\n");
                     imodeS -> setInteractionMode(0,VOCAB_IM_COMPLIANT);
-                    imodeS -> setInteractionMode(1,VOCAB_IM_COMPLIANT);
                     step=3;
                 }
                 else
@@ -451,7 +443,6 @@ void doubleTouchThread::goToPoseSlave()
 {
 
     imodeS-> setInteractionMode(0,VOCAB_IM_STIFF);
-    imodeS-> setInteractionMode(1,VOCAB_IM_STIFF);
 
     for (size_t i=0; i<7;i++)
     {
@@ -518,7 +509,6 @@ void doubleTouchThread::steerArmsHome()
 void doubleTouchThread::steerArmsHomeMasterSlave()
 {
     imodeS-> setInteractionMode(0,VOCAB_IM_STIFF);
-    imodeS-> setInteractionMode(1,VOCAB_IM_STIFF);
 
     printf(" Moving master arm to home, i.e. %s...\n",
                  (iCub::ctrl::CTRL_RAD2DEG*armPossHomeM).toString(3,3).c_str());
