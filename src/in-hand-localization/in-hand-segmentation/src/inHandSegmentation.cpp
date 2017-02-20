@@ -835,7 +835,7 @@ public:
             x_lim_up=rf.check("x_lim_up", Value(0.15)).asDouble();
             y_lim_up=rf.check("y_lim_up", Value(0.08)).asDouble();
             x_lim_down=rf.check("x_lim_down", Value(-0.03)).asDouble();
-            y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
+            y_lim_down=rf.check("y_lim_down", Value(-0.28)).asDouble();
             z_lim_up=rf.check("z_lim_up", Value(0.25)).asDouble();
             z_lim_down=rf.check("z_lim_down", Value(0.0)).asDouble();
             //z_lim_down=rf.check("z_lim_down", Value(-0.08)).asDouble();
@@ -2198,8 +2198,8 @@ public:
 
                 if (left_or_right=="right")
                 {
-                    x_to_fix[1]-=0.18;
-                    x_to_fix[2]+=0.18;
+                    x_to_fix[1]-=0.12;
+                    x_to_fix[2]+=0.12;
                 }
                 else
                 {
