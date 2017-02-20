@@ -249,6 +249,8 @@ public:
 
     void initialPoseMaster();
 
+    bool stop_hand(const string &entry);
+
 //    bool set_waypoint(const int entry);
 //    bool reach_final_pose();
 };

@@ -203,12 +203,20 @@ void doubleTouchThread::run()
                 break;
             case 5:
 
-                printf(" Switching to position mode..\n");
-                imodeS -> setInteractionMode(2,VOCAB_IM_STIFF);
-                imodeS -> setInteractionMode(3,VOCAB_IM_STIFF);
-                step = 1;
+                if (go_slave==false)
+                {
+                    printf(" Switching to compliant interaction mode..\n");
+                    imodeS -> setInteractionMode(0,VOCAB_IM_COMPLIANT);
+                    imodeS -> setInteractionMode(1,VOCAB_IM_COMPLIANT);
+                    step=3;
+                }
+                else
+                    step = 1;
 
                 break;
+            case 6:
+                step=4;
+
             default:
                 yError(" DoubleTouchThread should never be here!!!\nStep: %d",step);
                 Time::delay(0.5);
@@ -442,6 +450,9 @@ void doubleTouchThread::goToPoseMaster()
 void doubleTouchThread::goToPoseSlave()
 {
 
+    imodeS-> setInteractionMode(0,VOCAB_IM_STIFF);
+    imodeS-> setInteractionMode(1,VOCAB_IM_STIFF);
+
     for (size_t i=0; i<7;i++)
     {
         crtlmodeS->setControlMode(i,VOCAB_CM_POSITION);
@@ -506,6 +517,9 @@ void doubleTouchThread::steerArmsHome()
 /************************************************************************/
 void doubleTouchThread::steerArmsHomeMasterSlave()
 {
+    imodeS-> setInteractionMode(0,VOCAB_IM_STIFF);
+    imodeS-> setInteractionMode(1,VOCAB_IM_STIFF);
+
     printf(" Moving master arm to home, i.e. %s...\n",
                  (iCub::ctrl::CTRL_RAD2DEG*armPossHomeM).toString(3,3).c_str());
 
@@ -846,6 +860,23 @@ bool doubleTouchThread::move(const string &entry)
 
     return true;
 }
+
+/************************************************************************/
+bool doubleTouchThread::stop_hand(const string &entry)
+{
+
+    if (entry=="first_hand")
+    {
+        home=false;
+        go=false;
+        go_slave=false;
+        step=5;
+        return true;
+    }
+    else
+        return false;
+}
+
 
 
 /************************************************************************/

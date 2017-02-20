@@ -54,4 +54,9 @@ service closedChain_IDL
     /** skip waypoints
     */
     bool reach_final_pose();
+
+   /** Allows arms to move
+    * @return true
+    */
+    bool stop_hand(1: string entry);
 }
