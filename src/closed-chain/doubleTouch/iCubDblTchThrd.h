@@ -7,6 +7,7 @@
 #include <yarp/os/BufferedPort.h>
 #include <yarp/os/Log.h>
 #include <yarp/os/RpcClient.h>
+#include <yarp/os/all.h>
 
 #include <yarp/sig/Vector.h>
 #include <yarp/sig/Matrix.h>
@@ -25,8 +26,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <iCub/periPersonalSpace/iCubDblTchSlv.h>
-#include <iCub/periPersonalSpace/utils.h>
+#include <iCub/iKin/iKinFwd.h>
+#include <iCub/iKin/iKinIpOpt.h>
+
+//#include <iCub/periPersonalSpace/iCubDblTchSlv.h>
+//#include <iCub/periPersonalSpace/utils.h>
 
 #include "closedChain_IDL.h"
 
@@ -37,6 +41,7 @@ using namespace yarp::sig;
 using namespace yarp::math;
 using namespace yarp::dev;
 using namespace iCub::iKin;
+using namespace iCub::ctrl;
 
 using namespace std;
 
@@ -88,6 +93,10 @@ protected:
     PolyDriver       ddL;
     PolyDriver       ddG;
 
+    iKinChain *chain;
+    Matrix J;
+
+
     // "Classical" interfaces - SLAVE ARM
     IEncoders         *iencsL;
     IPositionControl2 *iposL;
@@ -132,9 +141,9 @@ protected:
     IControlMode2      *crtlmodeM;
     int jntsM;
 
-    doubleTouch_Variables *gue;
-    doubleTouch_Variables *sol;
-    doubleTouch_Solver    *slv;
+//    doubleTouch_Variables *gue;
+//    doubleTouch_Variables *sol;
+//    doubleTouch_Solver    *slv;
     Vector solution;
     int nDOF;
 
@@ -145,7 +154,7 @@ protected:
     Vector armPossHomeS;
 
     // CUSTOM LIMB (for testing the achievement of the task)
-    iCubCustomLimb *testLimb;
+    //iCubCustomLimb *testLimb;
 
     // CHECKMOTIONDONE VARIABLES:
     Vector oldEEL;

@@ -6,6 +6,143 @@
 #define VEL_THRES      0.000001        // m/s?
 // VEL_THRES * getRate()
 
+
+
+
+/**********************************************************************************/
+class rightToLeft : public iKinLimb
+{
+public:
+    rightToLeft() : iKinLimb()
+    {
+        allocate("RtoL");
+    }
+
+protected:
+    virtual void allocate(const string &_type)
+    {
+        // the type is used to discriminate between left and right limb
+
+//        // you have to specify the rototranslational matrix H0 from the origin
+//        // to the root reference so as from iCub specs.
+        Matrix H0(4,4);
+        H0.zero();
+        H0(0,1)=-1.0;
+        H0(1,2)=-1.0;
+        H0(2,0)=1.0;
+        H0(3,3)=1.0;
+        setH0(H0);
+
+        //Inverted right arm
+        //                             A,        D,     alpha,           offset(*),          min theta,          max theta
+        pushLink(new iKinLink(  -0.0625, -0.02598,       0.0,              -M_PI,  -25.0*CTRL_DEG2RAD,  25.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(      0.0,      0.0, -M_PI/2.0,          -M_PI/2.0,  -10.0*CTRL_DEG2RAD,  65.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(     0.0,   0.1413, -M_PI/2.0,            M_PI/2.0,  -50.0*CTRL_DEG2RAD, 50.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(  -0.015,      0.0, -M_PI/2.0,                 0.0, -106.0*CTRL_DEG2RAD, -5.5*CTRL_DEG2RAD));
+        pushLink(new iKinLink(   0.015,  0.15228,  M_PI/2.0,  105.0*CTRL_DEG2RAD, -100.0*CTRL_DEG2RAD, 37.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(     0.0,      0.0,  M_PI/2.0,            M_PI/2.0, -160.8*CTRL_DEG2RAD,  0.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(     0.0,  0.10774, -M_PI/2.0,            M_PI/2.0,   -5.0*CTRL_DEG2RAD, 95.5*CTRL_DEG2RAD));
+
+        // Shoulder from right to left
+//        Matrix L2R = eye(4);
+//        L2R(0,0) =  -0.866;
+//        L2R(0,2) =    0.5;
+//        L2R(0,3) = -0.0031303;
+//        L2R(1,1) =      -1;
+//        L2R(2,0) =     0.5;
+//        L2R(2,2) =  0.866;
+//        L2R(2,3) = -0.0116823;
+//        Matr
+
+        pushLink(new iKinLink( -0.0520998423012193,  -0.0166510140667587, -1.52658537798215,   -0,            -M_PI,               M_PI));
+
+        pushLink(new iKinLink(  0.0565654801678652,   0.0013331286668284, 1.51973988397335,    -0,          -M_PI,                 M_PI));
+
+
+        //Direct left arm
+        //                             A,        D,     alpha,           offset(*),          min theta,          max theta
+        pushLink(new iKinLink(       0.0,  0.10774, -M_PI/2.0,            M_PI/2.0, -95.5*CTRL_DEG2RAD,   5.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(       0.0,      0.0,  M_PI/2.0,           -M_PI/2.0,   0.0*CTRL_DEG2RAD, 160.8*CTRL_DEG2RAD));
+        pushLink(new iKinLink(     0.015,  0.15228, -M_PI/2.0,   75.0*CTRL_DEG2RAD, -37.0*CTRL_DEG2RAD, 100.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(    -0.015,      0.0,  M_PI/2.0,                 0.0,   5.5*CTRL_DEG2RAD, 106.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(       0.0,   0.1413,  M_PI/2.0,           -M_PI/2.0, -50.0*CTRL_DEG2RAD,  50.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(       0.0,      0.0,  M_PI/2.0,            M_PI/2.0, -65.0*CTRL_DEG2RAD,  10.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(    0.0625, -0.02598,       0.0,                 0.0, -25.0*CTRL_DEG2RAD,  25.0*CTRL_DEG2RAD));
+
+
+        // (*) remind that offset is added to theta before computing the rototranslational matrix
+
+        // usually the first three links which describes the torso kinematic come
+        // as blocked, i.e. they do not belong to the set of arm's dof.
+        blockLink(7, -3.11604734575565);
+        blockLink(8, -0.524163368660376);
+
+    }
+};
+
+/**********************************************************************************/
+class leftToRight : public iKinLimb
+{
+public:
+    leftToRight() : iKinLimb()
+    {
+        allocate("RtoL");
+    }
+
+protected:
+    virtual void allocate(const string &_type)
+    {
+        // the type is used to discriminate between left and right limb
+
+//        // you have to specify the rototranslational matrix H0 from the origin
+//        // to the root reference so as from iCub specs.
+//        Matrix H0(4,4);
+//        H0.zero();
+//        H0(0,1)=-1.0;
+//        H0(1,2)=-1.0;
+//        H0(2,0)=1.0;
+//        H0(3,3)=1.0;
+//        setH0(H0);
+
+        //Inverted left arm
+        //                             A,        D,     alpha,           offset(*),          min theta,          max theta
+        pushLink(new iKinLink( -0.0625,  0.02598,       0.0,                0.0, -25.0*CTRL_DEG2RAD,   25.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(     0.0,      0.0, -M_PI/2.0,          -M_PI/2.0, -10.0*CTRL_DEG2RAD,   65.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(     0.0,  -0.1413, -M_PI/2.0,           M_PI/2.0, -50.0*CTRL_DEG2RAD,  50.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(   0.015,      0.0, -M_PI/2.0,                0.0, -106.0*CTRL_DEG2RAD,  -5.5*CTRL_DEG2RAD));
+        pushLink(new iKinLink(  -0.015, -0.15228,  M_PI/2.0, -75.0*CTRL_DEG2RAD, -100.0*CTRL_DEG2RAD,  37.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(     0.0,      0.0, -M_PI/2.0,           M_PI/2.0, -160.8*CTRL_DEG2RAD,   0.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(     0.0, -0.10774,  M_PI/2.0,          -M_PI/2.0,   -5.0*CTRL_DEG2RAD,  95.5*CTRL_DEG2RAD));
+
+
+
+        pushLink(new iKinLink( -0.00320857228625523, -0.00763231849782502, -0.710915288346351,     -0,      -M_PI,   M_PI));
+
+        pushLink(new iKinLink( -0.00137510641215785,  -0.00443075494439096, -0.505381363116833,    -0,      -M_PI,   M_PI));
+
+
+        //Direct right arm
+        //                             A,        D,     alpha,           offset(*),          min theta,          max theta
+        pushLink(new iKinLink(       0.0, -0.10774,  M_PI/2.0,           -M_PI/2.0, -95.5*CTRL_DEG2RAD,   5.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(       0.0,      0.0, -M_PI/2.0,           -M_PI/2.0,   0.0*CTRL_DEG2RAD, 160.8*CTRL_DEG2RAD));
+        pushLink(new iKinLink(    -0.015, -0.15228, -M_PI/2.0, -105.0*CTRL_DEG2RAD, -37.0*CTRL_DEG2RAD, 100.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(     0.015,      0.0,  M_PI/2.0,                 0.0,   5.5*CTRL_DEG2RAD, 106.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(       0.0,  -0.1413,  M_PI/2.0,           -M_PI/2.0, -50.0*CTRL_DEG2RAD,  50.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(       0.0,      0.0,  M_PI/2.0,            M_PI/2.0, -65.0*CTRL_DEG2RAD,  10.0*CTRL_DEG2RAD));
+        pushLink(new iKinLink(    0.0625,  0.02598,       0.0,                M_PI, -25.0*CTRL_DEG2RAD,  25.0*CTRL_DEG2RAD));
+
+        // (*) remind that offset is added to theta before computing the rototranslational matrix
+
+        // usually the first three links which describes the torso kinematic come
+        // as blocked, i.e. they do not belong to the set of arm's dof.
+        blockLink(7, -0.734823212524184);
+        blockLink(8,-2.26861201212518);
+    }
+};
+
+
+
+
 doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const string &_robot, int _v,
                                      double _jnt_vels,bool _dontgoback, const Vector &_hand_poss_master,
                                      const Vector &_hand_poss_slave, bool &go, bool &automatic_start) :
@@ -49,15 +186,16 @@ doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const strin
     oldEEL.resize(3,0.0);
     oldEER.resize(3,0.0);
 
-    slv=NULL;
-    gue=NULL;
-    sol=NULL;
-    testLimb=NULL;
+    //slv=NULL;
+    //gue=NULL;
+    //sol=NULL;
+    //testLimb=NULL;
 }
 
 /************************************************************************/
 bool doubleTouchThread::threadInit()
 {
+    nDOF=14;
     portPoseIn.open("/"+name+"/ps:rpc");    
     portRpc.open("/"+name+"/rpc");
 
@@ -217,100 +355,17 @@ void doubleTouchThread::run()
     }
 }
 
-/************************************************************************/
-bool doubleTouchThread::selectTask()
-{
-    if (moving_arm=="right")
-        curTaskType = "LHtoR";
-    else if (moving_arm=="left")
-        curTaskType = "RHtoL";
 
-    slv = new doubleTouch_Solver(curTaskType);
-    gue = new doubleTouch_Variables(slv->probl->getNVars()); // guess
-    sol = new doubleTouch_Variables(slv->probl->getNVars()); // solution
-
-    solution.resize(slv->probl->getNVars(),0.0);
-    nDOF  = solution.size();
-
-    gue->joints[1+2] = -armPossHome[3]; gue->joints[3+2] = -armPossHome[1];
-    gue->joints[4+2] = -armPossHome[0]; gue->joints[5+2] =  armPossHome[0];
-    gue->joints[6+2] =  armPossHome[1]; gue->joints[8+2] =  armPossHome[3];
-
-    sol->clone(*gue);
-
-    slv->probl->limb.setAng(gue->joints);
-
-    testLimb = new iCubCustomLimb(curTaskType);
-
-    if (curTaskType=="LHtoR")
-    {
-        iencsM = iencsR;
-        imodeM = imodeR;
-         iposM =  iposR;
-         encsM =  encsR;
-         ilimM =  ilimR;
-         jntsM =  jntsR;
-          armM =   armR;
-     crtlmodeM =   crtlmodeR;
-
-        iencsS = iencsL;
-        imodeS = imodeL;
-         iposS =  iposL;
-         encsS =  encsL;
-         ilimS =  ilimL;
-         jntsS =  jntsL;
-          armS =   armL;
-     crtlmodeS =   crtlmodeL;
-    }
-    else if (curTaskType=="RHtoL")
-    {
-        iencsM = iencsL;
-        imodeM = imodeL;
-         iposM =  iposL;
-         encsM =  encsL;
-         ilimM =  ilimL;
-         jntsM =  jntsL;
-          armM =   armL;
-     crtlmodeM =   crtlmodeL;
-
-
-        iencsS = iencsR;
-        imodeS = imodeR;
-         iposS =  iposR;
-         encsS =  encsR;
-         ilimS =  ilimR;
-         jntsS =  jntsR;
-          armS =   armR;
-     crtlmodeS =   crtlmodeR;
-    }
-    else
-    {
-        yError(" Current task type is none of the admissible values!");
-        return false;
-    }
-
-    if (!alignJointsBounds())
-    {
-        yError(" AlignJointsBounds failed!!!\n");
-        return false;
-    }
-
-    HIndex=eye(4);
-    slv->probl->limb.setHN(HIndex);
-    testLimb->setHN(HIndex);
-
-    return true;
-}
 
 /************************************************************************/
 bool doubleTouchThread::clearTask()
 {
     cout<<" Clearing task.."<<endl;
 
-    delete slv; slv=NULL;
-    delete gue; gue=NULL;
-    delete sol; sol=NULL;
-    delete testLimb; testLimb=NULL;
+//    delete slv; slv=NULL;
+//    delete gue; gue=NULL;
+//    delete sol; sol=NULL;
+//    delete testLimb; testLimb=NULL;
 
     return true;
 }
@@ -359,29 +414,100 @@ bool doubleTouchThread::checkMotionDone()
 /************************************************************************/
 void doubleTouchThread::testAchievement()
 {
-    iencsM->getEncoders(encsM->data());
-    iencsS->getEncoders(encsS->data());
+//    iencsM->getEncoders(encsM->data());
+//    iencsS->getEncoders(encsS->data());
 
-    testLimb->setAng((*encsS)*iCub::ctrl::CTRL_DEG2RAD,(*encsM)*iCub::ctrl::CTRL_DEG2RAD);
-    cout<<endl;
-    printf(" Final end effector :          %s\n", testLimb->EndEffPosition().toString(3,3).c_str());
-    printf(" Final end effector :          %s\n", testLimb->EndEffPose(true).toString(3,3).c_str());
-    printf(" Final Joint configuration:    %s\n",(testLimb->getAng()*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
-    cout<<endl;
+//    testLimb->setAng((*encsS)*iCub::ctrl::CTRL_DEG2RAD,(*encsM)*iCub::ctrl::CTRL_DEG2RAD);
+//    cout<<endl;
+//    printf(" Final end effector :          %s\n", testLimb->EndEffPosition().toString(3,3).c_str());
+//    printf(" Final end effector :          %s\n", testLimb->EndEffPose(true).toString(3,3).c_str());
+//    printf(" Final Joint configuration:    %s\n",(testLimb->getAng()*iCub::ctrl::CTRL_RAD2DEG).toString(3,3).c_str());
+//    cout<<endl;
 }
 
 /************************************************************************/
 void doubleTouchThread::solveIK()
 {
-    slv->probl->limb.setH0(SE3inv(Hpose));
-    testLimb->setH0(SE3inv(Hpose));
+    Vector xf;
 
-    slv->probl->limb.setAng(sol->joints);
-    slv->setInitialGuess(*sol);
-    slv->solve(*sol);
-    solution=iCub::ctrl::CTRL_RAD2DEG * sol->joints;
+    leftToRight twoArms;
 
-    testLimb->setAng(sol->joints);
+    if (moving_arm=="right")
+        leftToRight twoArms;
+    else  if (moving_arm=="left")
+        rightToLeft twoArms;
+
+    chain=twoArms.asChain();
+
+    xf=chain->EndEffPose();
+
+    if (moving_arm=="right")
+    {
+        iencsM = iencsR;
+        imodeM = imodeR;
+         iposM =  iposR;
+         encsM =  encsR;
+         ilimM =  ilimR;
+         jntsM =  jntsR;
+          armM =   armR;
+     crtlmodeM =   crtlmodeR;
+
+        iencsS = iencsL;
+        imodeS = imodeL;
+         iposS =  iposL;
+         encsS =  encsL;
+         ilimS =  ilimL;
+         jntsS =  jntsL;
+          armS =   armL;
+     crtlmodeS =   crtlmodeL;
+    }
+    else if (moving_arm=="left")
+    {
+        iencsM = iencsL;
+        imodeM = imodeL;
+         iposM =  iposL;
+         encsM =  encsL;
+         ilimM =  ilimL;
+         jntsM =  jntsL;
+          armM =   armL;
+     crtlmodeM =   crtlmodeL;
+
+
+        iencsS = iencsR;
+        imodeS = imodeR;
+         iposS =  iposR;
+         encsS =  encsR;
+         ilimS =  ilimR;
+         jntsS =  jntsR;
+          armS =   armR;
+     crtlmodeS =   crtlmodeR;
+    }
+    else
+    {
+        yError(" Current task type is none of the admissible values!");
+    }
+
+    deque<IControlLimits*> lim;
+    lim.push_back(ilimS);
+    lim.push_back(ilimM);
+
+    cout<<"align "<<twoArms.alignJointsBounds(lim)<<endl;
+
+//    if (!alignJointsBounds())
+//    {
+//        yError(" AlignJointsBounds failed!!!\n");
+//        return false;
+//    }
+
+    twoArms.setH0(SE3inv(Hpose));
+
+    iKinIpOptMin slv(*chain,IKINCTRL_POSE_FULL,1e-3,1e-6,100);
+
+    slv.setUserScaling(true,100.0,100.0,100.0);
+
+    solution=slv.solve(chain->getAng(),xf);
+
+    J=chain->GeoJacobian(solution);
 }
 
 /************************************************************************/
@@ -455,11 +581,11 @@ void doubleTouchThread::goToPoseSlave()
     }
     for (int i = 0; i < nDOF-7; i++)
     {
-        /*
         if (verbosity>1)
         {
-            printf(" #%i to: %g\t",nDOF-7-1-i,-solution[i]);
-        }*/
+            //printf(" #%i to: %g\t",nDOF-7-1-i,-solution[i]);
+            printf(" #%i to: %g\t",nDOF-7-1-i,-iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][i]);
+        }
 
         iposS -> positionMove(nDOF-7-1-i,-iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][i]);
 
@@ -541,19 +667,19 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
 }
 
 /************************************************************************/
-bool doubleTouchThread::alignJointsBounds()
-{
-    deque<IControlLimits*> lim;
-    lim.push_back(ilimS);
-    lim.push_back(ilimM);
+//bool doubleTouchThread::alignJointsBounds()
+//{
+//    deque<IControlLimits*> lim;
+//    lim.push_back(ilimS);
+//    lim.push_back(ilimM);
 
-    if (testLimb->       alignJointsBounds(lim) == 0) return false;
-    if (slv->probl->limb.alignJointsBounds(lim) == 0) return false;
+//    if (testLimb->       alignJointsBounds(lim) == 0) return false;
+//    if (slv->probl->limb.alignJointsBounds(lim) == 0) return false;
 
-    lim.pop_front();
+//    lim.pop_front();
 
-    return true;
-}
+//    return true;
+//}
 
 /************************************************************************/
 void doubleTouchThread::threadRelease()
@@ -714,13 +840,10 @@ void doubleTouchThread::computeManip()
         Hpose=axis2dcm(orie_in_hand[i]);
         Hpose.setSubcol(pos_in_hand[i], 0, 3);
         if (askMovingArm())
-        {            
-            selectTask();
+        {
             solveIK();
 
-            joints_sol.push_back(sol->joints);
-
-            Matrix J=slv->probl->limb.asChainMod()->GeoJacobian(joints_sol[i]);
+            joints_sol.push_back(solution);
 
             manip.addDouble(sqrt(det(J*J.transposed())));
         }
@@ -906,8 +1029,5 @@ void doubleTouchThread::initialPoseMaster()
 
     cout<< " Second arm ready! " <<endl<<endl;
 }
-
-
-
 
 
