@@ -47,6 +47,8 @@ protected:
 
     Vector encoders;
     Vector position;
+    Vector position_new;
+    Vector position_old;
     Vector orientation;
     Vector center_ellips;
     Vector center_volume;
@@ -853,6 +855,8 @@ public:
 
         pos_to_reach.resize(3,0.0);
         orient_to_reach.resize(4,0.0);
+        position_new.resize(3,0.0);
+        position_old.resize(3,0.0);
 
         a_offset=rf.check("a_offset", Value(0.03)).asDouble();
         b_offset=rf.check("b_offset", Value(0.015)).asDouble();
@@ -2044,21 +2048,26 @@ public:
         else
             shift[1]=-0.25;
         shift[2]=0.10;
-        Vector position_new(3,0.0);
+
         Vector orientation_new(4,0.0);
 
         if (test)
             icart_arm->getPose(position_new,orientation_new);
 
-        if ((norm(position_new -position)>=0.05))
+        cout<<"pos "<<position_old.toString()<<endl;
+        cout<<"pos "<<position_new.toString()<<endl;
+
+        cout<<"norm "<<norm(position_new -position_old)<<endl;
+
+        if ((norm(position_new -position_old)>=0.05))
         {
-            position=position_new;
+            position_old=position_new;
             orientation=orientation_new;
 
-            if ((norm(position)>0.0 && norm(position)<2.0))
+            if ((norm(position_old)>0.0 && norm(position_old)<2.0))
             {
                 cout<<" Looking new hand pose ... "<<endl;
-                cout<<" Hand position: "<< position.toString()<<endl;
+                cout<<" Hand position: "<< position_old.toString()<<endl;
 
 
                 igaze->storeContext(&context_0);
@@ -2068,13 +2077,13 @@ public:
                 //igaze->setEyesTrajTime(0.75);
                 igaze->setSaccadesMode(false);
                 igaze->blockNeckRoll();
-                igaze->lookAtFixationPoint(position+ shift);
+                igaze->lookAtFixationPoint(position_old+ shift);
                 cout<< "Gaze movement done "<<igaze->waitMotionDone()<<endl;
 
                 Vector x_test(3,0.0);
                 igaze->getFixationPoint(x_test);
                 cout<< " Fixed point "<<x_test.toString()<<endl;
-                cout<< " Final error: "<<norm(position+shift-x_test)<<endl;
+                cout<< " Final error: "<<norm(position_old+shift-x_test)<<endl;
 
                 igaze->setSaccadesMode(true);
 
@@ -2188,6 +2197,8 @@ public:
             Vector o_to_fix(4,0.0);
 
             icart_arm->getPose(x_to_fix, o_to_fix);
+            position_old=x_to_fix;
+            cout<<"position "<<position.toString()<<endl;
 
             if (count_pose == 0)
             {
