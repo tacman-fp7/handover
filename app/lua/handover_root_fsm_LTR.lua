@@ -13,8 +13,8 @@ return rfsm.state {
                    ret = ret and in_hand_loc_port:open("/handover/loc")
                    ret = ret and pose_sel_port:open("/handover/pos")
                    ret = ret and clos_chain_port:open("/handover/clos")
-                   ret = ret and stable_grasp_l_port:open("/handover/grasp;r")
-                   ret = ret and stable_grasp_r_port:open("/handover/grasp:l")
+                   ret = ret and stable_grasp_l_port:open("/handover/grasp:l")
+                   ret = ret and stable_grasp_r_port:open("/handover/grasp:r")
                    ret = ret and go_on_port:open("/handover/go_on")
                    if ret == false then
                            rfsm.send_events(fsm, 'e_error')
@@ -35,7 +35,7 @@ return rfsm.state {
                    ret =  ret and yarp.NetworkBase_connect(clos_chain_port:getName(), "/closed-chain/rpc")
                    ret =  ret and yarp.NetworkBase_connect(stable_grasp_l_port:getName(), "/stableGrasp/left_hand/cmd:i")
                    ret =  ret and yarp.NetworkBase_connect(stable_grasp_r_port:getName(), "/stableGrasp/right_hand/cmd:i")
-                   ret =  ret and yarp.NetworkBase_connect(go_on_port:getName(), "/port/go_on")
+                   ret =  ret and yarp.NetworkBase_connect("/port/go_on", go_on_port:getName())
                    if ret == false then
                            print("\n\nERROR WITH CONNECTIONS, PLEASE CHECK\n\n")
                            rfsm.send_events(fsm, 'e_error')
@@ -49,7 +49,7 @@ return rfsm.state {
   ----------------------------------
   ST_FATAL = rfsm.state{
           entry=function()
-                  print(" Fatal!")
+                  print("Fatal!")
                   shouldExit = true;
           end
 },
@@ -61,7 +61,7 @@ return rfsm.state {
    ----------------------------------
    ST_FINI = rfsm.state{
            entry=function()
-                   print(" Closing...")
+                   print("Closing...")
                    yarp.NetworkBase_disconnect(in_hand_seg_port:getName(), "/in-hand-segmentation/rpc")
                    yarp.NetworkBase_disconnect(in_hand_loc_port:getName(), "/in-hand-localizer/rpc")
                    yarp.NetworkBase_disconnect(pose_sel_port:getName(), "/pose-selection/rpc")
@@ -79,11 +79,11 @@ return rfsm.state {
 
 
 ----------------------------------
-  -- state PREPARE_SECOND_HAND                  --
+  -- state PREPARE_SECOND_HAND                 --
   ----------------------------------
   ST_PREPARE_SECOND_HAND = rfsm.state{
           entry=function()
-                  print(" preparing hands ...")
+                  print(" preparing hands ..")
                   HANDOVER_open_hand(stable_grasp_r_port)
           end
 },
@@ -94,7 +94,7 @@ return rfsm.state {
   ----------------------------------
   ST_PC_ACQ = rfsm.state{
           entry=function()
-                  print(" acquiring point cloud ...")
+                  print("acquiring point cloud")
                   local ret = HANDOVER_acquire(in_hand_seg_port)
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
@@ -121,7 +121,7 @@ return rfsm.state {
   ----------------------------------
   ST_LOC_POINTS_ACQ = rfsm.state{
           entry=function()
-                  print(" acquiring points for localization ...")
+                  print("acquiring points for localization")
                   local ret = HANDOVER_acquire(in_hand_loc_port)
 
                   if ret == "fail" then
@@ -200,7 +200,6 @@ return rfsm.state {
           end
 },
 
-
 ----------------------------------
   -- state SET_WAYPOINT_BACK                --
   ----------------------------------
@@ -226,6 +225,17 @@ return rfsm.state {
 },
 
 ----------------------------------
+  -- state CLOSE_FIRST_HAND                  --
+  ----------------------------------
+  ST_CLOSE_FIRST_HAND = rfsm.state{
+          entry=function()
+                  print(" closing right hand ..")
+                  HANDOVER_close_hand(stable_grasp_l_port)
+          end
+},
+
+
+----------------------------------
   -- state OPEN_FIRST_HAND                --
   ----------------------------------
   ST_OPEN_FIRST_HAND = rfsm.state{
@@ -249,14 +259,12 @@ return rfsm.state {
           end
 },
 
-
-
 ----------------------------------
   -- state GO_HOME                --
   ----------------------------------
   ST_GO_HOME = rfsm.state{
           entry=function()
-                  print(" going home...")
+                  print(" going home ...")
                   local ret = HANDOVER_go_home(clos_chain_port)
 
                   if ret == "fail" then
@@ -270,9 +278,8 @@ return rfsm.state {
   ----------------------------------
   ST_GO_ON = rfsm.state{
           entry=function()
-                  print(" go ahead  or not ?")
+                  print(" go on or not?")
                   local ret = HANDOVER_go_on(go_on_port)
-
                   if ret == "go_on" then
                       rfsm.send_events(fsm, 'e_done')
                   end
@@ -281,51 +288,98 @@ return rfsm.state {
                       rfsm.send_events(fsm, 'e_stop')
                   end
 
+                  if ret == "again" then
+                      rfsm.send_events(fsm, 'e_again')
+                  end
+
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
+                  end
+          end
+},
 
+----------------------------------
+  -- state GO_ON2                --
+  ----------------------------------
+  ST_GO_ON_2 = rfsm.state{
+          entry=function()
+                  print(" go on or not?")
+                  local ret = HANDOVER_go_on(go_on_port)
+                  if ret == "go_on" then
+                      rfsm.send_events(fsm, 'e_done')
+                  end
+
+                  if ret == "stop" then
+                      rfsm.send_events(fsm, 'e_stop')
+                  end
+
+                  if ret == "again" then
+                      rfsm.send_events(fsm, 'e_again')
+                  end
+
+                  if ret == "fail" then
+                      rfsm.send_events(fsm, 'e_error')
+                  end
+          end
+},
+
+----------------------------------
+  -- state TRY_AGAIN               --
+  ----------------------------------
+  ST_TRY_AGAIN = rfsm.state{
+          entry=function()
+                  print("trying again ...")
+                  local ret = HANDOVER_try_again(in_hand_seg_port)
+
+                  if ret == "fail" then
+                      rfsm.send_events(fsm, 'e_error')
                   end
           end
 },
 
 
-ST_INTERACT = interact_fsm,
 
+ST_INTERACT = interact_fsm,
 
 
  rfsm.transition { src='initial', tgt='ST_INITPORTS' },
  rfsm.transition { src='ST_INITPORTS', tgt='ST_CONNECTPORTS', events={ 'e_connect' } },
  rfsm.transition { src='ST_INITPORTS', tgt='ST_FATAL', events={ 'e_error' } },
  rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_FINI', events={ 'e_error' } },
- rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_PREPARE_SECOND_HAND', events={ 'e_done' } },
- rfsm.transition { src='ST_PREPARE_SECOND_HAND', tgt='ST_PC_ACQ', events={ 'e_done' } },
+ rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_TRY_AGAIN', events={ 'e_done' } },
+ rfsm.transition { src='ST_TRY_AGAIN', tgt='ST_TRY_AGAIN', events={ 'e_error' } },
+ rfsm.transition { src='ST_TRY_AGAIN', tgt='ST_CLOSE_FIRST_HAND', events={ 'e_done' } },
+ rfsm.transition { src='ST_TRY_AGAIN', tgt='ST_PREPARE_SECOND_HAND', events={ 'e_done' } },
+ rfsm.transition { src='ST_CLOSE_FIRST_HAND', tgt='ST_PC_ACQ', events={ 'e_done' } },
+ rfsm.transition { src='ST_AGAIN', tgt='ST_PC_ACQ', events={ 'e_again' } },
  rfsm.transition { src='ST_PC_ACQ', tgt='ST_PC_ACQ', events={ 'e_error' } },
- rfsm.transition { src='ST_PC_FILT', tgt='ST_PC_FILT', events={ 'e_error' } },
  rfsm.transition { src='ST_PC_ACQ', tgt='ST_PC_FILT', events={ 'e_done' } },
+ rfsm.transition { src='ST_PC_FILT', tgt='ST_PC_FILT', events={ 'e_error' } },
  rfsm.transition { src='ST_PC_FILT', tgt='ST_LOC_POINTS_ACQ', events={ 'e_done' } },
  rfsm.transition { src='ST_LOC_POINTS_ACQ', tgt='ST_LOC_POINTS_ACQ', events={ 'e_error' } },
-  -- rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_LOC_POINTS_ACQ', events={ 'e_done' } },
-  rfsm.transition { src='ST_LOC_POINTS_ACQ', tgt='ST_LOC_POINTS', events={ 'e_done' } },
-  rfsm.transition { src='ST_LOC_POINTS', tgt='ST_ASK_POSE', events={ 'e_done' } },
-  rfsm.transition { src='ST_ASK_POSE', tgt='ST_ASK_POSE', events={ 'e_error' } },
-  rfsm.transition { src='ST_ASK_POSE', tgt='ST_GO_ON', events={ 'e_done' } },
-  rfsm.transition { src='ST_GO_ON', tgt='ST_GO_ON', events={ 'e_error' } },
-  rfsm.transition { src='ST_GO_ON', tgt='ST_FATAL', events={ 'e_stop' } },
-  rfsm.transition { src='ST_GO_ON', tgt='ST_MOVE_FIRST_HAND', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_ASK_POSE', tgt='ST_MOVE_FIRST_HAND', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_MOVE_FIRST_HAND', tgt='ST_MOVE_FIRST_HAND', events={ 'e_error' } },
-  rfsm.transition { src='ST_MOVE_FIRST_HAND', tgt='ST_SET_WAYPOINT', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_REACH_FINAL', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_REACH_FINAL', tgt='ST_CLOSE_HAND', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_CLOSE_HAND', tgt='ST_OPEN_HAND', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_OPEN_HAND', tgt='ST_GO_HOME', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_REACH_FINAL', tgt='ST_SET_WAYPOINT_BACK', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_REACH_FINAL', tgt='ST_CLOSE_SECOND_HAND', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_CLOSE_SECOND_HAND', tgt='ST_OPEN_FIRST_HAND', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_OPEN_FIRST_HAND', tgt='ST_SET_WAYPOINT', events={ 'e_done' } },
-rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_SET_WAYPOINT', events={ 'e_error' } },
-  rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_LOOK_IN_FRONT', events={ 'e_done' } },
-  rfsm.transition { src='ST_LOOK_IN_FRONT', tgt='ST_GO_HOME', events={ 'e_done' } },
-  rfsm.transition { src='ST_GO_HOME', tgt='ST_FINI', events={ 'e_done' } },
+ rfsm.transition { src='ST_LOC_POINTS_ACQ', tgt='ST_LOC_POINTS', events={ 'e_done' } },
+ rfsm.transition { src='ST_LOC_POINTS', tgt='ST_ASK_POSE', events={ 'e_done' } },
+ rfsm.transition { src='ST_ASK_POSE', tgt='ST_ASK_POSE', events={ 'e_error' } },
+ rfsm.transition { src='ST_ASK_POSE', tgt='ST_GO_ON', events={ 'e_done' } },
+ rfsm.transition { src='ST_GO_ON', tgt='ST_GO_ON', events={ 'e_error' } },
+ rfsm.transition { src='ST_GO_ON', tgt='ST_FATAL', events={ 'e_stop' } },
+ rfsm.transition { src='ST_GO_ON', tgt='ST_AGAIN', events={ 'e_again' } },
+ rfsm.transition { src='ST_GO_ON', tgt='ST_MOVE_FIRST_HAND', events={ 'e_done' } },
+ rfsm.transition { src='ST_MOVE_FIRST_HAND', tgt='ST_SET_WAYPOINT', events={ 'e_done' } },
+ rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_SET_WAYPOINT', events={ 'e_error' } },
+ rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_REACH_FINAL', events={ 'e_done' } },
+ rfsm.transition { src='ST_REACH_FINAL', tgt='ST_REACH_FINAL', events={ 'e_error' } },
+ rfsm.transition { src='ST_REACH_FINAL', tgt='ST_GO_ON_2', events={ 'e_done' } },
+ rfsm.transition { src='ST_GO_ON_2', tgt='ST_GO_ON_2', events={ 'e_error' } },
+ rfsm.transition { src='ST_GO_ON_2', tgt='ST_CLOSE_HAND', events={ 'e_done' } },
+ rfsm.transition { src='ST_GO_ON_2', tgt='ST_LOOK_IN_FRONT', events={ 'e_stop' } },
+ rfsm.transition { src='ST_CLOSE_HAND', tgt='ST_OPEN_FIRST_HAND', events={ 'e_done' } },
+ rfsm.transition { src='ST_OPEN_FIRST_HAND', tgt='ST_LOOK_IN_FRONT', events={ 'e_done' } },
+ rfsm.transition { src='ST_LOOK_IN_FRONT', tgt='ST_SET_WAYPOINT_BACK', events={ 'e_done' } },
+ rfsm.transition { src='ST_WAYPOINT_BACK', tgt='ST_GO_HOME', events={ 'e_done' } },
+ rfsm.transition { src='ST_GO_HOME', tgt='ST_FINI', events={ 'e_done' } },
+
+
+
 
  }
