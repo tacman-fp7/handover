@@ -281,18 +281,12 @@ return rfsm.state {
                   print(" go on or not?")
                   local ret = HANDOVER_go_on(go_on_port)
                   if ret == "go_on" then
-                      rfsm.send_events(fsm, 'e_done')
-                  end
-
-                  if ret == "stop" then
+                      rfsm.send_events(fsm, 'e_go')
+                  elseif ret == "stop" then
                       rfsm.send_events(fsm, 'e_stop')
-                  end
-
-                  if ret == "again" then
+                  elseif ret == "again" then
                       rfsm.send_events(fsm, 'e_again')
-                  end
-
-                  if ret == "fail" then
+                  elseif ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
                   end
           end
@@ -337,7 +331,7 @@ return rfsm.state {
   ST_AGAIN = rfsm.state{
           entry=function()
                   print("again ...")
-                  
+
           end
 },
 
@@ -370,7 +364,7 @@ ST_INTERACT = interact_fsm,
  rfsm.transition { src='ST_GO_ON', tgt='ST_GO_ON', events={ 'e_error' } },
  rfsm.transition { src='ST_GO_ON', tgt='ST_FATAL', events={ 'e_stop' } },
  rfsm.transition { src='ST_GO_ON', tgt='ST_AGAIN', events={ 'e_again' } },
- rfsm.transition { src='ST_GO_ON', tgt='ST_MOVE_FIRST_HAND', events={ 'e_done' } },
+ rfsm.transition { src='ST_GO_ON', tgt='ST_MOVE_FIRST_HAND', events={ 'e_go' } },
  rfsm.transition { src='ST_MOVE_FIRST_HAND', tgt='ST_SET_WAYPOINT', events={ 'e_done' } },
  rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_SET_WAYPOINT', events={ 'e_error' } },
  rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_REACH_FINAL', events={ 'e_done' } },
