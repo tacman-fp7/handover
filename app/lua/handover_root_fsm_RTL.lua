@@ -13,7 +13,7 @@ return rfsm.state {
                    ret = ret and in_hand_loc_port:open("/handover/loc")
                    ret = ret and pose_sel_port:open("/handover/pos")
                    ret = ret and clos_chain_port:open("/handover/clos")
-                   ret = ret and stable_grasp_l_port:open("/handover/grasp;r")
+                   ret = ret and stable_grasp_l_port:open("/handover/grasp:r")
                    ret = ret and stable_grasp_r_port:open("/handover/grasp:l")
                    ret = ret and go_on_port:open("/handover/go_on")
                    if ret == false then
@@ -35,7 +35,7 @@ return rfsm.state {
                    ret =  ret and yarp.NetworkBase_connect(clos_chain_port:getName(), "/closed-chain/rpc")
                    ret =  ret and yarp.NetworkBase_connect(stable_grasp_l_port:getName(), "/stableGrasp/left_hand/cmd:i")
                    ret =  ret and yarp.NetworkBase_connect(stable_grasp_r_port:getName(), "/stableGrasp/right_hand/cmd:i")
-                   ret =  ret and yarp.NetworkBase_connect(go_on_port:getName(), "/port/go_on")
+                   ret =  ret and yarp.NetworkBase_connect("/port/go_on", go_on_port:getName())
                    if ret == false then
                            print("\n\nERROR WITH CONNECTIONS, PLEASE CHECK\n\n")
                            rfsm.send_events(fsm, 'e_error')
@@ -220,7 +220,7 @@ return rfsm.state {
   ST_CLOSE_HAND = rfsm.state{
           entry=function()
                   print(" closing left hand ..")
-                  HANDOVER_close(stable_grasp_l_port)
+                  HANDOVER_close_hand(stable_grasp_l_port)
           end
 },
 
@@ -230,7 +230,7 @@ return rfsm.state {
   ST_OPEN_FIRST_HAND = rfsm.state{
           entry=function()
                   print(" opening right hand ..")
-                  HANDOVER_open(stable_grasp_r_port)
+                  HANDOVER_open_hand(stable_grasp_r_port)
           end
 },
 
@@ -267,7 +267,28 @@ return rfsm.state {
   ----------------------------------
   ST_GO_ON = rfsm.state{
           entry=function()
-                  print(" go ahead ...")
+                  print(" go on or not?")
+                  local ret = HANDOVER_go_on(go_on_port)
+                  if ret == "go_on" then
+                      rfsm.send_events(fsm, 'e_done')
+                  end
+
+                  if ret == "stop" then
+                      rfsm.send_events(fsm, 'e_stop')
+                  end
+
+                  if ret == "fail" then
+                      rfsm.send_events(fsm, 'e_error')
+                  end
+          end
+},
+
+----------------------------------
+  -- state GO_ON2                --
+  ----------------------------------
+  ST_GO_ON_2 = rfsm.state{
+          entry=function()
+                  print(" go on or not?")
                   local ret = HANDOVER_go_on(go_on_port)
                   if ret == "go_on" then
                       rfsm.send_events(fsm, 'e_done')
@@ -285,6 +306,7 @@ return rfsm.state {
 
 
 
+
 ST_INTERACT = interact_fsm,
 
 
@@ -295,8 +317,8 @@ ST_INTERACT = interact_fsm,
  rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_PREPARE_SECOND_HAND', events={ 'e_done' } },
  rfsm.transition { src='ST_PREPARE_SECOND_HAND', tgt='ST_PC_ACQ', events={ 'e_done' } },
  rfsm.transition { src='ST_PC_ACQ', tgt='ST_PC_ACQ', events={ 'e_error' } },
- rfsm.transition { src='ST_PC_FILT', tgt='ST_PC_FILT', events={ 'e_error' } },
  rfsm.transition { src='ST_PC_ACQ', tgt='ST_PC_FILT', events={ 'e_done' } },
+ rfsm.transition { src='ST_PC_FILT', tgt='ST_PC_FILT', events={ 'e_error' } },
  rfsm.transition { src='ST_PC_FILT', tgt='ST_LOC_POINTS_ACQ', events={ 'e_done' } },
  rfsm.transition { src='ST_LOC_POINTS_ACQ', tgt='ST_LOC_POINTS_ACQ', events={ 'e_error' } },
   -- rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_LOC_POINTS_ACQ', events={ 'e_done' } },
@@ -307,8 +329,6 @@ ST_INTERACT = interact_fsm,
   rfsm.transition { src='ST_GO_ON', tgt='ST_GO_ON', events={ 'e_error' } },
   rfsm.transition { src='ST_GO_ON', tgt='ST_FATAL', events={ 'e_stop' } },
   rfsm.transition { src='ST_GO_ON', tgt='ST_MOVE_FIRST_HAND', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_ASK_POSE', tgt='ST_MOVE_FIRST_HAND', events={ 'e_done' } },
-  -- rfsm.transition { src='ST_MOVE_FIRST_HAND', tgt='ST_MOVE_FIRST_HAND', events={ 'e_error' } },
   rfsm.transition { src='ST_MOVE_FIRST_HAND', tgt='ST_SET_WAYPOINT', events={ 'e_done' } },
   -- rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_REACH_FINAL', events={ 'e_done' } },
   -- rfsm.transition { src='ST_REACH_FINAL', tgt='ST_CLOSE_HAND', events={ 'e_done' } },
@@ -319,8 +339,47 @@ ST_INTERACT = interact_fsm,
   -- rfsm.transition { src='ST_CLOSE_SECOND_HAND', tgt='ST_OPEN_FIRST_HAND', events={ 'e_done' } },
   -- rfsm.transition { src='ST_OPEN_FIRST_HAND', tgt='ST_SET_WAYPOINT', events={ 'e_done' } },
 rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_SET_WAYPOINT', events={ 'e_error' } },
-  rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_LOOK_IN_FRONT', events={ 'e_done' } },
-  rfsm.transition { src='ST_LOOK_IN_FRONT', tgt='ST_GO_HOME', events={ 'e_done' } },
+  --rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_LOOK_IN_FRONT', events={ 'e_done' } },
+  rfsm.transition { src='ST_SET_WAYPOINT', tgt='ST_REACH_FINAL', events={ 'e_done' } },
+rfsm.transition { src='ST_REACH_FINAL', tgt='ST_REACH_FINAL', events={ 'e_error' } },
+rfsm.transition { src='ST_REACH_FINAL', tgt='ST_GO_ON_2', events={ 'e_done' } },
+rfsm.transition { src='ST_GO_ON_2', tgt='ST_GO_ON_2', events={ 'e_error' } },
+  rfsm.transition { src='ST_GO_ON_2', tgt='ST_FATAL', events={ 'e_stop' } },
+rfsm.transition { src='ST_GO_ON_2', tgt='ST_CLOSE_HAND', events={ 'e_done' } },
+rfsm.transition { src='ST_CLOSE_HAND', tgt='ST_OPEN_FIRST_HAND', events={ 'e_done' } },
+rfsm.transition { src='ST_OPEN_FIRST_HAND', tgt='ST_LOOK_IN_FRONT', events={ 'e_done' } },
+rfsm.transition { src='ST_LOOK_IN_FRONT', tgt='ST_GO_HOME', events={ 'e_done' } },
   rfsm.transition { src='ST_GO_HOME', tgt='ST_FINI', events={ 'e_done' } },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
  }

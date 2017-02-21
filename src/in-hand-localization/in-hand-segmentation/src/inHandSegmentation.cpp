@@ -1209,7 +1209,7 @@ public:
                 false;
         }
 
-        if (pointsOut.size()>0 || new_trial)
+        if (pointsOut.size()>0)
         {
             if (fixate)
                 lookHand();

@@ -109,7 +109,7 @@ function HANDOVER_close_hand(port)
    wb:clear()
     wb:addString("grasp")
     port:write(wb)
-    yarp.Time_delay(2.0)
+    yarp.Time_delay(6.0)
     -- return reply:get(0):asString()
 end
 
