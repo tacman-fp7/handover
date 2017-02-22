@@ -26,11 +26,8 @@ protected:
 //        // you have to specify the rototranslational matrix H0 from the origin
 //        // to the root reference so as from iCub specs.
         Matrix H0(4,4);
-        H0.zero();
-        H0(0,1)=-1.0;
-        H0(1,2)=-1.0;
-        H0(2,0)=1.0;
-        H0(3,3)=1.0;
+        H0.eye();
+
         setH0(H0);
 
         //Inverted right arm
@@ -44,18 +41,9 @@ protected:
         pushLink(new iKinLink(     0.0,  0.10774, -M_PI/2.0,            M_PI/2.0,   -5.0*CTRL_DEG2RAD, 95.5*CTRL_DEG2RAD));
 
         // Shoulder from right to left
-//        Matrix L2R = eye(4);
-//        L2R(0,0) =  -0.866;
-//        L2R(0,2) =    0.5;
-//        L2R(0,3) = -0.0031303;
-//        L2R(1,1) =      -1;
-//        L2R(2,0) =     0.5;
-//        L2R(2,2) =  0.866;
-//        L2R(2,3) = -0.0116823;
-//        Matr
 
-        pushLink(new iKinLink( -0.0520998423012193,  -0.0166510140667587, -1.52658537798215,   -0,            -M_PI,               M_PI));
-
+// right
+        pushLink(new iKinLink( -0.0520998423012193,  -0.0166510140667587, -1.52658537798215,   -0,          -M_PI,               M_PI));
         pushLink(new iKinLink(  0.0565654801678652,   0.0013331286668284, 1.51973988397335,    -0,          -M_PI,                 M_PI));
 
 
@@ -74,8 +62,8 @@ protected:
 
         // usually the first three links which describes the torso kinematic come
         // as blocked, i.e. they do not belong to the set of arm's dof.
-        blockLink(7, -3.11604734575565);
-        blockLink(8, -0.524163368660376);
+        blockLink(7,-3.11604734575565 );
+        blockLink(8,-0.524163368660376 );
 
     }
 };
@@ -86,7 +74,7 @@ class leftToRight : public iKinLimb
 public:
     leftToRight() : iKinLimb()
     {
-        allocate("RtoL");
+        allocate("LtoR");
     }
 
 protected:
@@ -96,13 +84,13 @@ protected:
 
 //        // you have to specify the rototranslational matrix H0 from the origin
 //        // to the root reference so as from iCub specs.
-//        Matrix H0(4,4);
-//        H0.zero();
-//        H0(0,1)=-1.0;
-//        H0(1,2)=-1.0;
-//        H0(2,0)=1.0;
-//        H0(3,3)=1.0;
-//        setH0(H0);
+        Matrix H0(4,4);
+        H0.zero();
+        H0(0,1)=-1.0;
+        H0(1,2)=-1.0;
+        H0(2,0)=1.0;
+        H0(3,3)=1.0;
+        setH0(H0);
 
         //Inverted left arm
         //                             A,        D,     alpha,           offset(*),          min theta,          max theta
@@ -121,6 +109,8 @@ protected:
         pushLink(new iKinLink( -0.00137510641215785,  -0.00443075494439096, -0.505381363116833,    -0,      -M_PI,   M_PI));
 
 
+
+
         //Direct right arm
         //                             A,        D,     alpha,           offset(*),          min theta,          max theta
         pushLink(new iKinLink(       0.0, -0.10774,  M_PI/2.0,           -M_PI/2.0, -95.5*CTRL_DEG2RAD,   5.0*CTRL_DEG2RAD));
@@ -135,8 +125,9 @@ protected:
 
         // usually the first three links which describes the torso kinematic come
         // as blocked, i.e. they do not belong to the set of arm's dof.
-        blockLink(7, -0.734823212524184);
-        blockLink(8,-2.26861201212518);
+       blockLink(7, -0.734823212524184);
+       blockLink(8,-2.26861201212518);
+
     }
 };
 
@@ -429,17 +420,12 @@ void doubleTouchThread::testAchievement()
 void doubleTouchThread::solveIK()
 {
     Vector xf;
-
-    leftToRight twoArms;
+    iKinLimb* twoArms;
 
     if (moving_arm=="right")
-        leftToRight twoArms;
+        twoArms = new leftToRight;
     else  if (moving_arm=="left")
-        rightToLeft twoArms;
-
-    chain=twoArms.asChain();
-
-    xf=chain->EndEffPose();
+        twoArms = new rightToLeft;
 
     if (moving_arm=="right")
     {
@@ -491,7 +477,7 @@ void doubleTouchThread::solveIK()
     lim.push_back(ilimS);
     lim.push_back(ilimM);
 
-    cout<<"align "<<twoArms.alignJointsBounds(lim)<<endl;
+    cout<<"align "<<twoArms->alignJointsBounds(lim)<<endl;
 
 //    if (!alignJointsBounds())
 //    {
@@ -499,7 +485,16 @@ void doubleTouchThread::solveIK()
 //        return false;
 //    }
 
-    twoArms.setH0(SE3inv(Hpose));
+    cout<<"Ho before "<<(twoArms->getH0()).toString()<<endl;
+    //twoArms->setH0(SE3inv(Hpose));
+    cout<<"Ho after "<<(twoArms->getH0()).toString()<<endl;
+
+    chain=twoArms->asChain();
+
+    Matrix des(4,4);
+
+    xf.resize(7,0.0);
+    xf.setSubvector(3,dcm2axis(des.eye()));
 
     iKinIpOptMin slv(*chain,IKINCTRL_POSE_FULL,1e-3,1e-6,100);
 
@@ -508,6 +503,13 @@ void doubleTouchThread::solveIK()
     solution=slv.solve(chain->getAng(),xf);
 
     J=chain->GeoJacobian(solution);
+
+    cout<<"end eff "<<(chain->EndEffPose(solution)).toString()<<endl;
+    cout<<" matrix sol "<<axis2dcm(chain->EndEffPose(solution)).toString()<<endl;
+
+    cout<<"solution "<<(iCub::ctrl::CTRL_RAD2DEG*solution).toString()<<endl;
+
+    delete twoArms;
 }
 
 /************************************************************************/
