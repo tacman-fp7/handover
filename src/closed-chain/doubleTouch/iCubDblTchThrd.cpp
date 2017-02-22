@@ -84,13 +84,13 @@ protected:
 
 //        // you have to specify the rototranslational matrix H0 from the origin
 //        // to the root reference so as from iCub specs.
-        Matrix H0(4,4);
-        H0.zero();
-        H0(0,1)=-1.0;
-        H0(1,2)=-1.0;
-        H0(2,0)=1.0;
-        H0(3,3)=1.0;
-        setH0(H0);
+//        Matrix H0(4,4);
+//        H0.zero();
+//        H0(0,1)=-1.0;
+//        H0(1,2)=-1.0;
+//        H0(2,0)=1.0;
+//        H0(3,3)=1.0;
+//        setH0(H0);
 
         //Inverted left arm
         //                             A,        D,     alpha,           offset(*),          min theta,          max theta
@@ -104,10 +104,14 @@ protected:
 
 
 
+
         pushLink(new iKinLink( -0.00320857228625523, -0.00763231849782502, -0.710915288346351,     -0,      -M_PI,   M_PI));
-
         pushLink(new iKinLink( -0.00137510641215785,  -0.00443075494439096, -0.505381363116833,    -0,      -M_PI,   M_PI));
+        pushLink(new iKinLink( 0.0,  0.0, -0.0,    -0,      -M_PI,   M_PI));
+        pushLink(new iKinLink( 0.0, 0.0, M_PI/2,    -0,      -M_PI,   M_PI));
 
+        //pushLink(new iKinLink( 0.0,  0.0, -0.0,    -0,      -M_PI,   M_PI));
+        //pushLink(new iKinLink( 0.107, 0.0, 0.0,    -0,      -M_PI,   M_PI));
 
 
 
@@ -127,6 +131,10 @@ protected:
         // as blocked, i.e. they do not belong to the set of arm's dof.
        blockLink(7, -0.734823212524184);
        blockLink(8,-2.26861201212518);
+       blockLink(9, M_PI);
+       blockLink(10,0.0);
+       //blockLink(11,M_PI/2);
+       //blockLink(12,-M_PI/2);
 
     }
 };
@@ -487,9 +495,24 @@ void doubleTouchThread::solveIK()
 
     cout<<"Ho before "<<(twoArms->getH0()).toString()<<endl;
     //twoArms->setH0(SE3inv(Hpose));
-    cout<<"Ho after "<<(twoArms->getH0()).toString()<<endl;
+    cout<<" H hand "<<H_hand.toString()<<endl<<endl;
+    twoArms->setH0(H_hand);
+    //cout<<"Ho after "<<(twoArms->getH0()).toString()<<endl;
+
+    Matrix H6=twoArms->getH(6);
+    Matrix H7=twoArms->getH(7);
+    Matrix LRT=SE3inv(H6)*H7;
+
+    cout<<endl<<" H7 "<<H7.toString()<<endl<<endl;
+    cout<<endl<<" LRT "<<LRT.toString()<<endl<<endl;
 
     chain=twoArms->asChain();
+
+    //cout<<" get H "<<(twoArms->getH()).toString()<<endl;
+    ////cout<<" pose in first hand "<<(chain->EndEffPose()).toString()<<endl;
+    cout<<" second hand pose "<<(H_hand*twoArms->getH()).toString()<<endl;
+
+
 
     Matrix des(4,4);
 
