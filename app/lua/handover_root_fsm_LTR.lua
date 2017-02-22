@@ -1,3 +1,4 @@
+
 #!/usr/bin/lua
 
 dofile(rf:findFile("handover_funcs.lua"))
@@ -84,7 +85,7 @@ return rfsm.state {
   ST_PREPARE_SECOND_HAND = rfsm.state{
           entry=function()
                   print(" preparing hands ..")
-                  HANDOVER_open_hand(stable_grasp_r_port)
+                  HANDOVER_open_hand_wide(stable_grasp_r_port)
           end
 },
 
@@ -220,6 +221,7 @@ return rfsm.state {
   ST_CLOSE_HAND = rfsm.state{
           entry=function()
                   print(" closing left hand ..")
+                  HANDOVER_open_hand(stable_grasp_r_port)
                   HANDOVER_close_hand(stable_grasp_r_port)
           end
 },
@@ -264,8 +266,10 @@ return rfsm.state {
   ----------------------------------
   ST_GO_HOME = rfsm.state{
           entry=function()
-                  print(" going home ...")
+                  print(" going home  ...")
                   local ret = HANDOVER_go_home(clos_chain_port)
+
+                  HANDOVER_open_hand(stable_grasp_l_port)
 
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
@@ -379,4 +383,6 @@ ST_INTERACT = interact_fsm,
  rfsm.transition { src='ST_SET_WAYPOINT_BACK', tgt='ST_GO_HOME', events={ 'e_done' } },
  rfsm.transition { src='ST_GO_HOME', tgt='ST_FINI', events={ 'e_done' } },
 
-  }
+
+
+ }

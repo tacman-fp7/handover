@@ -84,7 +84,7 @@ return rfsm.state {
   ST_PREPARE_SECOND_HAND = rfsm.state{
           entry=function()
                   print(" preparing hands ..")
-                  HANDOVER_open_hand(stable_grasp_l_port)
+                  HANDOVER_open_hand_wide(stable_grasp_l_port)
           end
 },
 
@@ -220,6 +220,7 @@ return rfsm.state {
   ST_CLOSE_HAND = rfsm.state{
           entry=function()
                   print(" closing left hand ..")
+                  HANDOVER_open_hand(stable_grasp_l_port)
                   HANDOVER_close_hand(stable_grasp_l_port)
           end
 },
@@ -264,8 +265,10 @@ return rfsm.state {
   ----------------------------------
   ST_GO_HOME = rfsm.state{
           entry=function()
-                  print(" going home ...")
+                  print(" going home  ...")
                   local ret = HANDOVER_go_home(clos_chain_port)
+
+                  HANDOVER_open_hand(stable_grasp_r_port)
 
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')

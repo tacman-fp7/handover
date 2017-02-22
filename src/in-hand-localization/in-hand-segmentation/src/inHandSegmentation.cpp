@@ -2044,9 +2044,9 @@ public:
     {
         Vector shift(3,0.0);
         if (left_or_right=="left")
-            shift[1]=0.25;
+            shift[1]=0.17;
         else
-            shift[1]=-0.25;
+            shift[1]=-0.17;
         shift[2]=0.10;
 
         Vector orientation_new(4,0.0);
@@ -2054,10 +2054,6 @@ public:
         if (test)
             icart_arm->getPose(position_new,orientation_new);
 
-        cout<<"pos "<<position_old.toString()<<endl;
-        cout<<"pos "<<position_new.toString()<<endl;
-
-        cout<<"norm "<<norm(position_new -position_old)<<endl;
 
         if ((norm(position_new -position_old)>=0.05))
         {

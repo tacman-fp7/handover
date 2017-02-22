@@ -81,7 +81,7 @@ function HANDOVER_set_waypoint(port)
     wb:addString("set_waypoint")
     wb:addInt(0)
     port:write(wb,reply)
-    yarp.Time_delay(5.0)
+    --yarp.Time_delay(5.0)
     return reply:get(0):asString()
 end
 
@@ -91,7 +91,7 @@ function HANDOVER_reach_final(port)
    wb:clear()
     wb:addString("reach_final")
     port:write(wb,reply)
-    yarp.Time_delay(5.0)
+    --yarp.Time_delay(5.0)
     return reply:get(0):asString()
 end
 
@@ -110,6 +110,16 @@ function HANDOVER_open_hand(port)
    local reply = yarp.Bottle()
    wb:clear()
     wb:addString("open")
+    port:write(wb)
+    -- return reply:get(0):asString()
+end
+
+function HANDOVER_open_hand_wide(port)
+   local wb = yarp.Bottle()
+   local reply = yarp.Bottle()
+   wb:clear()
+    wb:addString("open")
+    wb:addString("wide")
     port:write(wb)
     -- return reply:get(0):asString()
 end
