@@ -487,13 +487,6 @@ void doubleTouchThread::solveIK()
 
     twoArms->alignJointsBounds(lim);
 
-//    if (!alignJointsBounds())
-//    {
-//        yError(" AlignJointsBounds failed!!!\n");
-//        return false;
-//    }
-
-    cout<<"Ho before "<<(twoArms->getH0()).toString()<<endl;
     //twoArms->setH0(SE3inv(Hpose));
 
     //twoArms->setH0(H_hand);
