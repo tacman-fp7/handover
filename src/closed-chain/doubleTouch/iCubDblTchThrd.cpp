@@ -107,8 +107,8 @@ protected:
 
         pushLink(new iKinLink( -0.00320857228625523, -0.00763231849782502, -0.710915288346351,     -0,      -M_PI,   M_PI));
         pushLink(new iKinLink( -0.00137510641215785,  -0.00443075494439096, -0.505381363116833,    -0,      -M_PI,   M_PI));
-        pushLink(new iKinLink( 0.0,  0.0, -0.0,    -0,      -M_PI,   M_PI));
-        pushLink(new iKinLink( 0.0, 0.0, M_PI/2,    -0,      -M_PI,   M_PI));
+        //pushLink(new iKinLink( 0.0,  0.0, -0.0,    -0,      -M_PI,   M_PI));
+        //pushLink(new iKinLink( 0.0, 0.0, M_PI/2,    -0,      -M_PI,   M_PI));
 
         //pushLink(new iKinLink( 0.0,  0.0, -0.0,    -0,      -M_PI,   M_PI));
         //pushLink(new iKinLink( 0.107, 0.0, 0.0,    -0,      -M_PI,   M_PI));
@@ -131,8 +131,8 @@ protected:
         // as blocked, i.e. they do not belong to the set of arm's dof.
        blockLink(7, -0.734823212524184);
        blockLink(8,-2.26861201212518);
-       blockLink(9, M_PI);
-       blockLink(10,0.0);
+       //blockLink(9, M_PI);
+       //blockLink(10,0.0);
        //blockLink(11,M_PI/2);
        //blockLink(12,-M_PI/2);
 
@@ -284,7 +284,7 @@ bool doubleTouchThread::threadInit()
     home=false;
     go=go_slave=go_master=false;
 
-    initialPoseMaster();
+    //initialPoseMaster();
 
     return true;
 }
@@ -485,7 +485,7 @@ void doubleTouchThread::solveIK()
     lim.push_back(ilimS);
     lim.push_back(ilimM);
 
-    cout<<"align "<<twoArms->alignJointsBounds(lim)<<endl;
+    twoArms->alignJointsBounds(lim);
 
 //    if (!alignJointsBounds())
 //    {
@@ -495,22 +495,21 @@ void doubleTouchThread::solveIK()
 
     cout<<"Ho before "<<(twoArms->getH0()).toString()<<endl;
     //twoArms->setH0(SE3inv(Hpose));
-    cout<<" H hand "<<H_hand.toString()<<endl<<endl;
-    twoArms->setH0(H_hand);
-    //cout<<"Ho after "<<(twoArms->getH0()).toString()<<endl;
+
+    //twoArms->setH0(H_hand);
+    cout<<endl<<"Ho after "<<(twoArms->getH0()).toString()<<endl;
 
     Matrix H6=twoArms->getH(6);
-    Matrix H7=twoArms->getH(7);
-    Matrix LRT=SE3inv(H6)*H7;
+    Matrix H8=twoArms->getH(8,true);
+    Matrix LRT=SE3inv(H6)*H8;
 
-    cout<<endl<<" H7 "<<H7.toString()<<endl<<endl;
     cout<<endl<<" LRT "<<LRT.toString()<<endl<<endl;
 
     chain=twoArms->asChain();
 
-    //cout<<" get H "<<(twoArms->getH()).toString()<<endl;
-    ////cout<<" pose in first hand "<<(chain->EndEffPose()).toString()<<endl;
-    cout<<" second hand pose "<<(H_hand*twoArms->getH()).toString()<<endl;
+    cout<<" get H final "<<(twoArms->getH(15,true)).toString()<<endl;
+    cout<<" pose in first hand "<<(chain->EndEffPose()).toString()<<endl;
+    //cout<<" pose hand "<<(twoArms->getH(6)).toString()<<endl;
 
 
 
@@ -713,12 +712,12 @@ void doubleTouchThread::threadRelease()
     printf(" Returning to position mode..\n");
 //    if (!dontgoback)
 //    {
-        steerArmsHome();
+        //steerArmsHome();
         imodeL -> setInteractionMode(2,VOCAB_IM_STIFF);
         imodeL -> setInteractionMode(3,VOCAB_IM_STIFF);
         imodeR -> setInteractionMode(2,VOCAB_IM_STIFF);
         imodeR -> setInteractionMode(3,VOCAB_IM_STIFF);
-        steerArmsHome();
+        //steerArmsHome();
 //    }
 
     delete encsR; encsR = NULL;
