@@ -381,6 +381,9 @@ void doubleTouchThread::solveIK()
     slv->solve(*sol);
     solution=iCub::ctrl::CTRL_RAD2DEG * sol->joints;
 
+    cout<<"solution H "<<(sol->H).toString()<<endl;
+    cout<<"solution H0 "<<(sol->H_0).toString()<<endl;
+
     testLimb->setAng(sol->joints);
 }
 

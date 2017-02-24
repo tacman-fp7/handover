@@ -172,8 +172,12 @@ using namespace std;
 //                    v[2]=xd[5];
 //                    v[3]=xd[6];
 
-                v[0]=v[1]=v[3]=0.0;
-                v[2]=1.0;
+                v[1]=v[2]=0.0;
+                v[0]=1.0;
+                v[3]=-M_PI/2;
+//                Matrix H_corr(4,4);
+//                H_corr(2,0)=H_corr(1,2)=-1;
+//                H_corr(0,1)=H_corr(3,3)=1;
 
 
                 //}
@@ -185,10 +189,13 @@ using namespace std;
                 pos[1]=H(1,3);
                 pos[2]=H(2,3);
 
+                H_0=chain->getH0();
 
                 /***********************/
+                //yarp::sig::Matrix E=H;
                 yarp::sig::Matrix E=axis2dcm(v)*H.transposed();
                 v=dcm2axis(E);
+                //v=dcm2axis(H);
                 e_xyz[0]=xd[0]-H(0,3);
                 e_xyz[1]=xd[1]-H(1,3);
                 e_xyz[2]=xd[2]-H(2,3);
