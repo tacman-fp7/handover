@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(poseSelection)
+project(poseSelection-newsolver)
 
 find_package(YARP REQUIRED)
 find_package(ICUB REQUIRED)

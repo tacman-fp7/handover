@@ -125,12 +125,18 @@ using namespace std;
         yarp::sig::Vector  pos;
         yarp::sig::Vector  ori;
 
+        /************************/
+        yarp::sig::Vector  e_xyz;
+        yarp::sig::Vector  e_ang;
+        /***********************/
+
         yarp::sig::Vector  qd;
         yarp::sig::Vector  q0;
         yarp::sig::Vector  q;
 
         yarp::sig::Matrix J_xyz;
         yarp::sig::Matrix J1;
+        yarp::sig::Matrix J_ang;
 
         yarp::sig::Vector z3rd;
         yarp::sig::Vector x1st;
@@ -157,11 +163,39 @@ using namespace std;
                 
                 q=chain->setAng(new_q);
 
+                /***********************/
+                yarp::sig::Vector v(4,0.0);
+                //if (xd.length()>=7)
+                //{
+//                    v[0]=xd[3];
+//                    v[1]=xd[4];
+//                    v[2]=xd[5];
+//                    v[3]=xd[6];
+
+                v[0]=v[1]=v[3]=0.0;
+                v[2]=1.0;
+
+
+                //}
+                /***********************/
+
                 H=chain->getH();
                 ori=dcm2axis(H);
                 pos[0]=H(0,3);
                 pos[1]=H(1,3);
                 pos[2]=H(2,3);
+
+
+                /***********************/
+                yarp::sig::Matrix E=axis2dcm(v)*H.transposed();
+                v=dcm2axis(E);
+                e_xyz[0]=xd[0]-H(0,3);
+                e_xyz[1]=xd[1]-H(1,3);
+                e_xyz[2]=xd[2]-H(2,3);
+                e_ang[0]=v[3]*v[0];
+                e_ang[1]=v[3]*v[1];
+                e_ang[2]=v[3]*v[2];
+                /***********************/
 
                 H_0=chain->getH0();
 
@@ -172,6 +206,10 @@ using namespace std;
 
                 J1   = chain->GeoJacobian();
                 submatrix(J1,J_xyz,0,2,0,dim-1);
+
+                /***********************/
+                submatrix(J1,J_ang,3,5,0,dim-1);
+                /***********************/
             }
 
             if (mLIC->isActive())
@@ -196,7 +234,11 @@ using namespace std;
             q.resize(dim,0.0);
             qd.resize(dim,0.0);
 
+            e_xyz.resize(3,0.0);
+            e_ang.resize(3,0.0);
+
             J_xyz.resize(3,dim);  J_xyz.zero();
+            J_ang.resize(3,dim);  J_ang.zero();
             J1.resize(6,dim);     J1.zero();
 
             H.resize(4,4);        H.zero();
@@ -322,7 +364,8 @@ using namespace std;
                     Ipopt::Number &obj_value)
         {
             computeQuantities(x);
-            obj_value = 1.0 + 1 * dot(z_hat,x_hat);
+            //obj_value = 1.0 + 1 * dot(z_hat,x_hat);
+            obj_value=norm2(e_ang);
 
             return true;
         }
@@ -334,16 +377,22 @@ using namespace std;
         {
             computeQuantities(x);
 
-            Matrix AJ   = chain -> AnaJacobian(2).removeRows(4,2);
-            AJ.setRow(3,Vector(AJ.cols(), 0.0));
+            Vector grad=-2.0*(J_ang.transposed() * e_ang);
 
-            Matrix AJ_0 = chain -> AnaJacobian(0,2).removeRows(4,2);
-            AJ_0.setRow(3,Vector(AJ_0.cols(), 0.0));
 
-            grad_f[0] = -dot(AJ_0.getCol(0),z_hat) + dot(AJ.getCol(0),x_hat);
+//            Matrix AJ   = chain -> AnaJacobian(2).removeRows(4,2);
+//            AJ.setRow(3,Vector(AJ.cols(), 0.0));
 
-            for (Ipopt::Index i=1; i<n; i++)
-                grad_f[i]=+dot(AJ.getCol(i),x_hat);
+//            Matrix AJ_0 = chain -> AnaJacobian(0,2).removeRows(4,2);
+//            AJ_0.setRow(3,Vector(AJ_0.cols(), 0.0));
+
+//            grad_f[0] = -dot(AJ_0.getCol(0),z_hat) + dot(AJ.getCol(0),x_hat);
+
+//            for (Ipopt::Index i=1; i<n; i++)
+//                grad_f[i]=+dot(AJ.getCol(i),x_hat);
+
+            for (Ipopt::Index i=0; i<n; i++)
+                grad_f[i]=grad[i];
 
             return true;
         }

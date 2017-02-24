@@ -8,7 +8,7 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-project(PPS)
+project(PPS-newsolver)
 
 find_package(YARP)
 find_package(ICUB)
