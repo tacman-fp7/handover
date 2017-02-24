@@ -783,6 +783,13 @@ class poseSelection : public RFModule,
             return true;
     }
 
+    /*******************************************************************************/
+    double getPeriod()
+    {
+        return 0.1;
+    }
+
+
     /*********************************************************/
     bool close()
     {
@@ -2245,6 +2252,7 @@ class poseSelection : public RFModule,
            err_p=norm(pose_second.subVector(0,2)-example_poses[i].subVector(0,2));
            err_n=norm(pose_second.subVector(3,6)-example_poses[i].subVector(3,6));
            errors.push_back(err_p+err_n);
+           //errors.push_back(err_p);
            cout<<"error "<<errors[i]<<endl;
 
            if(i>=1)

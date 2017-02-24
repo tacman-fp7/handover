@@ -2211,7 +2211,7 @@ public:
                 else
                 {
                     x_to_fix[1]+=0.17;
-                    x_to_fix[2]+=0.1;
+                    x_to_fix[2]+=0.07;
                 }
 
                 cout<< " Point to fix "<<x_to_fix.toString()<<endl;
