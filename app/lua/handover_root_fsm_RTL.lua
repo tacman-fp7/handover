@@ -321,7 +321,12 @@ return rfsm.state {
   ST_TRY_AGAIN = rfsm.state{
           entry=function()
                   print("trying again ...")
-                  local ret = HANDOVER_try_again(in_hand_seg_port)
+                  if num ==0 then
+                      local ret = HANDOVER_try_again(in_hand_seg_port)
+                  else
+                        local ret = HANDOVER_try_again(in_hand_seg_port)
+                        ret =  ret and HANDOVER_try_again_1(in_hand_seg_port)
+                  end
 
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
@@ -339,6 +344,52 @@ return rfsm.state {
           end
 },
 
+----------------------------------
+  -- state PREPARE1               --
+  ----------------------------------
+  ST_PREPARE1 = rfsm.state{
+          entry=function()
+                  print(" Give initial pose ...")
+
+                  num = HANDOVER_initial_pose(go_on_port)
+
+                  if num == 0 or num ==1 then
+                       rfsm.send_events(fsm, 'e_done')
+                  else
+                       rfsm.send_events(fsm, 'e_error')
+                  end
+
+          end
+},
+
+----------------------------------
+  -- state PREPARE2               --
+  ----------------------------------
+  ST_PREPARE2 = rfsm.state{
+          entry=function()
+                  print(" ... and object name")
+          name = HANDOVER_object_name(go_on_port)
+
+          if name == "domino " or name == "jello" then
+            rfsm.send_events(fsm, 'e_done')
+          else
+            rfsm.send_events(fsm, 'e_error')
+          end
+},
+
+----------------------------------
+  -- state PREPARE3              --
+  ----------------------------------
+  ST_PREPARE3 = rfsm.state{
+          entry=function()
+                  print(" setting object name")
+
+          local ret = HANDOVER_set_object_name(in_hand_loc_port, name)
+
+          if ret == "fail" then
+            rfsm.send_events(fsm, 'e_error')
+         end
+},
 
 
 
@@ -350,7 +401,13 @@ ST_INTERACT = interact_fsm,
  rfsm.transition { src='ST_INITPORTS', tgt='ST_CONNECTPORTS', events={ 'e_connect' } },
  rfsm.transition { src='ST_INITPORTS', tgt='ST_FATAL', events={ 'e_error' } },
  rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_FINI', events={ 'e_error' } },
- rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_TRY_AGAIN', events={ 'e_done' } },
+ rfsm.transition { src='ST_CONNECTPORTS', tgt='ST_PREPARE1', events={ 'e_done' } },
+ rfsm.transition { src='ST_PREPARE1', tgt='ST_PREPARE1', events={ 'e_error' } },
+ rfsm.transition { src='ST_PREPARE1', tgt='ST_PREPARE2', events={ 'e_done' } },
+ rfsm.transition { src='ST_PREPARE2', tgt='ST_PREPARE2', events={ 'e_error' } },
+ rfsm.transition { src='ST_PREPARE2', tgt='ST_PREPARE3', events={ 'e_done' } },
+ rfsm.transition { src='ST_PREPARE3', tgt='ST_PREPARE3', events={ 'e_error' } },
+ rfsm.transition { src='ST_PREPARE3', tgt='ST_TRY_AGAIN', events={ 'e_done' } },
  rfsm.transition { src='ST_TRY_AGAIN', tgt='ST_TRY_AGAIN', events={ 'e_error' } },
  rfsm.transition { src='ST_TRY_AGAIN', tgt='ST_CLOSE_FIRST_HAND', events={ 'e_done' } },
  rfsm.transition { src='ST_TRY_AGAIN', tgt='ST_PREPARE_SECOND_HAND', events={ 'e_done' } },

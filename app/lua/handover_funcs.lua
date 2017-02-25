@@ -42,6 +42,17 @@ function HANDOVER_try_again(port)
     return reply:get(0):asString()
 end
 
+function HANDOVER_try_again_1(port)
+   local wb = yarp.Bottle()
+   local reply = yarp.Bottle()
+   wb:clear()
+    wb:addString("try_again")
+    wb:addInt(1)
+    port:write(wb,reply)
+    yarp.Time_delay(4.0)
+    return reply:get(0):asString()
+end
+
 function HANDOVER_localize(port)
    local wb = yarp.Bottle()
    local reply = yarp.Bottle()
@@ -147,6 +158,28 @@ function HANDOVER_look_in_front(port)
 end
 
 function HANDOVER_go_on(port)
+   local reply = yarp.Bottle()
+    port:read(reply)
+    return reply:get(0):asString()
+end
+
+function HANDOVER_initial_pose(port)
+   local reply = yarp.Bottle()
+    port:read(reply)
+    return reply:get(0):asInt()
+end
+
+function HANDOVER_set_object_name(port,name)
+  local wb = yarp.Bottle()
+  local reply = yarp.Bottle()
+  wb:clear()
+   wb:addString("set_object_name")
+   wb:addString(name)
+   port:write(wb,reply)
+   return reply:get(0):asString()
+end
+
+function HANDOVER_object_name(port)
    local reply = yarp.Bottle()
     port:read(reply)
     return reply:get(0):asString()
