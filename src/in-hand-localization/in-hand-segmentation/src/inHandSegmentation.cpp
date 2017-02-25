@@ -729,12 +729,12 @@ protected:
 
         igaze->storeContext(&context_0);
 
-        igaze->setNeckTrajTime(1.75);
-        igaze->setEyesTrajTime(1.75);
+        igaze->setNeckTrajTime(0.85);
+        igaze->setEyesTrajTime(0.85);
         igaze->setSaccadesMode(false);
         //igaze->blockNeckRoll();
         igaze->lookAtFixationPoint(final_position);
-        igaze->waitMotionDone();
+        igaze->waitMotionDone(0.1, 1.0);
 
         igaze->setSaccadesMode(true);
 
@@ -2044,9 +2044,9 @@ public:
     {
         Vector shift(3,0.0);
         if (left_or_right=="left")
-            shift[1]=0.17;
+            shift[1]=0.1;
         else
-            shift[1]=-0.17;
+            shift[1]=-0.1;
         shift[2]=0.10;
 
         Vector orientation_new(4,0.0);
@@ -2055,7 +2055,7 @@ public:
             icart_arm->getPose(position_new,orientation_new);
 
 
-        if ((norm(position_new -position_old)>=0.05))
+        if ((norm(position_new -position_old)>=0.03))
         {
             position_old=position_new;
             orientation=orientation_new;
@@ -2074,7 +2074,7 @@ public:
                 igaze->setSaccadesMode(false);
                 igaze->blockNeckRoll();
                 igaze->lookAtFixationPoint(position_old+ shift);
-                cout<< "Gaze movement done "<<igaze->waitMotionDone()<<endl;
+                cout<< "Gaze movement done "<<igaze->waitMotionDone(0.01, 0.5)<<endl;
 
                 Vector x_test(3,0.0);
                 igaze->getFixationPoint(x_test);
@@ -2165,7 +2165,7 @@ public:
 
             icart_arm->goToPoseSync(acquisition_poses_arm[i].subVector(0,2), acquisition_poses_arm[i].subVector(3,6));
 
-            motions_completed=icart_arm->waitMotionDone();
+            motions_completed=icart_arm->waitMotionDone(0.1, 2.0);
 
             if (motions_completed)
                 yInfo()<<" Arm movement completed!";

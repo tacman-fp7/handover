@@ -68,7 +68,8 @@ return rfsm.state {
                    yarp.NetworkBase_disconnect(clos_chain_port:getName(), "/closed-chain/rpc")
                    yarp.NetworkBase_disconnect(stable_grasp_l_port:getName(), "/stableGrasp/left_hand/cmd:i")
                    yarp.NetworkBase_disconnect(stable_grasp_r_port:getName(), "/stableGrasp/right_hand/cmd:i")
-                   in_hand_seg_port:close()
+                   yarp.NetworkBase_disconnect("/port/go_on", go_on_port:getName())
+		   in_hand_seg_port:close()
                    in_hand_loc_port:close()
                    pose_sel_port:close()
                    clos_chain_port:close()
@@ -121,8 +122,8 @@ return rfsm.state {
   ----------------------------------
   ST_LOC_POINTS_ACQ = rfsm.state{
           entry=function()
-                  print("acquiring points for localization")
-                  local ret = HANDOVER_acquire(in_hand_loc_port)
+		  local ret = HANDOVER_acquire(in_hand_loc_port)
+
 
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
@@ -379,6 +380,7 @@ ST_INTERACT = interact_fsm,
  rfsm.transition { src='ST_CLOSE_HAND', tgt='ST_OPEN_FIRST_HAND', events={ 'e_done' } },
  rfsm.transition { src='ST_OPEN_FIRST_HAND', tgt='ST_LOOK_IN_FRONT', events={ 'e_done' } },
  rfsm.transition { src='ST_LOOK_IN_FRONT', tgt='ST_SET_WAYPOINT_BACK', events={ 'e_done' } },
+ rfsm.transition { src='ST_SET_WAYPOINT_BACK', tgt='ST_SET_WAYPOINT_BACK', events={ 'e_error' } },
  rfsm.transition { src='ST_SET_WAYPOINT_BACK', tgt='ST_GO_HOME', events={ 'e_done' } },
  rfsm.transition { src='ST_GO_HOME', tgt='ST_FINI', events={ 'e_done' } },
 
