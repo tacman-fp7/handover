@@ -2,7 +2,7 @@
 //#define HAVE_CSTDDEF
 #include <IpTNLP.hpp>
 //#undef HAVE_CSTDDEF
-#include <IpIpoptApplication.hpp>
+#include <IpIpoptApplication.hpp>-
 #include <iCub/iKin/iKinFwd.h>
 
 using namespace yarp::sig;
@@ -175,9 +175,11 @@ using namespace std;
                 v[1]=v[2]=0.0;
                 v[0]=1.0;
                 v[3]=-M_PI/2;
-//                Matrix H_corr(4,4);
-//                H_corr(2,0)=H_corr(1,2)=-1;
-//                H_corr(0,1)=H_corr(3,3)=1;
+                Matrix H_corr(4,4);
+                H_corr(2,0)=1;
+                H_corr(1,2)=-1;
+                H_corr(0,1)=-1;
+                H_corr(3,3)=1;
 
 
                 //}
@@ -193,12 +195,13 @@ using namespace std;
 
                 /***********************/
                 //yarp::sig::Matrix E=H;
-                yarp::sig::Matrix E=axis2dcm(v)*H.transposed();
+                yarp::sig::Matrix E=H.transposed();
                 v=dcm2axis(E);
                 //v=dcm2axis(H);
-                e_xyz[0]=xd[0]-H(0,3);
-                e_xyz[1]=xd[1]-H(1,3);
-                e_xyz[2]=xd[2]-H(2,3);
+//                e_xyz[0]=xd[0]-H(0,3);
+//                e_xyz[1]=xd[1]-H(1,3);
+//                e_xyz[2]=xd[2]-H(2,3);
+
                 e_ang[0]=v[3]*v[0];
                 e_ang[1]=v[3]*v[1];
                 e_ang[2]=v[3]*v[2];
