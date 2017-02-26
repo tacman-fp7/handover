@@ -378,15 +378,21 @@ void doubleTouchThread::solveIK()
 
 
     Vector v(4,0.0);
-    v[1]=v[2]=0.0;
-    v[0]=1.0;
-    v[3]=-M_PI;
+    v[0]=v[2]=0.0;
+    v[1]=1.0;
+    v[3]=M_PI/2;
     Htest=axis2dcm(v);
-    //Htest(2,3)=0.2;
+    Htest(2,3)=0.2;
 
-    //slv->probl->limb.setH0(SE3inv(Htest));
+    Matrix H_corr(4,4);
+    H_corr.zero();
+    H_corr(0,2)=1;
+    H_corr(1,1)=-1;
+    H_corr(2,0)=-1;
+    H_corr(3,3)=1;
+
+
     slv->probl->limb.setH0(SE3inv(Hpose));
-   // slv->probl->limb.setH0(H_hand);
     testLimb->setH0(SE3inv(Hpose));
 
     slv->probl->limb.setAng(sol->joints);
