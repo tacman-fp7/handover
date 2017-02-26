@@ -2151,7 +2151,7 @@ public:
 
             dof[0]=dof[1]=dof[2]=0.0;
             icart_arm->setDOF(dof,dof);
-            icart_arm->setTrajTime(2.0);
+            icart_arm->setTrajTime(1.0);
 
             cout<<endl;
             yDebug()<<" Q pose arm: "<<q_poses_arm[i].toString();
@@ -2165,7 +2165,7 @@ public:
 
             icart_arm->goToPoseSync(acquisition_poses_arm[i].subVector(0,2), acquisition_poses_arm[i].subVector(3,6));
 
-            motions_completed=icart_arm->waitMotionDone(0.1, 2.0);
+            motions_completed=icart_arm->waitMotionDone();
 
             if (motions_completed)
                 yInfo()<<" Arm movement completed!";

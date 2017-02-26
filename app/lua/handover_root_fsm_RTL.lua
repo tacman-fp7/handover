@@ -232,7 +232,7 @@ return rfsm.state {
   ST_CLOSE_FIRST_HAND = rfsm.state{
           entry=function()
                   print(" closing right hand ..")
-                  HANDOVER_close_hand(stable_grasp_r_port)
+                  HANDOVER_close_first_hand(stable_grasp_r_port)
           end
 },
 
@@ -370,11 +370,12 @@ return rfsm.state {
                   print(" ... and object name")
           name = HANDOVER_object_name(go_on_port)
 
-          if name == "domino " or name == "jello" then
+          if name == "domino" or name == "jello" then
             rfsm.send_events(fsm, 'e_done')
           else
             rfsm.send_events(fsm, 'e_error')
           end
+       end
 },
 
 ----------------------------------
@@ -389,6 +390,7 @@ return rfsm.state {
           if ret == "fail" then
             rfsm.send_events(fsm, 'e_error')
          end
+      end
 },
 
 
