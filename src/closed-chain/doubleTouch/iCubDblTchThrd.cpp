@@ -516,10 +516,10 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
     printf(" Moving slave arm to home, i.e. %s...\n",
                  (iCub::ctrl::CTRL_RAD2DEG*armPossHomeS).toString(3,3).c_str());
 
-    for (size_t i=0; i<7;i++)
-    {
-        crtlmodeM->setControlMode(i,VOCAB_CM_POSITION);
-    }
+//    for (size_t i=0; i<7;i++)
+//    {
+//        crtlmodeM->setControlMode(i,VOCAB_CM_POSITION);
+//    }
 
 
     for (size_t i=0; i<7;i++)
@@ -532,12 +532,12 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
         iposS->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeS[i]);
     }
 
-    Time::delay(1.5);
+//    Time::delay(1.5);
 
-    for (int i = 0; i < 7; i++)
-    {
-        iposM->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeM[i]);
-    }
+//    for (int i = 0; i < 7; i++)
+//    {
+//        iposM->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeM[i]);
+//    }
 }
 
 /************************************************************************/
@@ -819,6 +819,8 @@ bool doubleTouchThread::go_home()
     home=true;
 
     steerArmsHomeMasterSlave();
+
+    initialPoseMaster();
 
     return true;
 }
