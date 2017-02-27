@@ -55,6 +55,8 @@ class poseSelection : public RFModule,
     Vector xd_h, od_h;
     Vector index_poses;
     Vector pose_second;
+    Vector position_new;
+    Vector position_old;
     Vector pose_second_corr;
     Vector pos_hand, axis_hand;
     Vector pos, euler_angles, axis;
@@ -164,6 +166,7 @@ class poseSelection : public RFModule,
     ImageOf<PixelRgb> *imgIn;
     BufferedPort<ImageOf<PixelRgb> > portImgIn;
     BufferedPort<ImageOf<PixelRgb> > portImgOut;
+    BufferedPort<ImageOf<PixelRgb> > portImgOutReviewer;
 
     /************************************************************************/
     bool attach(RpcServer &source)
@@ -514,6 +517,8 @@ class poseSelection : public RFModule,
         axis_hand.resize(4,0.0);
         pose_second.resize(7,0.0);
         euler_angles.resize(3,0.0);
+        position_new.resize(3,0.0);
+        position_old.resize(3,0.0);
         pose_second_corr.resize(7,0.0);
         x_init_moving_arm.resize(3,0.0);
         o_init_moving_arm.resize(4,0.0);
@@ -564,6 +569,7 @@ class poseSelection : public RFModule,
         portRpc.open("/"+module_name+"/rpc");       
         portImgIn.open("/" + module_name + "/img:i");
         portImgOut.open("/" + module_name + "/img:o");
+        portImgOutReviewer.open("/" + module_name + "/img:r");
 
         if (closed_chain)
             portClosedChain.open("/"+module_name+"/cc:rpc");
@@ -777,6 +783,9 @@ class poseSelection : public RFModule,
 
         showPoses();
 
+
+        showPosesReviewer();
+
         if (online)
             return true;
         else
@@ -822,6 +831,10 @@ class poseSelection : public RFModule,
 
         if (!portImgOut.isClosed())
             portImgOut.close();
+
+        if (!portImgOutReviewer.isClosed())
+            portImgOutReviewer.close();
+
         return true;
     }
 
@@ -1444,6 +1457,277 @@ class poseSelection : public RFModule,
     }
 
     /*******************************************************************************/
+    bool showPosesReviewer()
+    {
+        if (imgIn==NULL)
+        {
+            imgIn=portImgIn.read(false);
+            if (imgIn==NULL)
+            {
+                yError()<<" Please, connect the cameras!";
+                return true;
+            }
+        }
+        else
+            imgIn=portImgIn.read();
+
+        ImageOf<PixelRgb> &imgOutR=portImgOutReviewer.prepare();
+        imgOutR.resize(imgIn->width(),imgIn->height());
+
+        cv::Mat imgInMat=cv::cvarrToMat((IplImage*)imgIn->getIplImage());
+        cv::Mat imgOutMat=cv::cvarrToMat((IplImage*)imgOutR.getIplImage());
+
+        imgInMat.copyTo(imgOutMat);
+
+        Vector position_2D(2,0.0);
+        Vector axis_2D(2,0.0);
+
+        int thickness=2;
+        int font=0;
+        double fontScale=0.5;
+        int x_shift, y_shift;
+        Vector num_position(3,0.0);
+
+        if (closed_chain && norm(index_poses)>0.0)
+        {
+            H_hand=askForHandPose();
+
+            changeFrame();
+        }
+
+        if ( norm(pos)>0.0 && norm(position_new - position_old)<=0.005)
+        {
+            for (size_t i=0; i<positions_rotated.size(); i++)
+            {
+                cv::Scalar color(0,255,0);
+
+                if (norm(index_poses)>0.0)
+                {
+                    color[0]+=-50*index_poses[i];
+                    color[1]+= 10*index_poses[i];
+                    if (index_poses[i]!=0.0)
+                        color[2]=0;
+                }
+
+                stringstream i_string;
+                i_string<<i;
+
+                igaze->get2DPixel(camera, positions_rotated[i],position_2D);
+                cv::Point pixel2D(position_2D[0],position_2D[1]);
+
+                igaze->get2DPixel(camera, x_axis_rotated[i],axis_2D);
+                cv::Point pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+                cv::line(imgOutMat,pixel2D,pixel_axis_x2D,cv::Scalar(255,0,0));
+
+                igaze->get2DPixel(camera, y_axis_rotated[i],axis_2D);
+                cv::Point pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+                cv::line(imgOutMat,pixel2D,pixel_axis_y2D,cv::Scalar(0,255,0));
+
+                igaze->get2DPixel(camera, z_axis_rotated[i],axis_2D);
+                cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+                cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255));
+
+                if (left_or_right=="right")
+                    num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])-0.40*(z_axis_rotated[i]-positions_rotated[i]);
+                else
+                    num_position=positions_rotated[i]+0.60*(y_axis_rotated[i]-positions_rotated[i])+0.40*(z_axis_rotated[i]-positions_rotated[i]);
+                Vector num_position2D(2,0.0);
+                igaze->get2DPixel(camera, num_position,num_position2D);
+                cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
+
+            }
+        }
+
+        if (index>=0 && norm(index_poses)>0.0 && norm(position_new - position_old)<=0.005)
+        {
+            //position_new=position_old;
+            cv::Scalar color(255,0,0);
+            color[0]=-10*index_poses[index];
+            color[1]=255 + 20*index_poses[index];
+            if (index_poses[index]!=0.0)
+                color[2]=0;
+
+            stringstream i_string;
+            i_string<<index;
+
+            igaze->get2DPixel(camera, positions_rotated[index],position_2D);
+            cv::Point pixel2D(position_2D[0],position_2D[1]);
+
+            igaze->get2DPixel(camera, x_axis_rotated[index],axis_2D);
+            cv::Point pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+            cv::line(imgOutMat,pixel2D,pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+            igaze->get2DPixel(camera, y_axis_rotated[index],axis_2D);
+            cv::Point pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+            cv::line(imgOutMat,pixel2D,pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+            igaze->get2DPixel(camera, z_axis_rotated[index],axis_2D);
+            cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+            cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+
+            if (left_or_right=="right")
+                num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])-0.40*(z_axis_rotated[index]-positions_rotated[index]);
+            else
+                num_position=positions_rotated[index]+0.60*(y_axis_rotated[index]-positions_rotated[index])+0.40*(z_axis_rotated[index]-positions_rotated[index]);
+
+            Vector num_position2D(2,0.0);
+            igaze->get2DPixel(camera, num_position,num_position2D);
+            cv::putText(imgOutMat, i_string.str(), cv::Point(num_position2D[0], num_position2D[1]), font, fontScale, color, thickness);
+
+            color[0]=0;
+            color[1]=0;
+            color[2]=255;
+            Vector center_bb(2,0.0);
+
+//            if (!closed_chain)
+//            {
+//                igaze->get2DPixel(camera, num_position,center_bb);
+//                cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+
+//                igaze->get2DPixel(camera, xd_h, position_2D);
+//                cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+//                Matrix orient(4,4);
+//                orient=axis2dcm(od_h);
+
+//                igaze->get2DPixel(camera, xd_h + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+//                igaze->get2DPixel(camera, xd_h + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+//                igaze->get2DPixel(camera,xd_h + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+//            }
+//            else if (xdhat.size()>0)
+//            {
+//                igaze->get2DPixel(camera, num_position,center_bb);
+//                cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+
+//                igaze->get2DPixel(camera, xdhat[index], position_2D);
+//                cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+//                Matrix orient(4,4);
+//                orient=axis2dcm(odhat[index]);
+
+
+//                igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+//                igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+//                igaze->get2DPixel(camera,xdhat[index] + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+
+//                for (size_t i=0; i<n_waypoint;i++)
+//                {
+
+//                    igaze->get2DPixel(camera, waypoints[i], position_2D);
+//                    cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+//                    Matrix orient(3,3);
+//                    orient.setCol(0,(x_axis_wp[i]-waypoints[i])/norm(x_axis_wp[i]-waypoints[i]));
+//                    orient.setCol(1,(y_axis_wp[i]-waypoints[i])/norm(y_axis_wp[i]-waypoints[i]));
+//                    orient.setCol(2,(z_axis_wp[i]-waypoints[i])/norm(z_axis_wp[i]-waypoints[i]));
+
+//                    igaze->get2DPixel(camera, waypoints[i] + 0.05 *orient.getCol(0),axis_2D);
+//                    cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+//                    igaze->get2DPixel(camera, waypoints[i] + 0.05 *orient.getCol(1),axis_2D);
+//                    cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+//                    igaze->get2DPixel(camera,waypoints[i] + 0.05 *orient.getCol(2),axis_2D);
+//                    cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+//                }
+//            }
+//            else
+//            {
+//                igaze->get2DPixel(camera, num_position,center_bb);
+//                cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+
+//                igaze->get2DPixel(camera, pose_second.subVector(0,2), position_2D);
+//                cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+//                Matrix orient(4,4);
+//                orient=axis2dcm(pose_second.subVector(3,6));
+
+//                igaze->get2DPixel(camera, pose_second.subVector(0,2) + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+//                igaze->get2DPixel(camera, pose_second.subVector(0,2) + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+//                igaze->get2DPixel(camera,pose_second.subVector(0,2) + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+//                cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+//                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+
+//                for (size_t i=0; i<n_waypoint;i++)
+//                {
+
+//                    igaze->get2DPixel(camera, waypoints[i], position_2D);
+//                    cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+
+//                    igaze->get2DPixel(camera, waypoints[i] + 0.05 *x_axis_wp[i],axis_2D);
+//                    cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+
+//                    igaze->get2DPixel(camera, waypoints[i] + 0.05 *y_axis_wp[i],axis_2D);
+//                    cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+
+//                    igaze->get2DPixel(camera, waypoints[i] + 0.05 *z_axis_wp[i],axis_2D);
+//                    cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+//                }
+
+//                if (correct_pose)
+//                {
+//                    igaze->get2DPixel(camera, num_position,center_bb);
+//                    cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+
+//                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2), position_2D);
+//                    cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+//                    Matrix orient(4,4);
+//                    orient=axis2dcm(pose_second_corr.subVector(3,6));
+
+//                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+//                    cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(200,0,0), 2);
+
+//                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+//                    cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,200,0), 2);
+
+//                    igaze->get2DPixel(camera,pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+//                    cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,200), 2);
+//                }
+//                }
+        }
+
+        portImgOutReviewer.write();
+
+        return true;
+    }
+
+
+    /*******************************************************************************/
     Matrix askForHandPose()
     {
         Matrix H;
@@ -1481,6 +1765,8 @@ class poseSelection : public RFModule,
         }
 
         //cout<< "New pose "<<pos_hand.toString()<<" "<<axis_hand.toString()<<endl;
+
+        position_new=pos_hand;
 
         H.resize(4,4);
 
@@ -1705,6 +1991,8 @@ class poseSelection : public RFModule,
         double tmp=-100.0;
         int count=0;
         Vector qdhat(10,0.0);
+
+        position_old=position_new;
 
         if (norm(index_poses)>0.0)
         {
