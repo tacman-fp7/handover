@@ -2,7 +2,7 @@
 //#define HAVE_CSTDDEF
 #include <IpTNLP.hpp>
 //#undef HAVE_CSTDDEF
-#include <IpIpoptApplication.hpp>-
+#include <IpIpoptApplication.hpp>
 #include <iCub/iKin/iKinFwd.h>
 
 using namespace yarp::sig;
@@ -163,66 +163,24 @@ using namespace std;
                 
                 q=chain->setAng(new_q);
 
-                /***********************/
-                yarp::sig::Vector v(4,0.0);
-                //if (xd.length()>=7)
-                //{
-//                    v[0]=xd[3];
-//                    v[1]=xd[4];
-//                    v[2]=xd[5];
-//                    v[3]=xd[6];
-
-//                v[1]=v[2]=0.0;
-//                v[0]=1.0;
-//                v[3]=-M_PI/2;
-//                Matrix H_corr(4,4);
-//                H_corr(2,0)=1;
-//                H_corr(1,2)=-1;
-//                H_corr(0,1)=-1;
-//                H_corr(3,3)=1;
-
-
-                //}
-                /***********************/
-
                 H=chain->getH();
                 ori=dcm2axis(H);
                 pos[0]=H(0,3);
                 pos[1]=H(1,3);
                 pos[2]=H(2,3);
 
-                H_0=chain->getH0();
-
                 // We want the final pose to be the identity
-                /***********************/
-                //yarp::sig::Matrix E=H;
-                yarp::sig::Matrix E=H.transposed();
-                v=dcm2axis(E);
-                //v=dcm2axis(H);
-//                e_xyz[0]=xd[0]-H(0,3);
-//                e_xyz[1]=xd[1]-H(1,3);
-//                e_xyz[2]=xd[2]-H(2,3);
+                Matrix E=H.transposed();
+                Vector v=dcm2axis(E);
 
                 e_ang[0]=v[3]*v[0];
                 e_ang[1]=v[3]*v[1];
                 e_ang[2]=v[3]*v[2];
 
-
-                /***********************/
-
-//                H_0=chain->getH0();
-
-//                z_hat = H   * z3rd;
-//                z_hat = z_hat / norm2(z_hat);
-//                x_hat = x1st;
-//                x_hat = x_hat / norm2(x_hat);
-
                 J1   = chain->GeoJacobian();
                 submatrix(J1,J_xyz,0,2,0,dim-1);
 
-                /***********************/
                 submatrix(J1,J_ang,3,5,0,dim-1);
-                /***********************/
             }
 
             if (mLIC->isActive())

@@ -723,7 +723,8 @@ void doubleTouchThread::computeManip()
         tmp_pos=tmp.subVector(0,2);
         pos_in_hand.push_back(tmp_pos);
 
-        tmp=dcm2axis(aux*SE3inv(H_hand)*axis2dcm(orientations[i]));
+        //tmp=dcm2axis(aux*SE3inv(H_hand)*axis2dcm(orientations[i]));
+        tmp=dcm2axis(SE3inv(H_hand)*axis2dcm(orientations[i]));
         orie_in_hand.push_back(tmp);
     }
 
