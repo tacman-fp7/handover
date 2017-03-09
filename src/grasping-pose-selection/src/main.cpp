@@ -930,6 +930,7 @@ class poseSelection : public RFModule,
                 if (isNumber)
                 {
                     nPoints=firstItem.asInt();
+                    cout<<"n Points "<<nPoints<<endl;
                     state++;
                 }
             }
@@ -1175,16 +1176,16 @@ class poseSelection : public RFModule,
         if (norm(pos)>0.0)
             update_pose=false;
 
-        if (num_obj<num_objs)
-        {
-            stringstream ss2;
-            ss2 << "positions"<<num_obj<<".off";
-            string str_num_obj = ss2.str();
+//        if (num_obj<num_objs)
+//        {
+//            stringstream ss2;
+//            ss2 << "positions"<<num_obj<<".off";
+//            string str_num_obj = ss2.str();
 
-            cout<<" Object selected "<< num_obj<<endl;
+//            cout<<" Object selected "<< num_obj<<endl;
 
-            readPoses(str_num_obj, orientationFileName);
-        }
+//            readPoses(str_num_obj, orientationFileName);
+//        }
 
         return H;
     }
@@ -1802,7 +1803,7 @@ class poseSelection : public RFModule,
                     count++;
                     if (norm(positions_rotated[i] - pos_hand)==*it)
                     {
-                        index_poses[i]= (count - 8);                    
+                        index_poses[i]= (count - positions_rotated.size());
                     }
                 }
             }
@@ -1870,7 +1871,7 @@ class poseSelection : public RFModule,
             {                
                 if (manip_notordered[i]==*it && first_time)
                 {                   
-                    index_poses[i] += (count-8)*(err_orient[i]+err_pos[i]);
+                    index_poses[i] += (count-positions_rotated.size())*(err_orient[i]+err_pos[i]);
                     first_time=false;
                 }
                 count++;
@@ -1947,6 +1948,7 @@ class poseSelection : public RFModule,
            for (size_t i=0; i<size_manip; i++)
            {
                manip.push_back(manip_notordered[i]+1/(err_orient[i]));
+               //manip.push_back(manip_notordered[i]);
            }
 
 
@@ -1966,7 +1968,7 @@ class poseSelection : public RFModule,
                     {
                         //index_poses[i] += (count-8)*(err_orient[i]+err_pos[i]);
                        // index_poses[i] += (count-8)*(err_pos[i]*1000);
-                        index_poses[i] += (count-8);
+                        index_poses[i] += (count-(int)manip_notordered.size());
                         cout<<"index poses "<<index_poses[i]<<endl;
                         first_time=false;
                     }
@@ -2310,6 +2312,8 @@ class poseSelection : public RFModule,
            aux2(0,2)=matrix[2]; aux2(1,2)=matrix[5]; aux2(2,2)=matrix[8];
 
            Matrix orient(3,3);
+
+           cout<<"DET "<<i<<" "<<det(aux2)<<endl;
 
            orient=aux2*aux;
 
