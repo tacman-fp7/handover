@@ -187,8 +187,12 @@ public:
             j_obj=1;
         else if (object=="soup")
             j_obj=2;
-        else if (object=="meat")
+        else if (object=="chips")
             j_obj=3;
+        else if (object=="cup")
+            j_obj=4;
+        else if (object=="mustard")
+            j_obj=5;
         else
             return false;
 
