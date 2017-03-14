@@ -1463,30 +1463,30 @@ class poseSelection : public RFModule,
 //                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
 //                }
 
-//                if (correct_pose)
-//                {
-//                    igaze->get2DPixel(camera, num_position,center_bb);
-//                    cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
+                if (correct_pose)
+                {
+                    igaze->get2DPixel(camera, num_position,center_bb);
+                    cv::rectangle(imgOutMat, cv::Point(center_bb[0]-10, center_bb[1]-20),cv::Point(center_bb[0]+20, center_bb[1]+10), color, 2, 8 );
 
-//                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2), position_2D);
-//                    cv::Point real_pixel2D(position_2D[0],position_2D[1]);
-//                    Matrix orient(4,4);
-//                    orient=axis2dcm(pose_second_corr.subVector(3,6));
+                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2), position_2D);
+                    cv::Point real_pixel2D(position_2D[0],position_2D[1]);
+                    Matrix orient(4,4);
+                    orient=axis2dcm(pose_second_corr.subVector(3,6));
 
-//                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
-//                    cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
+                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+                    cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
 
-//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(200,0,0), 2);
+                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(200,0,0), 2);
 
-//                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
-//                    cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
-//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,200,0), 2);
+                    igaze->get2DPixel(camera, pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+                    cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
+                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,200,0), 2);
 
-//                    igaze->get2DPixel(camera,pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
-//                    cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
-//                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,200), 2);
-//                }
-//            }
+                    igaze->get2DPixel(camera,pose_second_corr.subVector(0,2) + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+                    cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
+                    cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,200), 2);
+                }
+            
         }
 
         portImgOut.write();
@@ -2558,10 +2558,10 @@ class poseSelection : public RFModule,
        cout<<" Correct matrix "<<corr_matrix.toString()<<endl;
 
        Vector tmp(4,1.0);
-       tmp.setSubvector(0,pose_second.subVector(0,2));
+       tmp.setSubvector(0,xdhat[index]);
        tmp=corr_matrix*tmp;
        pose_second_corr.setSubvector(0,tmp.subVector(0,2));
-       pose_second_corr.setSubvector(3,dcm2axis(corr_matrix*axis2dcm(pose_second.subVector(3,6))));
+       pose_second_corr.setSubvector(3,dcm2axis(corr_matrix*axis2dcm(odhat[index])));
 
        yDebug()<<" Corrected second pose"<<pose_second_corr.toString();
    }
@@ -2577,8 +2577,8 @@ class poseSelection : public RFModule,
 
        for (size_t i=0; i<example_poses.size();i++)
        {
-           err_p=norm(pose_second.subVector(0,2)-example_poses[i].subVector(0,2));
-           err_n=norm(pose_second.subVector(3,6)-example_poses[i].subVector(3,6));
+           err_p=norm(xdhat[index]-example_poses[i].subVector(0,2));
+           err_n=norm(odhat[index]-example_poses[i].subVector(3,6));
            errors.push_back(err_p+err_n);
            //errors.push_back(err_p);
            cout<<"error "<<errors[i]<<endl;
