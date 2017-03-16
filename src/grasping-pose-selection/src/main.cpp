@@ -1522,7 +1522,7 @@ class poseSelection : public RFModule,
 
         int thickness=2;
         int font=0;
-        double fontScale=0.5;
+        double fontScale=0.35;
         int x_shift, y_shift;
         Vector num_position(3,0.0);
 
@@ -1541,8 +1541,8 @@ class poseSelection : public RFModule,
 
                 if (norm(index_poses)>0.0)
                 {
-                    color[0]+=-50*index_poses[i];
-                    color[1]+= 10*index_poses[i];
+                    color[0]=-15*index_poses[i];
+                    color[1]=255 + 15*index_poses[i];
                     if (index_poses[i]!=0.0)
                         color[2]=0;
                 }
@@ -1553,16 +1553,16 @@ class poseSelection : public RFModule,
                 igaze->get2DPixel(camera, positions_rotated[i],position_2D);
                 cv::Point pixel2D(position_2D[0],position_2D[1]);
 
-                igaze->get2DPixel(camera, x_axis_rotated[i],axis_2D);
+                igaze->get2DPixel(camera, x_axis_rotated[i] + 0.35 *(positions_rotated[i]-x_axis_rotated[i]),axis_2D);
                 cv::Point pixel_axis_x2D(axis_2D[0],axis_2D[1]);
 
                 cv::line(imgOutMat,pixel2D,pixel_axis_x2D,cv::Scalar(255,0,0));
 
-                igaze->get2DPixel(camera, y_axis_rotated[i],axis_2D);
+                igaze->get2DPixel(camera, y_axis_rotated[i] + 0.35 *(positions_rotated[i]-y_axis_rotated[i]),axis_2D);
                 cv::Point pixel_axis_y2D(axis_2D[0],axis_2D[1]);
                 cv::line(imgOutMat,pixel2D,pixel_axis_y2D,cv::Scalar(0,255,0));
 
-                igaze->get2DPixel(camera, z_axis_rotated[i],axis_2D);
+                igaze->get2DPixel(camera, z_axis_rotated[i] + 0.35 *(positions_rotated[i]-z_axis_rotated[i]),axis_2D);
                 cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
                 cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255));
 
@@ -1581,10 +1581,13 @@ class poseSelection : public RFModule,
         {
             //position_new=position_old;
             cv::Scalar color(255,0,0);
-            color[0]=-10*index_poses[index];
-            color[1]=255 + 20*index_poses[index];
+            
             if (index_poses[index]!=0.0)
+            {
+                color[0]=0;
+                color[1]=255;
                 color[2]=0;
+            }
 
             stringstream i_string;
             i_string<<index;
@@ -1592,16 +1595,16 @@ class poseSelection : public RFModule,
             igaze->get2DPixel(camera, positions_rotated[index],position_2D);
             cv::Point pixel2D(position_2D[0],position_2D[1]);
 
-            igaze->get2DPixel(camera, x_axis_rotated[index],axis_2D);
+            igaze->get2DPixel(camera, x_axis_rotated[index] + 0.35 *(positions_rotated[index]-x_axis_rotated[index]),axis_2D);
             cv::Point pixel_axis_x2D(axis_2D[0],axis_2D[1]);
 
             cv::line(imgOutMat,pixel2D,pixel_axis_x2D,cv::Scalar(255,0,0), 2);
 
-            igaze->get2DPixel(camera, y_axis_rotated[index],axis_2D);
+            igaze->get2DPixel(camera, y_axis_rotated[index] + 0.35 *(positions_rotated[index]-y_axis_rotated[index]),axis_2D);
             cv::Point pixel_axis_y2D(axis_2D[0],axis_2D[1]);
             cv::line(imgOutMat,pixel2D,pixel_axis_y2D,cv::Scalar(0,255,0), 2);
 
-            igaze->get2DPixel(camera, z_axis_rotated[index],axis_2D);
+            igaze->get2DPixel(camera, z_axis_rotated[index] + 0.35 *(positions_rotated[index]-z_axis_rotated[index]),axis_2D);
             cv::Point pixel_axis_z2D(axis_2D[0],axis_2D[1]);
             cv::line(imgOutMat,pixel2D,pixel_axis_z2D,cv::Scalar(0,0,255), 2);
 
@@ -1629,16 +1632,16 @@ class poseSelection : public RFModule,
                 Matrix orient(4,4);
                 orient=axis2dcm(od_h);
 
-                igaze->get2DPixel(camera, xd_h + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+                igaze->get2DPixel(camera, xd_h + 0.065 *orient.getCol(0).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
 
                 cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
 
-                igaze->get2DPixel(camera, xd_h + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+                igaze->get2DPixel(camera, xd_h + 0.065 *orient.getCol(1).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
                 cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
 
-                igaze->get2DPixel(camera,xd_h + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+                igaze->get2DPixel(camera,xd_h + 0.065 *orient.getCol(2).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
                 cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
             }
@@ -1653,17 +1656,17 @@ class poseSelection : public RFModule,
                 orient=axis2dcm(odhat[index]);
 
 
-                igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
+                igaze->get2DPixel(camera, xdhat[index] + 0.04 *orient.getCol(0).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
 
-                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(247,116,69), 2);
-                igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+                igaze->get2DPixel(camera, xdhat[index] + 0.04 *orient.getCol(1).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
-                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(170,247,69), 2);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
 
-                igaze->get2DPixel(camera,xdhat[index] + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
+                igaze->get2DPixel(camera,xdhat[index] + 0.04 *orient.getCol(2).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
-                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(80,159,249), 2);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
 
                 /*for (size_t i=0; i<n_waypoint;i++)
                 {
