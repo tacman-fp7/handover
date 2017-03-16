@@ -1656,14 +1656,14 @@ class poseSelection : public RFModule,
                 igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(0).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_x2D(axis_2D[0],axis_2D[1]);
 
-                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(255,0,0), 2);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_x2D,cv::Scalar(247,116,69), 2);
                 igaze->get2DPixel(camera, xdhat[index] + 0.05 *orient.getCol(1).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_y2D(axis_2D[0],axis_2D[1]);
-                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(0,255,0), 2);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_y2D,cv::Scalar(170,247,69), 2);
 
                 igaze->get2DPixel(camera,xdhat[index] + 0.05 *orient.getCol(2).subVector(0,2),axis_2D);
                 cv::Point real_pixel_axis_z2D(axis_2D[0],axis_2D[1]);
-                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(0,0,255), 2);
+                cv::line(imgOutMat,real_pixel2D,real_pixel_axis_z2D,cv::Scalar(80,159,249), 2);
 
                 for (size_t i=0; i<n_waypoint;i++)
                 {
