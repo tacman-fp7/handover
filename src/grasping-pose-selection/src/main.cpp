@@ -1522,7 +1522,7 @@ class poseSelection : public RFModule,
 
         int thickness=2;
         int font=0;
-        double fontScale=0.35;
+        double fontScale=0.5;
         int x_shift, y_shift;
         Vector num_position(3,0.0);
 
