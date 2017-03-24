@@ -1498,13 +1498,32 @@ class poseSelection : public RFModule,
 
                 if (norm(index_poses)>0.0)
                 {
-                    color[0]=-25*index_poses[i];
-                    color[1]=215 + 15*index_poses[i];
-                    color[2]=0;
+//                    color[0]=-25*index_poses[i];
+//                    color[1]=215 + 15*index_poses[i];
+//                    color[2]=0;
+                    color[0]=255;
+                    color[1]=color[2]=0;
                 }
 
                 stringstream i_string;
-                i_string<<i;
+
+                if (index>=0)
+                {
+                    int i_pos=0;
+
+                    for (size_t j=0; j<index_poses.size(); j++ )
+                    {
+                        if (index_poses[i]<index_poses[j])
+                            i_pos++;
+                    }
+
+
+                    i_string<<i_pos;
+                }
+                else
+                {
+                    i_string<<i;
+                }
 
 
                 igaze->get2DPixel(camera, positions_rotated[i],position_2D);
@@ -1540,13 +1559,15 @@ class poseSelection : public RFModule,
 
             if (index_poses[index]!=0.0)
             {
-                color[0]=0;
-                color[1]=205;
-                color[2]=100;
+//                color[0]=0;
+//                color[1]=205;
+//                color[2]=100;
+                color[2]=255;
+                color[0]=color[1]=0;
             }
 
             stringstream i_string;
-            i_string<<index;
+            i_string<<"0";
 
             igaze->get2DPixel(camera, positions_rotated[index],position_2D);
             cv::Point pixel2D(position_2D[0],position_2D[1]);
