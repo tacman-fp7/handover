@@ -96,7 +96,7 @@ You just need to:
 
 Some examples of successful handovers are available here: 
 
-[<img src="https://github.com/tacman-fp7/handover/blob/devel/wiki/play-video.png">](https://www.youtube.com/watch?v=be27-FGU-Sk).
+[<img src="https://github.com/tacman-fp7/handover/blob/devel/wiki/play-video.png">](https://www.youtube.com/watch?v=be27-FGU-Sk)
 
 [![DOI](https://zenodo.org/badge/70046565.svg)](https://zenodo.org/badge/latestdoi/70046565)
 
