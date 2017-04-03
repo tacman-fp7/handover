@@ -94,7 +94,9 @@ You just need to:
 - **launch and connect** all the modules
 - **answer** to the question the lua script will ask you. In particular, the lua script stops 2 times. First, after the pose for the second hand is selected, the script will ask if you want to go on (typing **go_on**), to stop the module (**stop**) or to compute again the pose (**again**). Second, after the hands are in the final position, the lua will ask if to close the second hand or not. Then, you can answer: **go_on** if you want to perform the handover or **stop** if you want to stop the demo and the robot to go back to the home position.
 
-Some examples of successful handovers are available here: [<img src="https://github.com/tacman-fp7/handover/blob/devel/wiki/play-video.png">](https://www.youtube.com/watch?v=be27-FGU-Sk).
+Some examples of successful handovers are available here: 
+
+[<img src="https://github.com/tacman-fp7/handover/blob/devel/wiki/play-video.png">](https://www.youtube.com/watch?v=be27-FGU-Sk).
 
 [![DOI](https://zenodo.org/badge/70046565.svg)](https://zenodo.org/badge/latestdoi/70046565)
 
