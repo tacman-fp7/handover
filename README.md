@@ -57,12 +57,13 @@ The developed code can be run both on the **iCub simulator** and on the **real r
 1. [`CalibCameras`](http://wiki.icub.org/brain/group__icub__camCalib.html)
 2. `iCubStartup` (in particular [`iKinCartesianSolver`](http://wiki.icub.org/brain/group__iKinCartesianSolver.html) for both arms,[`iKinGazeCtrl`](http://eris.liralab.it/iCub/main/dox/html/group__iKinGazeCtrl.html) )
 3. [`SFM`](https://github.com/robotology/stereo-vision/tree/master/modules/SFM) and [`dispBlobber`](https://github.com/robotology/segmentation/tree/gh-pages)
+4. [`stableGrasp`](https://github.com/tacman-fp7/tactile-control#how-to-run) for the **left** and the **right** hand
 
 ### Running the modules
 
 4. launch `pose-selection`, `in-hand-segmentation`,`localizer` and `closed-chain` binaries with suitable configuration files
-5. launch the two `yarpviews` necessary for blob and pose selection visualization
-6. make all the connections (see the [`handover.xml.template`](https://github.com/tacman-fp7/handover/blob/master/app/script/handover.xml.template) file)
+5. launch the `yarpviews` necessary for blob and pose selection visualization
+6. make all the connections (see the [`handover_RTL.xml.template`](https://github.com/tacman-fp7/handover/blob/master/app/script/handover_RTL.xml.template) file as example)
 
 (You can execute step `Prerequisities:3` and `Running the modules:1-3` just by launching and connecting port with the `handover` application in the `yarpmanager`)
 
@@ -80,6 +81,12 @@ You can play with the modules by using 4 rpc ports. Several commands are availab
      - `reach_final`: to make the second hand reach the final pose
 - `/closed-chain/rpc`:
      - `move_first_hand`: to make the robot move the first hand toward the final pose
+     
+Alternatively, you can launch the [`lua` script](https://github.com/tacman-fp7/handover/blob/master/app/lua/handover_main_RTL.lua) that automatically execute all the `rpc` commands.
+You just need to:
+- open a port named: **/handover/go_on** 
+- launch and connect all the modules
+- answer to the question the lua script will ask you. In particular, the lua script stops 2 times. First, after the pose for the second hand is selected, the script will ask if you want to go on (typing **go_on**), to stop the module (**stop**) or to compute again the pose (**again**). Second, after the hands are in the final position, the lua will ask if to close the second hand or not. Then, you can answer: **go_on** if you want to perform the handover or **stop** if you want to stop the demo and the robot to go back to the home position.
 
 Yarpviews show the blob selected for point cloud extraction and the selected pose on the object.
 Here, you can find an example of [the selected blob](https://github.com/tacman-fp7/handover/issues/17#issuecomment-267567631) and [the selected pose](https://github.com/tacman-fp7/handover/issues/15#issuecomment-265692371).
