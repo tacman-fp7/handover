@@ -4,7 +4,6 @@
 #include <iomanip>
 
 #define VEL_THRES      0.000001        // m/s?
-// VEL_THRES * getRate()
 
 doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const string &_robot, int _v,
                                      double _jnt_vels,bool _dontgoback, const Vector &_hand_poss_master,
@@ -36,7 +35,6 @@ doubleTouchThread::doubleTouchThread(int _rate, const string &_name, const strin
     armPossHomeS.resize(7,0.0);
     armPossHomeS[0]=-30.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHomeS[1]=60.0*iCub::ctrl::CTRL_DEG2RAD;
-    //armPossHomeS[2]=45.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHomeS[3]=45.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHomeS[4]=-50.0*iCub::ctrl::CTRL_DEG2RAD;
     armPossHomeS[6]=-15.0*iCub::ctrl::CTRL_DEG2RAD;
@@ -159,7 +157,6 @@ void doubleTouchThread::run()
     {
         switch (step)
         {
-        cout<<"step "<<step<<endl;
             case 0:
                 if (go)
                     step++;
@@ -400,9 +397,6 @@ void doubleTouchThread::solveIK()
     slv->solve(*sol);
     solution=iCub::ctrl::CTRL_RAD2DEG * sol->joints;
 
-    cout<<"solution H "<<(sol->H).toString()<<endl;
-    cout<<"solution H0 "<<(sol->H_0).toString()<<endl;
-
     testLimb->setAng(sol->joints);
 }
 
@@ -477,14 +471,7 @@ void doubleTouchThread::goToPoseSlave()
     }
     for (int i = 0; i < nDOF-7; i++)
     {
-        /*
-        if (verbosity>1)
-        {
-            printf(" #%i to: %g\t",nDOF-7-1-i,-solution[i]);
-        }*/
-
         iposS -> positionMove(nDOF-7-1-i,-iCub::ctrl::CTRL_RAD2DEG*joints_sol[index][i]);
-
     }
     if (verbosity>1)
     {
@@ -538,12 +525,6 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
     printf(" Moving slave arm to home, i.e. %s...\n",
                  (iCub::ctrl::CTRL_RAD2DEG*armPossHomeS).toString(3,3).c_str());
 
-//    for (size_t i=0; i<7;i++)
-//    {
-//        crtlmodeM->setControlMode(i,VOCAB_CM_POSITION);
-//    }
-
-
     for (size_t i=0; i<7;i++)
     {
         crtlmodeS->setControlMode(i,VOCAB_CM_POSITION);
@@ -553,13 +534,6 @@ void doubleTouchThread::steerArmsHomeMasterSlave()
     {
         iposS->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeS[i]);
     }
-
-//    Time::delay(1.5);
-
-//    for (int i = 0; i < 7; i++)
-//    {
-//        iposM->positionMove(i,iCub::ctrl::CTRL_RAD2DEG*armPossHomeM[i]);
-//    }
 }
 
 /************************************************************************/
@@ -582,15 +556,13 @@ void doubleTouchThread::threadRelease()
 {
     cout<<endl;
     printf(" Returning to position mode..\n");
-//    if (!dontgoback)
-//    {
-        steerArmsHome();
-        imodeL -> setInteractionMode(2,VOCAB_IM_STIFF);
-        imodeL -> setInteractionMode(3,VOCAB_IM_STIFF);
-        imodeR -> setInteractionMode(2,VOCAB_IM_STIFF);
-        imodeR -> setInteractionMode(3,VOCAB_IM_STIFF);
-        steerArmsHome();
-//    }
+
+    steerArmsHome();
+    imodeL -> setInteractionMode(2,VOCAB_IM_STIFF);
+    imodeL -> setInteractionMode(3,VOCAB_IM_STIFF);
+    imodeR -> setInteractionMode(2,VOCAB_IM_STIFF);
+    imodeR -> setInteractionMode(3,VOCAB_IM_STIFF);
+    steerArmsHome();
 
     delete encsR; encsR = NULL;
     delete  armR;  armR = NULL;
@@ -723,7 +695,6 @@ void doubleTouchThread::computeManip()
         tmp_pos=tmp.subVector(0,2);
         pos_in_hand.push_back(tmp_pos);
 
-        //tmp=dcm2axis(aux*SE3inv(H_hand)*axis2dcm(orientations[i]));
         tmp=dcm2axis(SE3inv(H_hand)*axis2dcm(orientations[i]));
         orie_in_hand.push_back(tmp);
     }
