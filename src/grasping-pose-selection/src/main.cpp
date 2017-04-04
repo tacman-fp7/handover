@@ -81,9 +81,7 @@ class poseSelection : public RFModule,
     vector<Vector> x_axis_wp, y_axis_wp, z_axis_wp;
     vector<Vector> x_axis_rotated, y_axis_rotated, z_axis_rotated;
 
-    string orientationFileNameBox;
-    string orientationFileNameCyl;
-    string orientationFileNameCylLong;
+    string orientationFileName;
     string computedPosesFileName;
     string correctionMatrixFileName;
     string objectPoseFileName;
@@ -466,9 +464,7 @@ class poseSelection : public RFModule,
         handPoseFileName=rf.check("handPoseFileName", Value("hand-pose.txt"), "Hand pose").asString();
         positionFileName=rf.check("positionFileName", Value("positions0.off"), "Default positions file name").asString();
         objectPoseFileName=rf.check("objectPoseFileName", Value("object-pose.txt"), "Default object pose file name").asString();
-        orientationFileNameBox=rf.check("orientationFileNameBox", Value("orientations-right.txt"), "Default orientations file name").asString();
-        orientationFileNameCyl=rf.check("orientationFileNameCyl", Value("orientations-right.txt"), "Default orientations file name").asString();
-        orientationFileNameCylLong=rf.check("orientationFileNameCylLong", Value("orientations-right.txt"), "Default orientations file name").asString();
+        orientationFileName=rf.check("orientationFileNameBox", Value("orientations-right.txt"), "Default orientations file name").asString();
         correctionMatrixFileName=rf.check("correctionMatrixFileName", Value("correction-matrices.txt"), "Default orientations file name").asString();
         computedPosesFileName=rf.check("computedPosesFileName", Value("computed-poses.txt"), "Default orientations file name").asString();
 
@@ -526,7 +522,7 @@ class poseSelection : public RFModule,
         x_init_resting_arm.resize(3,0.0);
         o_init_resting_arm.resize(4,0.0);
 
-        readPoses(positionFileName, orientationFileNameBox);
+        readPoses(positionFileName, orientationFileName);
         read(correctionMatrixFileName, "corr_matrix");
         read(computedPosesFileName, "example_poses");
 
