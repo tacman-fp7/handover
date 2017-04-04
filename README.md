@@ -92,7 +92,7 @@ Alternatively, you can launch the [`lua script`](https://github.com/tacman-fp7/h
 You just need to:
 - open a port named: **/handover/go_on** 
 - **launch and connect** all the modules
-- **answer** to the question the lua script will ask you. In particular, the lua script stops 2 times. First, after the pose for the second hand is selected, the script will ask if you want to go on (typing **go_on**), to stop the module (**stop**) or to compute again the pose (**again**). Second, after the hands are in the final position, the lua will ask if to close the second hand or not. Then, you can answer: **go_on** if you want to perform the handover or **stop** if you want to stop the demo and the robot to go back to the home position.
+- **answer** to the question the lua script will ask you. At the beginning, the lua script asks the user which object the robot is going to use (see how the [dictionary](https://github.com/tacman-fp7/handover/wiki/How-to-modify-the-set-of-objects) is defined) and which is the desired initial pose of the first hand. In particular, the lua script stops 2 times. First, after the pose for the second hand is selected, the script will ask if you want to go on (typing **go_on**), to stop the module (**stop**) or to compute again the pose (**again**). Second, after the hands are in the final position, the lua will ask if to close the second hand or not. Then, you can answer: **go_on** if you want to perform the handover or **stop** if you want to stop the demo and the robot to go back to the home position.
 
 Some examples of successful handovers are available here: 
 
