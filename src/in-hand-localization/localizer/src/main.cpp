@@ -59,6 +59,8 @@ class localizingModule : public RFModule,
 
     Mutex mutex;
 
+    vector<string> dictionary;
+
 public:
     /************************************************************************/
     bool attach(RpcServer &source)
@@ -180,20 +182,31 @@ public:
     /*******************************************************************************/
     bool set_object_name(const string &object)
     {
+        bool found;
         object_name=object;
-        if (object=="domino")
-            j_obj=0;
-        else if (object=="jello")
-            j_obj=1;
-        else if (object=="soup")
-            j_obj=2;
-        else if (object=="chips")
-            j_obj=3;
-        else if (object=="cup")
-            j_obj=4;
-        else if (object=="mustard")
-            j_obj=5;
-        else
+//        if (object=="domino")
+//            j_obj=0;
+//        else if (object=="jello")
+//            j_obj=1;
+//        else if (object=="soup")
+//            j_obj=2;
+//        else if (object=="chips")
+//            j_obj=3;
+//        else if (object=="cup")
+//            j_obj=4;
+//        else if (object=="mustard")
+//            j_obj=5;
+
+        for (size_t i=0; i<dictionary.size(); i++)
+        {
+             if (object == dictionary[i])
+             {
+                 found=true;
+                j_obj=i;
+             }
+        }
+
+        if (found==false)
             return false;
 
         cout<<" Object selected "<< j_obj<<endl;
@@ -221,6 +234,8 @@ public:
         num_objs=rf.check("num_objs", Value(1)).asInt();
         num_Q=rf.check("num_Q", Value(1)).asInt();
         num_trials=rf.check("num_trials", Value(1)).asInt();
+
+        cout<< "read dictionary "<<readDictionary(rf)<<endl;
 
         pose_computed=false;
         acquire=false;
@@ -292,66 +307,61 @@ public:
             askForPoints();
         }
 
-        //for (size_t j=0; j<num_objs;j++)
-        //{
-            for (size_t k=0; k<num_m_values; k++)
+        for (size_t k=0; k<num_m_values; k++)
+        {
+            for (size_t l=0; l<num_particles; l++)
             {
-                for (size_t l=0; l<num_particles; l++)
+                for (size_t m=0; m<num_Q; m++)
                 {
-                    for (size_t m=0; m<num_Q; m++)
+                    solutions.resize(num_trials,4);
+                    for(size_t i=0; i<num_trials; i++)
                     {
-                        solutions.resize(num_trials,4);
-                        for(size_t i=0; i<num_trials; i++)
+                        if (localize)
                         {
-                            if (localize)
+                            if (measurements.size()>0)
                             {
-                                if (measurements.size()>0)
+                                Localizer *loc5=new UnscentedParticleFilter();
+
+                                if (loc5->configure(this->rf,j_obj,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
                                 {
-                                    Localizer *loc5=new UnscentedParticleFilter();
-                                    //if (loc5->configure(this->rf,j,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
-                                    if (loc5->configure(this->rf,j_obj,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
-                                    {
-                                        error_indices=loc5->localization();
-                                        result=error_indices.subVector(0,5);
-                                        loc5->saveData(error_indices,i,k,l,m);
-                                        solutions(i,0)=error_indices[6];
-                                        solutions(i,1)=error_indices[7];
-                                        solutions(i,2)=error_indices[8];
-                                        solutions(i,3)=error_indices[9];
+                                    error_indices=loc5->localization();
+                                    result=error_indices.subVector(0,5);
+                                    loc5->saveData(error_indices,i,k,l,m);
+                                    solutions(i,0)=error_indices[6];
+                                    solutions(i,1)=error_indices[7];
+                                    solutions(i,2)=error_indices[8];
+                                    solutions(i,3)=error_indices[9];
 
-                                        cout<<endl<<endl<<" Solution computed"<<endl;
-                                        cout<<" Localization error: "<< error_indices[6]<<endl;
-                                        cout<<" Execution time    : "<< error_indices[7]<<endl<<endl;
+                                    cout<<endl<<endl<<" Solution computed"<<endl;
+                                    cout<<" Localization error: "<< error_indices[6]<<endl;
+                                    cout<<" Execution time    : "<< error_indices[7]<<endl<<endl;
 
-                                        delete loc5;
-                                        pose_computed=true;
-                                        pose_saved=false;
-                                    }
-                                    else
-                                    {
-                                        localize=false;
-                                        delete loc5;
-                                        return false;
-                                    }
+                                    delete loc5;
+                                    pose_computed=true;
+                                    pose_saved=false;
                                 }
                                 else
-                                    yError()<< " No measurements received!! ";
+                                {
+                                    localize=false;
+                                    delete loc5;
+                                    return false;
+                                }
                             }
+                            else
+                                yError()<< " No measurements received!! ";
                         }
-
-                        Localizer *loc5=new UnscentedParticleFilter();
-                        //loc5->configure(this->rf,j, k, num_m_values, l, num_particles,m, online, measurements, enabled_touch);
-                        if (loc5->configure(this->rf,j_obj,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
-                        //loc5->saveStatisticsData(solutions,j,k,l,m);
-                       loc5->saveStatisticsData(solutions,j_obj,k,l,m);
-
-
-                        delete loc5;
                     }
 
+                    Localizer *loc5=new UnscentedParticleFilter();;
+                    if (loc5->configure(this->rf,j_obj,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
+                        loc5->saveStatisticsData(solutions,j_obj,k,l,m);
+
+
+                    delete loc5;
                 }
+
             }
-        //}
+        }
 
         if (online)
         {
@@ -390,6 +400,26 @@ public:
         }
 
         return true;
+    }
+
+    /*******************************************************************************/
+    bool readDictionary(ResourceFinder &rf)
+    {
+        if (Bottle *b=rf.find("dictionary").asList())
+        {
+            if (b->size()>=0)
+            {
+                for (size_t i=0; i<b->size(); i++)
+                {
+                    dictionary.push_back(b->get(i).asString());
+                }
+
+                return true;
+            }
+        }
+        else
+            return false;
+
     }
 };
 

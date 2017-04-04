@@ -664,7 +664,7 @@ protected:
     {
         count_pose=entry;
 
-        cout<<endl<<" Rset count_pose variable: "<<count_pose<<endl<<endl;
+        cout<<endl<<" Reset count_pose variable: "<<count_pose<<endl<<endl;
 
         return true;
     }
@@ -695,22 +695,13 @@ protected:
     /************************************************************************/
     bool try_again(const int entry)
     {
-        //if (entry<acquisition_poses_arm.size())
-        //{
-            cout<<" Let's try again! ... "<<endl;
+        cout<<" Let's try again! ... "<<endl;
 
-            //pointsIn.clear();
-            //pointsOut.clear();
-            motions_completed=false;
-            new_trial=true;
-            count_pose=entry;
+        motions_completed=false;
+        new_trial=true;
+        count_pose=entry;
 
-            //findPose(entry);
-
-            return true;
-        //}
-        //else
-            //return false;
+        return true;
     }
 
     /************************************************************************/
@@ -727,16 +718,11 @@ protected:
 
         igaze->setTrackingMode(false);
 
-        //igaze->storeContext(&context_0);
-
         igaze->setNeckTrajTime(0.5);
         igaze->setEyesTrajTime(0.5);
         igaze->setSaccadesMode(false);
-        //igaze->blockNeckRoll();
         igaze->lookAtFixationPoint(final_position);
         igaze->waitMotionDone();
-
-        //igaze->setSaccadesMode(true);
 
         Vector x_test(3,0.0);
         igaze->getFixationPoint(x_test);
@@ -744,8 +730,6 @@ protected:
         cout<< " Final error: "<<norm(final_position - x_test)<<endl;
 
         igaze->restoreContext(context_0);
-        //igaze->deleteContext(context_0);
-        //igaze->setTrackingMode(false);
         igaze->stopControl();
 
         cout<< " Staring in front!"<<endl;   
@@ -772,7 +756,7 @@ public:
         test=(rf.check("test", Value("no")).asString()=="yes");
         fixate=(rf.check("fixate", Value("no")).asString()=="yes");
         acquire=(rf.check("acquire", Value("no")).asString()=="yes");
-        calib_cam=(rf.check("calib_cam", Value("yes"))=="yes");
+        calib_cam=(rf.check("calib_cam", Value("yes")).asString()=="yes");
         prepare_hand=(rf.check("prepare_hand", Value("no")).asString()=="yes");
         frame=rf.check("frame", Value("hand"), "in which frame save finger positions").asString();
         online=(rf.check("online", Value("yes"), "online or offline processing").asString()== "yes");
@@ -840,7 +824,6 @@ public:
             y_lim_down=rf.check("y_lim_down", Value(-0.28)).asDouble();
             z_lim_up=rf.check("z_lim_up", Value(0.25)).asDouble();
             z_lim_down=rf.check("z_lim_down", Value(0.0)).asDouble();
-            //z_lim_down=rf.check("z_lim_down", Value(-0.08)).asDouble();
         }
         else
         {
@@ -848,7 +831,6 @@ public:
             y_lim_up=rf.check("y_lim_up", Value(0.15)).asDouble();
             x_lim_down=rf.check("x_lim_down", Value(-0.1)).asDouble();
             y_lim_down=rf.check("y_lim_down", Value(-0.25)).asDouble();
-            //z_lim_up=rf.check("z_lim_up", Value(0.08)).asDouble();
             z_lim_up=rf.check("z_lim_up", Value(0.02)).asDouble();
             z_lim_down=rf.check("z_lim_down", Value(-0.25)).asDouble();
         }
@@ -1083,9 +1065,6 @@ public:
 
             H_hand=computePose();
 
-//            if (prepare_hand)
-//                moveHand(pos_to_reach, orient_to_reach);
-
             if (automatic_acquisition)
             {
                 findPose(count_pose);
@@ -1134,7 +1113,6 @@ public:
                 coarseFilter(pointsIn);
                 info="_CF";
 
-                /*************************************************************************/
                 //fromHandToRobotFrame(pointsIn);
 
                 saveNewCloud(colors, pointsIn, info);
@@ -1502,8 +1480,6 @@ public:
                 fout<<left_or_right+" hand pose"<<endl<<endl;
                 fout<<position.toString()<<endl;
                 fout<<orientation.toString()<<endl;
-
-                //cout<<endl<<" Pose saved in "<<fileNameFormat<<endl<<endl;
             }
             else
             {
@@ -1609,17 +1585,6 @@ public:
 
             tipFrame=finger_middle.getH((M_PI/180.0)*joints);
         }
-
-//        Vector tip_x=tipFrame.getCol(3);
-//        Vector tip_o=dcm2axis(tipFrame);
-
-//        icart_arm->attachTipFrame(tip_x.subVector(0,2),tip_o);
-
-//        Time::delay(0.1);
-//        Vector o(4,0.0);
-//        icart_arm->getPose(contactPoint, o);
-//        icart_arm->removeTipFrame();
-//        Time::delay(0.1);
 
           yDebug()<<" Finger "<<finger_str <<tipFrame.toString(3,3);
           Vector x,o;
@@ -1793,7 +1758,6 @@ public:
         for (size_t i=0; i<pointsIn.size(); i++)
         {
             point=&pointsIn[i];
-            yDebug()<<" point: "<<point->subVector(3,5).toString();
             point->setSubvector(3,M_rgb2ycbcr*point->subVector(3,5) + ycbcr);
 
             yDebug()<<" Point computed: "<<point->subVector(3,5).toString();
@@ -2055,48 +2019,33 @@ public:
         if (test)
             icart_arm->getPose(position_new,orientation_new);
 
+        position_old=position_new;
+        orientation=orientation_new;
 
-        //if ((norm(position_new -position_old)>=0.01))
-       // {
-            position_old=position_new;
-            orientation=orientation_new;
+        if ((norm(position_old)>0.0 && norm(position_old)<2.0))
+        {
+            cout<<" Looking new hand pose ... "<<endl;
+            cout<<" Hand position: "<< position_old.toString()<<endl;
 
-            if ((norm(position_old)>0.0 && norm(position_old)<2.0))
-            { 
-                cout<<" Looking new hand pose ... "<<endl;
-                cout<<" Hand position: "<< position_old.toString()<<endl;
+            igaze->setTrackingMode(false);
+            igaze->clearEyes();
 
 
-                //igaze->storeContext(&context_0);
-                igaze->setTrackingMode(false);
-                igaze->clearEyes();
+            igaze->setNeckTrajTime(0.5);
+            igaze->setEyesTrajTime(0.5);
+            igaze->setSaccadesMode(false);
+            igaze->blockNeckRoll();
+            igaze->lookAtFixationPoint(position_old+ shift);
 
-                
-                igaze->setNeckTrajTime(0.5);
-                igaze->setEyesTrajTime(0.5);
-                igaze->setSaccadesMode(false);
-                igaze->blockNeckRoll();
-                igaze->lookAtFixationPoint(position_old+ shift);
-                //cout<< "Gaze movement done "<<igaze->waitMotionDone()<<endl;
+            Vector x_test(3,0.0);
+            igaze->getFixationPoint(x_test);
+            cout<< " Fixed point "<<x_test.toString()<<endl;
+            cout<< " Final error: "<<norm(position_old+shift-x_test)<<endl;
 
-                Vector x_test(3,0.0);
-                igaze->getFixationPoint(x_test);
-                cout<< " Fixed point "<<x_test.toString()<<endl;
-                cout<< " Final error: "<<norm(position_old+shift-x_test)<<endl;
-
-                //igaze->setSaccadesMode(true);
-
-                //igaze->restoreContext(context_0);
-                //igaze->deleteContext(context_0);
-                //igaze->setTrackingMode(false);
-                //igaze->stopControl();
-
-                cout<<" Now looking new hand pose! "<<endl;
-            }
-            else
-                yError()<< " Unrealistic values for hand position!";
-       // }
-
+            cout<<" Now looking new hand pose! "<<endl;
+        }
+        else
+            yError()<< " Unrealistic values for hand position!";
 
     }
 
@@ -2236,7 +2185,6 @@ public:
                 yDebug()<< " Stopped control: "<<igaze->stopControl();
 
                 igaze->restoreContext(context_0);
-                //igaze->deleteContext(context_0);
                 igaze->setTrackingMode(false);
 
                 igaze->blockEyes(5.0);
@@ -2270,10 +2218,6 @@ public:
 
         if (tag=="ARM_Q")
             point_tmp.resize(7,0.0);
-//        else if (tag=="HEAD_Q")
-//            point_tmp.resize(6,0.0);
-//        else if (tag=="HEAD")
-//            point_tmp.resize(7,0.0);
         else if (tag=="ARM")
             point_tmp.resize(7,0.0);
 
@@ -2336,10 +2280,6 @@ public:
                                 q_poses_arm.push_back(point_tmp);
                             else if (tag=="ARM")
                                 acquisition_poses_arm.push_back(point_tmp);
-//                            if (tag =="HEAD_Q")
-//                                q_poses_head.push_back(point_tmp);
-//                            else if (tag=="HEAD")
-//                                acquisition_poses_head.push_back(point_tmp);
                         }
                         return true;
                     }

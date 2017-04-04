@@ -939,9 +939,6 @@ bool UnscentedParticleFilter::configure(ResourceFinder &rf, const int &n_obj, co
         measurements.push_back(fingers[2]);
     }  
 
-//    for (size_t i=0; i<measurements.size(); i++)
-//        cout<<measurements[i]<<endl;
-
     ParametersUPF &parameters=get_parameters();
     parameters.numMeas=measurements.size();
     Vector aux_vectN(n_m,0.0);
