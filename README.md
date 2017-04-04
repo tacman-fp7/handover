@@ -59,7 +59,7 @@ The developed code can be run both on the **iCub simulator** and on the **real r
 1. [`CalibCameras`](http://wiki.icub.org/brain/group__icub__camCalib.html)
 2. `iCubStartup` (in particular [`iKinCartesianSolver`](http://wiki.icub.org/brain/group__iKinCartesianSolver.html) for both arms,[`iKinGazeCtrl`](http://eris.liralab.it/iCub/main/dox/html/group__iKinGazeCtrl.html) )
 3. [`SFM`](https://github.com/robotology/stereo-vision/tree/master/modules/SFM) and [`dispBlobber`](https://github.com/robotology/segmentation/tree/gh-pages)
-4. [`stableGrasp`](https://github.com/tacman-fp7/tactile-control#how-to-run) for the **left** and the **right** hand
+4. [`stableGrasp`](https://github.com/tacman-fp7/handover/wiki/Stable-grasp-module-interface#how-to-run-the-module) for the **left** and the **right** hand
 
 ### Running the modules
 
