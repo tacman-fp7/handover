@@ -54,12 +54,15 @@ make install
 
 The developed code can be run both on the **iCub simulator** and on the **real robot**.
 
+Hereafter, we provide the instructions to use the module with the robot.
+
 ### Prerequisities
 
 1. [`CalibCameras`](http://wiki.icub.org/brain/group__icub__camCalib.html)
 2. `iCubStartup` (in particular [`iKinCartesianSolver`](http://wiki.icub.org/brain/group__iKinCartesianSolver.html) for both arms,[`iKinGazeCtrl`](http://eris.liralab.it/iCub/main/dox/html/group__iKinGazeCtrl.html) )
 3. [`SFM`](https://github.com/robotology/stereo-vision/tree/master/modules/SFM) and [`dispBlobber`](https://github.com/robotology/segmentation/tree/gh-pages)
-4. [`stableGrasp`](https://github.com/tacman-fp7/handover/wiki/Stable-grasp-module-interface#how-to-run-the-module) for the **left** and the **right** hand
+4. [`stableGrasp`](https://github.com/tacman-fp7/handover/wiki/Stable-grasp-module-interface#how-to-run-the-module) for the **left** and the **right** hand (see [`basic_modules.xml.template`](https://github.com/tacman-fp7/handover/blob/devel/app/scrip/basic_modules.xml.template)).
+
 
 ### Running the modules
 
@@ -67,7 +70,7 @@ The developed code can be run both on the **iCub simulator** and on the **real r
 5. launch the `yarpviews` necessary for blob and pose selection visualization
 6. make all the connections (see the [`handover_RTL.xml.template`](https://github.com/tacman-fp7/handover/blob/master/app/script/handover_RTL.xml.template) file as example)
 
-(You can execute step `Prerequisities:3-4` and `Running the modules:1-3` just by launching and connecting port with the `handover` application in the `yarpmanager`)
+(You can execute step `Prerequisities:3-4` and `Running the modules:1-3` just by launching and connecting port with the `basic_modules` and `handover_RTL (or LTR)` application in the `yarpmanager`)
 
 
 #### Interactive mode
