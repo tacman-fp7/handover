@@ -37,6 +37,7 @@ service poseSelection_IDL
 
     /**
     * select the pose
+    * @param entry is the index of the desired pose
     * @return true/false on success/failure
     */
     bool select_pose(1:i32 entry);
@@ -80,6 +81,7 @@ service poseSelection_IDL
     /**
     * Set offset in order to shift poses 
     * far away from the object surface on z-axis
+    * @param entry is the offset value
     * @return true
     */
     bool set_offset_z_approach(1:double entry);
@@ -94,6 +96,7 @@ service poseSelection_IDL
     /**
     * Set offset in order to shift poses 
     * far away from the object surface on x-axis during approach
+    * @param entry is the offset value
     * @ return true
     */
     bool set_offset_x_approach(1:double entry);
@@ -108,6 +111,7 @@ service poseSelection_IDL
     /**
     * Set offset in order to shift final poses 
     * far away from the object surface on x-axis 
+    * @param entry is the offset value
     * @return true
     */
     bool set_offset_x_final(1:double entry);
@@ -121,6 +125,7 @@ service poseSelection_IDL
 
     /**
     * Set offset_z_final between waypoints
+    * @param entry is the offset value
     * @ return true
     */
     bool set_offset_z_final(1:double entry);
@@ -133,6 +138,7 @@ service poseSelection_IDL
     
     /**
     * Set angle for wrist
+    * @param entry is the angle value
     * @ return true
     */
     bool set_angle(1:double entry);
@@ -151,12 +157,14 @@ service poseSelection_IDL
 
     /**
     * Set number of waypoints
+    * @param entry is the number of waypoints
     * @return number of waypoints
     */
     bool set_n_waypoint(1: i32 entry);
 
     /**
     * Set number of waypoint to reach and reach it
+    * @param entry is the number of the waypoint we want to reach
     * @return true
     */
     bool reach_pose(1: i32 entry);
@@ -169,6 +177,7 @@ service poseSelection_IDL
 
     /**
     * Set tolerance for cartesian solver
+    * @param entry is the tolerance value
     * @return true
     */
     bool set_tolerance(1:double tolerance);
@@ -177,16 +186,22 @@ service poseSelection_IDL
     * Get tolerance for cartesian solver
     * @return tolerance value
     */
-
-    bool reach_final();
     double get_tolerance();
 
+    /**
+    * Ask the robot to reach the final pose
+    * @return tolerance value
+    */
+    bool reach_final();
+
     double get_y_correction();
+
     bool set_y_correction(1:double entry);
 
-  /**
+    /**
     * Set offset in order to shift final poses 
     * far away from the object surface on y-axis 
+    * @param entry is the offset value
     * @return true
     */
     bool set_offset_y_final(1:double entry);
@@ -200,7 +215,7 @@ service poseSelection_IDL
 
     /**
     * Set trajectory time for arms movements
-    * @parameter
+    * @param entry is the trajectory time value
     * @return true
     */
     bool set_traj_time(1:double entry);
