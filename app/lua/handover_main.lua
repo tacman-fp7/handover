@@ -11,7 +11,6 @@ shouldExit = false
 in_hand_seg_port = yarp.Port()
 in_hand_loc_port = yarp.Port()
 pose_sel_port    = yarp.Port()
-clos_chain_port  = yarp.Port()
 go_on_port  = yarp.Port()
 
 -- load state machine model and initalize it

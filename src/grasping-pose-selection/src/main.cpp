@@ -59,7 +59,9 @@ class poseSelection : public RFModule,
     Vector position_new;
     Vector position_old;
     Vector pose_second_corr;
-    Vector pos_hand, axis_hand;
+    Vector initial_pose_left;
+    Vector initial_pose_right;
+    Vector pos_hand, axis_hand;   
     Vector pos, euler_angles, axis;
     Vector x_init_moving_arm, o_init_moving_arm;
     Vector x_init_resting_arm, o_init_resting_arm;
@@ -90,6 +92,7 @@ class poseSelection : public RFModule,
     string homeContextPath;
     string left_or_right;
     string module_name;
+    string first_arm;
     string frame;
     string robot;
 
@@ -102,6 +105,7 @@ class poseSelection : public RFModule,
     bool torso_enabled;
     bool correct_pose;
     bool reached_final;
+    bool reached_home;
     bool change_frame;
     bool closed_chain;
     bool update_pose;    
@@ -112,13 +116,15 @@ class poseSelection : public RFModule,
     bool waypoint;
     bool manip_ok;
     bool correct;
+    bool go_home;
     bool online;
     bool euler;
 
     double theta;
-    double length;
-    double tolerance;
+    double length;    
     double y_corr;
+    double traj_time;
+    double tolerance;
     double offset_z_final;
     double offset_x_approach;
     double offset_x_final;
@@ -145,14 +151,17 @@ class poseSelection : public RFModule,
     IControlLimits* lim_torso;
     IControlLimits* lim_first_arm;
     IControlLimits* lim_second_arm;
-    ICartesianControl *icart_arm_move;
-    IControlMode2     *ctrlmode;
+    ICartesianControl *icart_second_arm;
+    ICartesianControl *icart_first_arm;
+    IControlMode2     *ctrlmode_second;
+    IControlMode2     *ctrlmode_first;
 
     PolyDriver clientGazeCtrl;
-    PolyDriver robotDevice_move;
-    PolyDriver robotDevice2;
-    PolyDriver robotDevice3;
-    PolyDriver robotDevice4;
+    PolyDriver robotDevice_second_arm;
+    PolyDriver robotDevice_first_arm;
+    PolyDriver robotDevice2_second_arm;
+    PolyDriver robotDevice_torso;
+    PolyDriver robotDevice2_first_arm;
 
     RpcClient portPoseIn;
     RpcClient portHandIn;
@@ -276,7 +285,7 @@ class poseSelection : public RFModule,
         Vector pos_aux(3,0.0);
         Vector orie(4,0.0);
 
-        icart_arm_move->getPose(pos_aux,orie);
+        icart_second_arm->getPose(pos_aux,orie);
         pos.setSubvector(0,pos_aux);
 
         reply.addDouble(pos[0]); reply.addDouble(pos[1]); reply.addDouble(pos[2]);
@@ -388,7 +397,7 @@ class poseSelection : public RFModule,
     }
 
     /************************************************************************/
-    bool set_waypoint(const int entry)
+    bool reach_pose(const int entry)
     {
         if (entry<n_waypoint)
         {
@@ -417,6 +426,15 @@ class poseSelection : public RFModule,
         else
             return false;
     }
+
+    /************************************************************************/
+    bool go_back_home()
+    {
+        go_home=true;
+        Time::delay(2.5);
+        return true;
+    }
+
 
     /************************************************************************/
     bool set_tolerance(double entry)
@@ -452,6 +470,26 @@ class poseSelection : public RFModule,
             return y_corr;
     }
 
+
+    /************************************************************************/
+    bool set_traj_time(double entry)
+    {
+        if (entry>0.1)
+        {
+            traj_time=entry;
+            cout<<endl<< " New trajectory time: "<<entry<<endl<<endl;
+            return true;
+        }
+        else
+            return false;
+    }
+
+     /************************************************************************/
+    double get_traj_time()
+    {
+        return traj_time;
+    }
+
     /*********************************************************/
     bool configure(ResourceFinder &rf)
     {
@@ -483,9 +521,15 @@ class poseSelection : public RFModule,
         n_waypoint=rf.check("n_waypoint", Value(1)).asInt();
 
         if (left_or_right=="left")
+        {
             theta=rf.check("theta", Value(20.0)).asDouble();
+            first_arm="right";
+        }
         else
+        {
             theta=rf.check("theta", Value(-20.0)).asDouble();
+            first_arm="left";
+        }
 
         offset_z_final=rf.check("offset_z_final", Value(0.02)).asDouble();
         y_corr=rf.check("y_corr", Value(0.0)).asDouble();
@@ -493,6 +537,7 @@ class poseSelection : public RFModule,
         offset_x_final=rf.check("offset_x_final", Value(0.02)).asDouble();
         offset_z_approach=rf.check("offset_z_approach", Value(0.04)).asDouble();
         tolerance=rf.check("tolerance", Value(0.02)).asDouble();
+        traj_time=rf.check("traj_time", Value(2.0)).asDouble();
 
         offset_y_final=rf.check("offset_y_final", Value(0.0)).asDouble();
 
@@ -519,8 +564,17 @@ class poseSelection : public RFModule,
         pose_second_corr.resize(7,0.0);
         x_init_moving_arm.resize(3,0.0);
         o_init_moving_arm.resize(4,0.0);
+        initial_pose_left.resize(7,0.0);
+        initial_pose_right.resize(7,0.0);
         x_init_resting_arm.resize(3,0.0);
-        o_init_resting_arm.resize(4,0.0);
+        o_init_resting_arm.resize(4,0.0);        
+
+        initial_pose_left[0]= -0.260714; initial_pose_left[1]=-0.322667; initial_pose_left[2]=0.160859;
+        initial_pose_left[3]=-0.35166; initial_pose_left[4]=0.697078; initial_pose_left[5]=-0.624835; initial_pose_left[6]=3.106923;
+
+        initial_pose_right[0]= -0.260714; initial_pose_right[1]=0.322667; initial_pose_right[2]=0.160859;
+        initial_pose_right[3]=-0.035166; initial_pose_right[4]=-0.67078; initial_pose_right[5]=0.734835; initial_pose_right[6]=2.46923;
+
 
         readPoses(positionFileName, orientationFileName);
         read(correctionMatrixFileName, "corr_matrix");
@@ -548,6 +602,8 @@ class poseSelection : public RFModule,
 
         reached_waypoint=false;
         reached_final=false;
+        go_home=false;
+        reached_home=false;
 
         if (online)
         {
@@ -588,33 +644,46 @@ class poseSelection : public RFModule,
         else
             yError(" Gaze NOT OPENED!");
 
-        Property option_arm_move("(device cartesiancontrollerclient)");
-        option_arm_move.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
-        option_arm_move.put("local","/"+module_name+"/cartesian/"+left_or_right+"_arm");
+        Property option_second_arm("(device cartesiancontrollerclient)");
+        option_second_arm.put("remote","/"+robot+"/cartesianController/"+left_or_right+"_arm");
+        option_second_arm.put("local","/"+module_name+"/cartesian/"+left_or_right+"_arm");
 
-        robotDevice_move.open(option_arm_move);
-        if (!robotDevice_move.isValid())
+        robotDevice_second_arm.open(option_second_arm);
+        if (!robotDevice_second_arm.isValid())
         {
             yError(" Device index not available!");
             return false;
         }
 
-        robotDevice_move.view(icart_arm_move);       
+        robotDevice_second_arm.view(icart_second_arm);
 
-        icart_arm_move->storeContext(&startup_context_id);
-        icart_arm_move->getPose(x_init_moving_arm, o_init_moving_arm);
+        icart_second_arm->storeContext(&startup_context_id);
+        icart_second_arm->getPose(x_init_moving_arm, o_init_moving_arm);
 
         Vector curDof;
-        icart_arm_move->getDOF(curDof);
+        icart_second_arm->getDOF(curDof);
         Vector newDof(3);
         newDof.resize(3,0);
-        if (torso_enabled)
+        icart_second_arm->setDOF(newDof,curDof);
+
+        Property option_first_arm("(device cartesiancontrollerclient)");
+        option_first_arm.put("remote","/"+robot+"/cartesianController/"+first_arm+"_arm");
+        option_first_arm.put("local","/"+module_name+"/cartesian/"+first_arm+"_arm");
+
+        robotDevice_first_arm.open(option_first_arm);
+        if (!robotDevice_first_arm.isValid())
         {
-            newDof[0]=1;
-            newDof[1]=1;
-            newDof[2]=1;
+            yError(" Device index not available!");
+            return false;
         }
-        icart_arm_move->setDOF(newDof,curDof);
+
+        robotDevice_first_arm.view(icart_first_arm);
+
+        icart_first_arm->storeContext(&startup_context_id);
+
+        icart_first_arm->getDOF(curDof);
+        newDof.resize(3,0);
+        icart_first_arm->setDOF(newDof,curDof);
 
         if (left_or_right=="right")
         {
@@ -634,15 +703,15 @@ class poseSelection : public RFModule,
         option_arm2.put("remote","/"+robot+"/"+left_or_right+"_arm");
         option_arm2.put("local","/"+module_name+"/joint/"+left_or_right+"_arm");
 
-        robotDevice2.open(option_arm2);
-        if (!robotDevice2.isValid())
+        robotDevice2_second_arm.open(option_arm2);
+        if (!robotDevice2_second_arm.isValid())
         {
             yError(" Device 2 not available!");
             return false;
         }
 
-        robotDevice2.view(lim_second_arm);
-        robotDevice2.view(ctrlmode);
+        robotDevice2_second_arm.view(lim_second_arm);
+        robotDevice2_second_arm.view(ctrlmode_second);
 
         Property option_arm4("(device remote_controlboard)");
         if (left_or_right=="left")
@@ -657,27 +726,28 @@ class poseSelection : public RFModule,
         }
 
 
-        robotDevice4.open(option_arm4);
-        if (!robotDevice4.isValid())
+        robotDevice2_first_arm.open(option_arm4);
+        if (!robotDevice2_first_arm.isValid())
         {
             yError(" Device 4 not available!");
             return false;
         }
 
-        robotDevice4.view(lim_first_arm);
+        robotDevice2_first_arm.view(lim_first_arm);
+        robotDevice2_second_arm.view(ctrlmode_first);
 
         Property option_arm3("(device remote_controlboard)");
         option_arm3.put("remote","/"+robot+"/torso");
         option_arm3.put("local","/"+module_name+"/joint/torso");
 
-        robotDevice3.open(option_arm3);
-        if (!robotDevice3.isValid())
+        robotDevice_torso.open(option_arm3);
+        if (!robotDevice_torso.isValid())
         {
             yError(" Device 3 not available!");
             return false;
         }
 
-        robotDevice3.view(lim_torso);
+        robotDevice_torso.view(lim_torso);
 
         lim_deque1.push_back(lim_torso);
         lim_deque1.push_back(lim_second_arm);
@@ -781,7 +851,10 @@ class poseSelection : public RFModule,
         }
 
         if (reach_waypoint)
-            reachWaypointVel(current_waypoint);
+            reachWaypoint(current_waypoint);
+
+        if (go_home)
+            goHome();
 
         if (reach_final_pose)
             reachFinalPoint();
@@ -810,17 +883,20 @@ class poseSelection : public RFModule,
         if (clientGazeCtrl.isValid())
             clientGazeCtrl.close();
 
-        if (robotDevice_move.isValid())
-            robotDevice_move.close();
+        if (robotDevice_second_arm.isValid())
+            robotDevice_second_arm.close();
 
-        if (robotDevice2.isValid())
-            robotDevice2.close();
+        if (robotDevice2_second_arm.isValid())
+            robotDevice2_second_arm.close();
 
-        if (robotDevice3.isValid())
-            robotDevice3.close();
+        if (robotDevice_torso.isValid())
+            robotDevice_torso.close();
 
-        if (robotDevice4.isValid())
-            robotDevice4.close();
+        if (robotDevice_first_arm.isValid())
+            robotDevice_first_arm.close();
+
+        if (robotDevice2_first_arm.isValid())
+            robotDevice2_first_arm.close();
 
         if (portPoseIn.asPort().isOpen())
             portPoseIn.close();
@@ -1567,13 +1643,13 @@ class poseSelection : public RFModule,
             {               
                 Bottle *bpos=bpos0->get(i).asList(); 
 
-                if (bpos->get(0)=="position")
+                if (bpos->get(0).asString()=="position")
                 {
                     pos_hand[0]=bpos->get(1).asDouble();
                     pos_hand[1]=bpos->get(2).asDouble();
                     pos_hand[2]=bpos->get(3).asDouble();
                 }
-                else if (bpos->get(0)=="orientation")
+                else if (bpos->get(0).asString()=="orientation")
                 {
                     axis_hand[0]=bpos->get(1).asDouble();
                     axis_hand[1]=bpos->get(2).asDouble();
@@ -1687,7 +1763,6 @@ class poseSelection : public RFModule,
 
                 yDebug()<<" Error in orientation for pose "<<i<<": "<<err_orient[i];
                 yDebug()<<" Error in position "<<i<<": "<<err_pos[i];
-                //yDebug()<<" Qd for pose "<<i<<": "<<qdhat[i].toString(3,3);
                 cout<<endl;
             }
 
@@ -1809,8 +1884,6 @@ class poseSelection : public RFModule,
                 for(size_t i=0; i<rec->size();i++)
                 {
                     manip.push_back(rec->get(i).asDouble());
-
-                    //yDebug()<<" Received manipulability: "<<rec->get(i).asDouble();
                 }
             }
             else
@@ -2066,43 +2139,71 @@ class poseSelection : public RFModule,
    }
 
    /*******************************************************************************/
-   bool reachWaypointVel(int i)
+   bool reachWaypoint(int j)
    {
        for (size_t i=0; i<7;i++)
        {
-           ctrlmode->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
+           ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
+           ctrlmode_first->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
        }
 
-       int context;
-       icart_arm_move->storeContext(&context);
+       int context_second, context_first;
+       icart_second_arm->storeContext(&context_second);
+       icart_first_arm->storeContext(&context_first);
 
        Vector dof(10,1.0);
        dof[0]=dof[1]=dof[2]=0.0;
 
-       icart_arm_move->setDOF(dof,dof);
-       icart_arm_move->setTrajTime(2.0);
-
-       cout<< " Going to waypoint: "<< waypoints[i].toString(3,3)<<" "<<pose_second.subVector(3,6).toString(3,3)<<endl<<endl;
-
-       icart_arm_move->goToPoseSync(waypoints[i], pose_second.subVector(3,6));
-       icart_arm_move->waitMotionDone();
-
        Vector x_tmp(3,0.0);
        Vector o_tmp(4,0.0);
-       icart_arm_move->getPose(x_tmp, o_tmp);
 
-       cout<<" Reached waypoint with position error: "<<norm(waypoints[i] - x_tmp)<< " and orientation error: "<<norm(pose_second.subVector(3,6)- o_tmp)<<endl<<endl;
+       icart_second_arm->setDOF(dof,dof);
+       icart_second_arm->setTrajTime(traj_time);
 
-       icart_arm_move->setTrackingMode(false);
+       icart_first_arm->setDOF(dof,dof);
+       icart_first_arm->setTrajTime(traj_time);
 
-       icart_arm_move->stopControl();
+       cout<< " Going to waypoint with second arm: "<< waypoints[j].toString(3,3)<<" "<<pose_second.subVector(3,6).toString(3,3)<<endl<<endl;
+       cout<< " Going to final pose with first arm: "<< first_arm_pose[index].subVector(0,2).toString(3,3)<<" "<<first_arm_pose[index].subVector(3,6).toString(3,3)<<endl<<endl;
 
-       icart_arm_move->restoreContext(context);
-       icart_arm_move->deleteContext(context);
+       icart_first_arm->getPose(x_tmp, o_tmp);
+
+       if (norm(first_arm_pose[index].subVector(0,2) - x_tmp)>0.01)
+       {
+           icart_first_arm->goToPoseSync(first_arm_pose[index].subVector(0,2), first_arm_pose[index].subVector(3,6));
+           icart_first_arm->waitMotionDone();
+       }
+
+       icart_second_arm->goToPoseSync(waypoints[j], pose_second.subVector(3,6));
+       icart_second_arm->waitMotionDone();
+
+       icart_first_arm->getPose(x_tmp, o_tmp);
+
+       cout<<" Reached final pose for first arm with position error: "<<norm(first_arm_pose[index].subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(first_arm_pose[index].subVector(3,6)- o_tmp)<<endl<<endl;
+
+
+       icart_second_arm->getPose(x_tmp, o_tmp);
+
+       cout<<" Reached waypoint with position error: "<<norm(waypoints[j] - x_tmp)<< " and orientation error: "<<norm(pose_second.subVector(3,6)- o_tmp)<<endl<<endl;
+
+       icart_second_arm->setTrackingMode(false);
+
+       icart_second_arm->stopControl();
+
+       icart_second_arm->restoreContext(context_second);
+       icart_second_arm->deleteContext(context_second);
+
+       icart_first_arm->setTrackingMode(false);
+
+       icart_first_arm->stopControl();
+
+       icart_first_arm->restoreContext(context_first);
+       icart_first_arm->deleteContext(context_first);
 
        for (size_t i=0; i<7;i++)
        {
-           ctrlmode->setControlMode(i,VOCAB_CM_POSITION);
+           ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION);
+           ctrlmode_first->setControlMode(i,VOCAB_CM_POSITION);
        }
 
        reach_waypoint=false;
@@ -2115,28 +2216,28 @@ class poseSelection : public RFModule,
    {
        for (size_t i=0; i<7;i++)
        {
-           ctrlmode->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
+           ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
        }
 
        int context;
-       icart_arm_move->storeContext(&context);
+       icart_second_arm->storeContext(&context);
 
        Vector dof(10,1.0);
        dof[0]=dof[1]=dof[2]=0.0;
 
-       icart_arm_move->setDOF(dof,dof);
-       icart_arm_move->setTrajTime(2.0);
+       icart_second_arm->setDOF(dof,dof);
+       icart_second_arm->setTrajTime(traj_time);
 
        if (!correct_pose)
        {
            cout<< " Going to  final pose: "<< xdhat[index].toString(3,3)<<" "<<odhat[index].toString(3,3)<<endl<<endl;
 
-           icart_arm_move->goToPoseSync(xdhat[index], odhat[index]);
-           icart_arm_move->waitMotionDone();
+           icart_second_arm->goToPoseSync(xdhat[index], odhat[index]);
+           icart_second_arm->waitMotionDone();
 
            Vector x_tmp(3,0.0);
            Vector o_tmp(4,0.0);
-           icart_arm_move->getPose(x_tmp, o_tmp);
+           icart_second_arm->getPose(x_tmp, o_tmp);
 
             cout<<" Reached final pose with position error: "<<norm(x_tmp - xdhat[index])<< " and orientation error: "<<norm(o_tmp- odhat[index])<<endl<<endl;
 
@@ -2145,33 +2246,130 @@ class poseSelection : public RFModule,
        {
            cout<< " Going to  final pose: "<< pose_second_corr.subVector(0,2).toString(3,3)<<" "<<pose_second_corr.subVector(3,6).toString(3,3)<<endl<<endl;
 
-           icart_arm_move->goToPoseSync(pose_second_corr.subVector(0,2), pose_second_corr.subVector(3,6));
-           icart_arm_move->waitMotionDone();
+           icart_second_arm->goToPoseSync(pose_second_corr.subVector(0,2), pose_second_corr.subVector(3,6));
+           icart_second_arm->waitMotionDone();
 
            Vector x_tmp(3,0.0);
            Vector o_tmp(4,0.0);
-           icart_arm_move->getPose(x_tmp, o_tmp);
+           icart_second_arm->getPose(x_tmp, o_tmp);
 
             cout<<" Reached final pose with position error: "<<norm(x_tmp - pose_second_corr.subVector(0,2))<< " and orientation error: "<<norm(o_tmp- pose_second_corr.subVector(3,6))<<endl<<endl;
        }
 	yDebug()<< " Reached final pose!";
-       yDebug()<<" Stopped control: "<<icart_arm_move->stopControl();
+       yDebug()<<" Stopped control: "<<icart_second_arm->stopControl();
 
-       icart_arm_move->setTrackingMode(false);
+       icart_second_arm->setTrackingMode(false);
 
-       icart_arm_move->restoreContext(context);
-       icart_arm_move->deleteContext(context);
+       icart_second_arm->restoreContext(context);
+       icart_second_arm->deleteContext(context);
 
        reach_final_pose=false;
 
        for (size_t i=0; i<7;i++)
        {
-           ctrlmode->setControlMode(i,VOCAB_CM_POSITION);
+           ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION);
        }
 
        reached_final=true;
 
        return true;
+   }
+
+   /*******************************************************************************/
+   bool goHome()
+   {
+       for (size_t i=0; i<7;i++)
+       {
+           ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
+           ctrlmode_first->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
+       }
+
+       int context_second, context_first;
+       icart_second_arm->storeContext(&context_second);
+       icart_first_arm->storeContext(&context_first);
+
+       Vector dof(10,1.0);
+       dof[0]=dof[1]=dof[2]=0.0;
+
+       Vector x_tmp(3,0.0);
+       Vector o_tmp(4,0.0);
+
+       icart_second_arm->setDOF(dof,dof);
+       icart_second_arm->setTrajTime(traj_time);
+
+       icart_first_arm->setDOF(dof,dof);
+       icart_first_arm->setTrajTime(traj_time);
+
+       icart_first_arm->getPose(x_tmp, o_tmp);
+
+       if (first_arm=="right" && reached_home==false)
+       {
+           cout<< " Going first arm home: "<< initial_pose_right.toString(3,3)<<" "<<initial_pose_right.subVector(3,6).toString(3,3)<<endl<<endl;
+
+           icart_first_arm->goToPoseSync(initial_pose_right.subVector(0,2), initial_pose_right.subVector(3,6));
+           icart_first_arm->waitMotionDone();
+
+           icart_first_arm->getPose(x_tmp, o_tmp);
+
+           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_right.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_right.subVector(3,6)- o_tmp)<<endl<<endl;
+
+           cout<< " Going second arm home: "<< initial_pose_left.toString(3,3)<<" "<<initial_pose_left.subVector(3,6).toString(3,3)<<endl<<endl;
+
+           icart_second_arm->goToPoseSync(initial_pose_left.subVector(0,2), initial_pose_left.subVector(3,6));
+           icart_second_arm->waitMotionDone();
+
+           icart_second_arm->getPose(x_tmp, o_tmp);
+
+           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_left.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_left.subVector(3,6)- o_tmp)<<endl<<endl;
+
+           reached_home=true;
+       }
+       else if (reached_home==false)
+       {
+           cout<< " Going first arm home: "<< initial_pose_left.toString(3,3)<<" "<<initial_pose_left.subVector(3,6).toString(3,3)<<endl<<endl;
+
+           icart_first_arm->goToPoseSync(initial_pose_left.subVector(0,2), initial_pose_left.subVector(3,6));
+           icart_first_arm->waitMotionDone();
+
+           icart_first_arm->getPose(x_tmp, o_tmp);
+
+           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_left.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_left.subVector(3,6)- o_tmp)<<endl<<endl;
+
+           cout<< " Going second arm home: "<< initial_pose_right.toString(3,3)<<" "<<initial_pose_right.subVector(3,6).toString(3,3)<<endl<<endl;
+
+           icart_second_arm->goToPoseSync(initial_pose_right.subVector(0,2), initial_pose_right.subVector(3,6));
+           icart_second_arm->waitMotionDone();
+
+           icart_second_arm->getPose(x_tmp, o_tmp);
+
+           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_right.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_right.subVector(3,6)- o_tmp)<<endl<<endl;
+
+           reached_home=true;
+       }
+
+       icart_second_arm->setTrackingMode(false);
+
+       icart_second_arm->stopControl();
+
+       icart_second_arm->restoreContext(context_second);
+       icart_second_arm->deleteContext(context_second);
+
+       icart_first_arm->setTrackingMode(false);
+
+       icart_first_arm->stopControl();
+
+       icart_first_arm->restoreContext(context_first);
+       icart_first_arm->deleteContext(context_first);
+
+       for (size_t i=0; i<7;i++)
+       {
+           ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION);
+           ctrlmode_first->setControlMode(i,VOCAB_CM_POSITION);
+       }
+
+       reach_waypoint=false;
+
+       reached_waypoint=true;
    }
 
    /*******************************************************************************/

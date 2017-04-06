@@ -73,14 +73,14 @@ service poseSelection_IDL
 
     /**
     * get index of the selected pose
-    * @ return the index
+    * @return the index
     */
     i32 get_index();
 
     /**
     * Set offset in order to shift poses 
     * far away from the object surface on z-axis
-    * @ return true
+    * @return true
     */
     bool set_offset_z_approach(1:double entry);
 
@@ -101,14 +101,14 @@ service poseSelection_IDL
     /**
     * Get offset used to shift poses 
     * far away from the object surface on x-axis durign approach
-    * @ return offset value
+    * @return offset value
     */
     double get_offset_x_approach();
 
     /**
     * Set offset in order to shift final poses 
     * far away from the object surface on x-axis 
-    * @ return true
+    * @return true
     */
     bool set_offset_x_final(1:double entry);
 
@@ -151,25 +151,31 @@ service poseSelection_IDL
 
     /**
     * Set number of waypoints
-    * @ return number of waypoints
+    * @return number of waypoints
     */
     bool set_n_waypoint(1: i32 entry);
 
     /**
     * Set number of waypoint to reach and reach it
+    * @return true
+    */
+    bool reach_pose(1: i32 entry);
+
+    /**
+    * Move both the arms back to the initial pose
     * @ return true
     */
-    bool set_waypoint(1: i32 entry);
+    bool go_back_home();
 
     /**
     * Set tolerance for cartesian solver
-    * @ return true
+    * @return true
     */
     bool set_tolerance(1:double tolerance);
 
     /**
     * Get tolerance for cartesian solver
-    * @ return tolerance value
+    * @return tolerance value
     */
 
     bool reach_final();
@@ -181,14 +187,27 @@ service poseSelection_IDL
   /**
     * Set offset in order to shift final poses 
     * far away from the object surface on y-axis 
-    * @ return true
+    * @return true
     */
     bool set_offset_y_final(1:double entry);
 
     /**
     * Get offset used to shift final poses 
     * far away from the object surface on y-axis
-    * @ return offset value
+    * @return offset value
     */
     double get_offset_y_final();
+
+    /**
+    * Set trajectory time for arms movements
+    * @parameter
+    * @return true
+    */
+    bool set_traj_time(1:double entry);
+
+    /**
+    * Get trajector time for arms movements
+    * @ return trajectory time value
+    */
+    double get_traj_time();
 }
