@@ -85,15 +85,15 @@ You can play with the modules by using 4 rpc ports. Several commands are availab
      - `go_localize` to localize the object
 - `/pose-selection/rpc`:
      - `ask_new_pose`: to get the estimated object pose and select a good pose for the _second hand_
-     -  `set_waypoint <no_waypoint>`: to make the second hand reach a specific waypoint
+     -  `reach_pose <no_waypoint>`: to make the second hand reach the _no_waypoint_-th waypoint and the final pose for first hand
      - `reach_final`: to make the second hand reach the final pose
-- `/closed-chain/rpc`:
-     - `move_first_hand`: to make the robot move the first hand toward the final pose
+     - `go_back_home`: to move the arms to the initial pose
+ 
   
 #### Automatic  mode (Demo mode)
 Alternatively, you can launch the [`lua script`](https://github.com/tacman-fp7/handover/blob/master/app/lua/handover_main_RTL.lua) that automatically executes all the `rpc` commands.
 You just need to:
-- open a port named: **/handover/go_on** 
+- open a port named: **/port/go_on** 
 - **launch and connect** all the modules
 - **answer** to the question the lua script will ask you. At the beginning, the lua script asks the user which object the robot is going to use (see how the [dictionary](https://github.com/tacman-fp7/handover/wiki/How-to-modify-the-set-of-objects) is defined) and which is the desired initial pose of the first hand. In particular, the lua script stops 2 times. First, after the pose for the second hand is selected, the script will ask if you want to go on (typing **go_on**), to stop the module (**stop**) or to compute again the pose (**again**). Second, after the hands are in the final position, the lua will ask if to close the second hand or not. Then, you can answer: **go_on** if you want to perform the handover or **stop** if you want to stop the demo and the robot to go back to the home position.
 
