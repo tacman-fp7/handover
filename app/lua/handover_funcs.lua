@@ -11,13 +11,21 @@ function HANDOVER_prepare(port)
     return reply:get(0):asString()
 end
 
+function HANDOVER_check_status(port)
+    local wb = yarp.Bottle()
+    local reply = yarp.Bottle()
+    wb:clear()
+    wb:addString("check_status")
+    port:write(wb,reply)
+    return reply:get(0):asString()
+end
+
 function HANDOVER_acquire(port)
     local wb = yarp.Bottle()
     local reply = yarp.Bottle()
     wb:clear()
     wb:addString("go_acquire")
     port:write(wb,reply)
-    yarp.Time_delay(1.5)
     return reply:get(0):asString()
 end
 
@@ -27,7 +35,6 @@ function HANDOVER_filter(port)
    wb:clear()
     wb:addString("go_filter")
     port:write(wb,reply)
-    yarp.Time_delay(1.5)
     return reply:get(0):asString()
 end
 
@@ -38,7 +45,6 @@ function HANDOVER_try_again(port)
     wb:addString("try_again")
     wb:addInt(0)
     port:write(wb,reply)
-    yarp.Time_delay(4.0)
     return reply:get(0):asString()
 end
 
@@ -58,7 +64,6 @@ function HANDOVER_localize(port)
    local wb = yarp.Bottle()
    local reply = yarp.Bottle()
    wb:clear()
-    yarp.Time_delay(2.5)
     wb:addString("go_localize")
     port:write(wb,reply)
     --yarp.Time_delay(1.5)
@@ -74,7 +79,6 @@ function HANDOVER_ask_pose(port)
    wb:clear()
     wb:addString("ask_new_pose")
     port:write(wb,reply)
-    yarp.Time_delay(3.0)
     return reply:get(0):asString()
 end
 
@@ -85,7 +89,6 @@ function HANDOVER_move_first_hand(port)
     wb:addString("move")
     wb:addString("first_hand")
     port:write(wb,reply)
-    yarp.Time_delay(6.0)
     return reply:get(0):asString()
 end
 
@@ -116,7 +119,6 @@ function HANDOVER_go_back_home(port)
    wb:clear()
     wb:addString("go_back_home")
     port:write(wb,reply)
-    yarp.Time_delay(4.0)
     return reply:get(0):asString()
 end
 

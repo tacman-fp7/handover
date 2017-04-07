@@ -39,6 +39,7 @@ class localizingModule : public RFModule,
     bool localize;
     bool acquire;
     bool pose_saved;
+    bool lua_status;
     bool pose_computed;
     bool enabled_touch;
 
@@ -69,6 +70,12 @@ public:
     }
 
     /*******************************************************************************/
+    bool check_status()
+    {
+        return lua_status;
+    }
+
+    /*******************************************************************************/
     bool go_localize()
     {
         localize=true;
@@ -86,12 +93,8 @@ public:
     bool go_acquire()
     {
         acquire=true;
-        Time::delay(0.5);
 
-        if (measurements.size()>0)
-            return true;
-        else
-            return false;
+        return true;
     }
 
     /*******************************************************************************/
@@ -241,6 +244,8 @@ public:
         acquire=false;
         pose_saved=false;
 
+        lua_status=false;
+
         j_obj=0;
 
         if (online)
@@ -305,6 +310,9 @@ public:
         if (online && acquire)
         {
             askForPoints();
+
+            if (measurements.size()>0)
+                lua_status=true;
         }
 
         for (size_t k=0; k<num_m_values; k++)
@@ -319,11 +327,13 @@ public:
                         if (localize)
                         {
                             if (measurements.size()>0)
-                            {
+                            {                                
                                 Localizer *loc5=new UnscentedParticleFilter();
 
                                 if (loc5->configure(this->rf,j_obj,k, num_m_values, l, num_particles, m, online, measurements, enabled_touch))
                                 {
+                                    lua_status=false;
+
                                     error_indices=loc5->localization();
                                     result=error_indices.subVector(0,5);
                                     loc5->saveData(error_indices,i,k,l,m);
@@ -338,6 +348,7 @@ public:
 
                                     delete loc5;
                                     pose_computed=true;
+                                    lua_status=true;
                                     pose_saved=false;
                                 }
                                 else

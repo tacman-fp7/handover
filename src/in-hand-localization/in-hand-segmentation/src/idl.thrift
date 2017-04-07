@@ -235,6 +235,7 @@ service inHandSegmentation_IDL
 
     /**
     * Reset count_pose variable
+    * @param entry is the number of the pose
     * @return true
     */
     bool reset_count_pose(1:i32 entry);
@@ -266,5 +267,11 @@ service inHandSegmentation_IDL
     *@return true
     */
     bool look_in_front();
+
+    /**
+    * Get the current lua_status
+    * @return lua status (true/false)
+    */
+    bool check_status();
 
 }

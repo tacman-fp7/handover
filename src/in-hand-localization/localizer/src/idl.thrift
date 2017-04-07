@@ -55,13 +55,21 @@ service localizer_IDL
 
     /**
     * Get statistics about i-th solution
+    * @param is the index of the solution of interest
     * @return Bottle with solution information
     */
     Bottle get_solution_statistics(1: i32 entry);
 
     /**
     * Set object name 
+    * @param is the name of the object to be localized
     * @return true if the name is one of the known objects
     */
     bool set_object_name(1: string entry);
+
+    /**
+    * Get the current lua_status
+    * @return lua status (true/false)
+    */
+    bool check_status();
 }

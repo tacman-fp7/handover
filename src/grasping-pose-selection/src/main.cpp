@@ -110,6 +110,7 @@ class poseSelection : public RFModule,
     bool closed_chain;
     bool update_pose;    
     bool twist_wrist;
+    bool lua_status;
     bool to_be_sent;
     bool use_matrix;
     bool new_angle;
@@ -184,16 +185,18 @@ class poseSelection : public RFModule,
         return this->yarp().attachAsServer(source);
     }
 
+    /*******************************************************************************/
+    bool check_status()
+    {
+        return lua_status;
+    }
+
     /************************************************************************/
     bool ask_new_pose()
     {
         update_pose=true;
         select_new_pose=true;
-        Time::delay(2.0);
-        if (index>=0)
-            return true;
-        else
-            return false;
+        return true;
     }
 
     /************************************************************************/
@@ -403,11 +406,8 @@ class poseSelection : public RFModule,
         {
             current_waypoint=entry;
             reach_waypoint=true;
-            Time::delay(2.5);
-            if (reached_waypoint)
-                return true;
-            else
-                return false;
+
+            return true;
         }
         else
         {
@@ -420,18 +420,13 @@ class poseSelection : public RFModule,
     bool reach_final()
     {
         reach_final_pose=true;
-        Time::delay(2.5);
-        if (reached_final)
-            return true;
-        else
-            return false;
+        return true;
     }
 
     /************************************************************************/
     bool go_back_home()
     {
         go_home=true;
-        Time::delay(2.5);
         return true;
     }
 
@@ -604,6 +599,8 @@ class poseSelection : public RFModule,
         reached_final=false;
         go_home=false;
         reached_home=false;
+
+        lua_status=false;
 
         if (online)
         {
@@ -1847,6 +1844,8 @@ class poseSelection : public RFModule,
             else
                 select_new_pose=true;
         }
+
+        lua_status=true;
         return true;
     }
 
@@ -2141,6 +2140,7 @@ class poseSelection : public RFModule,
    /*******************************************************************************/
    bool reachWaypoint(int j)
    {
+       lua_status=false;
        for (size_t i=0; i<7;i++)
        {
            ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
@@ -2209,11 +2209,14 @@ class poseSelection : public RFModule,
        reach_waypoint=false;
 
        reached_waypoint=true;
+
+       lua_status=true;
    }
 
    /*******************************************************************************/
    bool reachFinalPoint()
    {
+       lua_status=false;
        for (size_t i=0; i<7;i++)
        {
            ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
@@ -2271,6 +2274,7 @@ class poseSelection : public RFModule,
        }
 
        reached_final=true;
+       lua_status=true;
 
        return true;
    }
@@ -2278,6 +2282,7 @@ class poseSelection : public RFModule,
    /*******************************************************************************/
    bool goHome()
    {
+       lua_status=false;
        for (size_t i=0; i<7;i++)
        {
            ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
@@ -2303,16 +2308,7 @@ class poseSelection : public RFModule,
        icart_first_arm->getPose(x_tmp, o_tmp);
 
        if (first_arm=="right" && reached_home==false)
-       {
-           cout<< " Going first arm home: "<< initial_pose_right.toString(3,3)<<" "<<initial_pose_right.subVector(3,6).toString(3,3)<<endl<<endl;
-
-           icart_first_arm->goToPoseSync(initial_pose_right.subVector(0,2), initial_pose_right.subVector(3,6));
-           icart_first_arm->waitMotionDone();
-
-           icart_first_arm->getPose(x_tmp, o_tmp);
-
-           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_right.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_right.subVector(3,6)- o_tmp)<<endl<<endl;
-
+       {         
            cout<< " Going second arm home: "<< initial_pose_left.toString(3,3)<<" "<<initial_pose_left.subVector(3,6).toString(3,3)<<endl<<endl;
 
            icart_second_arm->goToPoseSync(initial_pose_left.subVector(0,2), initial_pose_left.subVector(3,6));
@@ -2322,19 +2318,20 @@ class poseSelection : public RFModule,
 
            cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_left.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_left.subVector(3,6)- o_tmp)<<endl<<endl;
 
-           reached_home=true;
-       }
-       else if (reached_home==false)
-       {
-           cout<< " Going first arm home: "<< initial_pose_left.toString(3,3)<<" "<<initial_pose_left.subVector(3,6).toString(3,3)<<endl<<endl;
+           cout<< " Going first arm home: "<< initial_pose_right.toString(3,3)<<" "<<initial_pose_right.subVector(3,6).toString(3,3)<<endl<<endl;
 
-           icart_first_arm->goToPoseSync(initial_pose_left.subVector(0,2), initial_pose_left.subVector(3,6));
+           icart_first_arm->goToPoseSync(initial_pose_right.subVector(0,2), initial_pose_right.subVector(3,6));
            icart_first_arm->waitMotionDone();
 
            icart_first_arm->getPose(x_tmp, o_tmp);
 
-           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_left.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_left.subVector(3,6)- o_tmp)<<endl<<endl;
+           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_right.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_right.subVector(3,6)- o_tmp)<<endl<<endl;
 
+
+           reached_home=true;
+       }
+       else if (reached_home==false)
+       {
            cout<< " Going second arm home: "<< initial_pose_right.toString(3,3)<<" "<<initial_pose_right.subVector(3,6).toString(3,3)<<endl<<endl;
 
            icart_second_arm->goToPoseSync(initial_pose_right.subVector(0,2), initial_pose_right.subVector(3,6));
@@ -2343,6 +2340,15 @@ class poseSelection : public RFModule,
            icart_second_arm->getPose(x_tmp, o_tmp);
 
            cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_right.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_right.subVector(3,6)- o_tmp)<<endl<<endl;
+
+           cout<< " Going first arm home: "<< initial_pose_left.toString(3,3)<<" "<<initial_pose_left.subVector(3,6).toString(3,3)<<endl<<endl;
+
+           icart_first_arm->goToPoseSync(initial_pose_left.subVector(0,2), initial_pose_left.subVector(3,6));
+           icart_first_arm->waitMotionDone();
+
+           icart_first_arm->getPose(x_tmp, o_tmp);
+
+           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_left.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_left.subVector(3,6)- o_tmp)<<endl<<endl;
 
            reached_home=true;
        }
@@ -2370,6 +2376,7 @@ class poseSelection : public RFModule,
        reach_waypoint=false;
 
        reached_waypoint=true;
+       lua_status=true;
    }
 
    /*******************************************************************************/

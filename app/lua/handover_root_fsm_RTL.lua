@@ -94,7 +94,9 @@ return rfsm.state {
   ST_PC_ACQ = rfsm.state{
           entry=function()
                   print("acquiring point cloud")
-                  local ret = HANDOVER_acquire(in_hand_seg_port)
+                  HANDOVER_acquire(in_hand_seg_port)
+
+                  local ret = HANDOVER_check_status(in_hand_seg_port)
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
                   end
@@ -107,8 +109,8 @@ return rfsm.state {
   ST_PC_FILT = rfsm.state{
           entry=function()
                   print(" filtering points ...")
-                  local ret = HANDOVER_filter(in_hand_seg_port)
-
+                  HANDOVER_filter(in_hand_seg_port)
+                  local ret = HANDOVER_check_status(in_hand_seg_port)
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
                   end
@@ -120,8 +122,8 @@ return rfsm.state {
   ----------------------------------
   ST_LOC_POINTS_ACQ = rfsm.state{
           entry=function()
-		  local ret = HANDOVER_acquire(in_hand_loc_port)
-
+		              HANDOVER_acquire(in_hand_loc_port)
+                  local ret = HANDOVER_check_status(in_hand_loc_port)
 
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
@@ -135,8 +137,8 @@ return rfsm.state {
   ST_LOC_POINTS = rfsm.state{
           entry=function()
                   print(" localizing object...")
-                  local ret = HANDOVER_localize(in_hand_loc_port)
-
+                  HANDOVER_localize(in_hand_loc_port)
+                  local ret = HANDOVER_check_status(in_hand_loc_port)
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
                   end
@@ -149,7 +151,8 @@ return rfsm.state {
   ST_ASK_POSE = rfsm.state{
           entry=function()
                   print(" asking pose...")
-                  local ret = HANDOVER_ask_pose(pose_sel_port)
+                  HANDOVER_ask_pose(pose_sel_port)
+                  local ret = HANDOVER_check_status(pose_sel_port)
 
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
@@ -163,8 +166,8 @@ return rfsm.state {
   ST_REACH_POSE = rfsm.state{
           entry=function()
                   print(" moving arms to first pose...")
-                  local ret = HANDOVER_reach_pose(pose_sel_port)
-
+                  HANDOVER_reach_pose(pose_sel_port)
+                  local ret = HANDOVER_check_status(pose_sel_port)
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
                   end
@@ -177,7 +180,8 @@ return rfsm.state {
   ST_REACH_FINAL = rfsm.state{
           entry=function()
                   print(" moving second hand to final pose...")
-                  local ret = HANDOVER_reach_final(pose_sel_port)
+                  HANDOVER_reach_final(pose_sel_port)
+                  local ret = HANDOVER_check_status(pose_sel_port)
 
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
@@ -191,7 +195,8 @@ return rfsm.state {
   ST_REACH_POSE_BACK = rfsm.state{
           entry=function()
                   print(" moving second hand to waypoint...")
-                  local ret = HANDOVER_reach_pose(pose_sel_port)
+                  HANDOVER_reach_pose(pose_sel_port)
+                  local ret = HANDOVER_check_status(pose_sel_port)
 
                   if ret == "fail" then
                       rfsm.send_events(fsm, 'e_error')
@@ -251,7 +256,8 @@ return rfsm.state {
   ST_GO_HOME = rfsm.state{
           entry=function()
                   print(" going home  ...")
-                  local ret = HANDOVER_go_back_home(pose_sel_port)
+                  HANDOVER_go_back_home(pose_sel_port)
+                  local ret = HANDOVER_check_status(pose_sel_port)
 
                   HANDOVER_open_hand(stable_grasp_r_port)
 

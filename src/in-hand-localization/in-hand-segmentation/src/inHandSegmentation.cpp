@@ -110,6 +110,7 @@ protected:
     bool acquire;
     bool new_trial;
     bool calib_cam;
+    bool lua_status;
     bool tactile_on;    
     bool hand_filter;
     bool prepare_hand;
@@ -154,6 +155,12 @@ protected:
     bool attach(RpcServer &source)
     {
         return this->yarp().attachAsServer(source);
+    }
+
+    /*******************************************************************************/
+    bool check_status()
+    {
+        return lua_status;
     }
 
     /*******************************************************************************/
@@ -223,11 +230,7 @@ protected:
     bool go_acquire()
     {
         acquire=true;
-        Time::delay(0.8);
-        if (pointsIn.size()>0)
-            return true;
-        else
-            return false;
+        return true;
     }
 
     /*******************************************************************************/
@@ -1071,6 +1074,9 @@ public:
             }
 
             acquirePoints();
+
+            if (pointsIn.size()>0)
+                lua_status=true;
             
             if (pointsIn.size()>0 && acquire==true)
             {
@@ -1106,7 +1112,8 @@ public:
         }
 
         if (filter && pointsIn.size()>0)
-        {            
+        {
+            lua_status=false;
             if (coarse_filter)
             {
                 colors[1]=255;
@@ -1182,6 +1189,8 @@ public:
 
             if (online)
                 cout<<endl<<" All filters have been executed. Ready for new points filtering or acquisition "<<endl<<endl;
+
+            lua_status=false;
         }
         else
         {
@@ -2086,6 +2095,7 @@ public:
     /*******************************************************************************/
     void findPose(int i)
     {
+        lua_status=false;
         if (i<acquisition_poses_arm.size() && motions_completed==false)
         {
             for (size_t j=0; j<7;j++)
@@ -2203,6 +2213,7 @@ public:
 
             fixate=true;
             new_trial=false;
+            lua_status=true;
         }
     }
 

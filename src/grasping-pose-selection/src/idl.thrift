@@ -194,8 +194,16 @@ service poseSelection_IDL
     */
     bool reach_final();
 
+    /**
+    * Get the correction along the y-axis
+    * @return the y correction value
+    */
     double get_y_correction();
 
+    /**
+    * Set the correction along the y-axis
+    * @return true/false on success/failure
+    */
     bool set_y_correction(1:double entry);
 
     /**
@@ -225,4 +233,10 @@ service poseSelection_IDL
     * @ return trajectory time value
     */
     double get_traj_time();
+
+    /**
+    * Get the current lua_status
+    * @return lua status (true/false)
+    */
+    bool check_status();
 }
