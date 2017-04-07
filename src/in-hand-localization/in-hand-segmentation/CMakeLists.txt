@@ -19,12 +19,13 @@ include(ICUBcontribOptions)
 icubcontrib_set_default_prefix()
 
 set(sources src/main.cpp src/inHandSegmentation.cpp)
-yarp_add_idl(IDL_GEN_FILES src/idl.thrift)
+set(${PROJECT_NAME}_THRIFT_HDR src/idl.thrift)
+yarp_add_idl(${PROJECT_NAME}_THRIFT_SRC ${${PROJECT_NAME}_THRIFT_HDR})
 source_group("IDL Files" FILES src/idl.thrift)
 source_group("Source Files" FILES ${sources})
 
 include_directories(${YARP_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${ICUB_INCLUDE_DIRS})
-add_executable(${PROJECT_NAME} ${sources} src/idl.thrift ${IDL_GEN_FILES})
+add_executable(${PROJECT_NAME} ${sources} ${${PROJECT_NAME}_THRIFT_SRC})
 target_link_libraries(${PROJECT_NAME} ${YARP_LIBRARIES} ${OpenCV_LIBRARIES} ${ICUB_LIBRARIES} iKin ctrlLib)
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 

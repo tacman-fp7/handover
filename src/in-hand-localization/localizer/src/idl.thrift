@@ -68,7 +68,7 @@ service localizer_IDL
     bool set_object_name(1: string entry);
 
     /**
-    * Get the current lua_status
+    * Get the current lua_status (for demo)
     * @return lua status (true/false)
     */
     bool check_status();

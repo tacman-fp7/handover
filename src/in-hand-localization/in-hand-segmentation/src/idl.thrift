@@ -261,7 +261,6 @@ service inHandSegmentation_IDL
     */
     bool try_again(1:i32 entry);
 
-
     /**
     * look people in front of the robot
     *@return true
@@ -269,7 +268,7 @@ service inHandSegmentation_IDL
     bool look_in_front();
 
     /**
-    * Get the current lua_status
+    * Get the current lua_status (for demo)
     * @return lua status (true/false)
     */
     bool check_status();

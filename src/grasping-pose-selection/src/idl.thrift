@@ -235,7 +235,7 @@ service poseSelection_IDL
     double get_traj_time();
 
     /**
-    * Get the current lua_status
+    * Get the current lua_status (for demo)
     * @return lua status (true/false)
     */
     bool check_status();
