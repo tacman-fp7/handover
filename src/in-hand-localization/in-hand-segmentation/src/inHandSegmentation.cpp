@@ -725,7 +725,7 @@ protected:
         igaze->setEyesTrajTime(0.5);
         igaze->setSaccadesMode(false);
         igaze->lookAtFixationPoint(final_position);
-        igaze->waitMotionDone();
+        //igaze->waitMotionDone();
 
         Vector x_test(3,0.0);
         igaze->getFixationPoint(x_test);
@@ -1185,6 +1185,7 @@ public:
 
             filter=false;
             new_trial=false;
+            fixate=true;
             fileCount++;
 
             if (online)
@@ -2096,6 +2097,7 @@ public:
     void findPose(int i)
     {
         lua_status=false;
+        fixate=false;
         if (i<acquisition_poses_arm.size() && motions_completed==false)
         {
             for (size_t j=0; j<7;j++)
@@ -2211,7 +2213,7 @@ public:
                 }
             }
 
-            fixate=true;
+            
             new_trial=false;
             lua_status=true;
         }

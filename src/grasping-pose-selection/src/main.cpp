@@ -2202,8 +2202,8 @@ class poseSelection : public RFModule,
 
        for (size_t i=0; i<7;i++)
        {
-           ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION);
-           ctrlmode_first->setControlMode(i,VOCAB_CM_POSITION);
+           //ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION);
+          // ctrlmode_first->setControlMode(i,VOCAB_CM_POSITION);
        }
 
        reach_waypoint=false;
@@ -2220,6 +2220,7 @@ class poseSelection : public RFModule,
        for (size_t i=0; i<7;i++)
        {
            ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
+           ctrlmode_first->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
        }
 
        int context;
@@ -2261,17 +2262,17 @@ class poseSelection : public RFModule,
 	yDebug()<< " Reached final pose!";
        yDebug()<<" Stopped control: "<<icart_second_arm->stopControl();
 
-       icart_second_arm->setTrackingMode(false);
+       //icart_second_arm->setTrackingMode(false);
 
        icart_second_arm->restoreContext(context);
        icart_second_arm->deleteContext(context);
 
        reach_final_pose=false;
 
-       for (size_t i=0; i<7;i++)
+       /*for (size_t i=0; i<7;i++)
        {
            ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION);
-       }
+       }*/
 
        reached_final=true;
        lua_status=true;
@@ -2283,6 +2284,7 @@ class poseSelection : public RFModule,
    bool goHome()
    {
        lua_status=false;
+       reached_home=false;
        for (size_t i=0; i<7;i++)
        {
            ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION_DIRECT);
@@ -2316,7 +2318,7 @@ class poseSelection : public RFModule,
 
            icart_second_arm->getPose(x_tmp, o_tmp);
 
-           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_left.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_left.subVector(3,6)- o_tmp)<<endl<<endl;
+           cout<<" Reached home pose for second arm with position error: "<<norm(initial_pose_left.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_left.subVector(3,6)- o_tmp)<<endl<<endl;
 
            cout<< " Going first arm home: "<< initial_pose_right.toString(3,3)<<" "<<initial_pose_right.subVector(3,6).toString(3,3)<<endl<<endl;
 
@@ -2339,7 +2341,7 @@ class poseSelection : public RFModule,
 
            icart_second_arm->getPose(x_tmp, o_tmp);
 
-           cout<<" Reached home pose for first arm with position error: "<<norm(initial_pose_right.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_right.subVector(3,6)- o_tmp)<<endl<<endl;
+           cout<<" Reached home pose for second arm with position error: "<<norm(initial_pose_right.subVector(0,2) - x_tmp)<< " and orientation error: "<<norm(initial_pose_right.subVector(3,6)- o_tmp)<<endl<<endl;
 
            cout<< " Going first arm home: "<< initial_pose_left.toString(3,3)<<" "<<initial_pose_left.subVector(3,6).toString(3,3)<<endl<<endl;
 
@@ -2369,13 +2371,13 @@ class poseSelection : public RFModule,
 
        for (size_t i=0; i<7;i++)
        {
-           ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION);
-           ctrlmode_first->setControlMode(i,VOCAB_CM_POSITION);
+           //ctrlmode_second->setControlMode(i,VOCAB_CM_POSITION);
+           //ctrlmode_first->setControlMode(i,VOCAB_CM_POSITION);
        }
 
-       reach_waypoint=false;
+       go_home=false;
 
-       reached_waypoint=true;
+       //reached_home=true;
        lua_status=true;
    }
 
