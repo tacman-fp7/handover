@@ -360,7 +360,7 @@ return rfsm.state {
                   print(" ... and object name")
           name = HANDOVER_object_name(go_on_port)
 
-          if name == "domino" or name == "jello" then
+          if name == "domino" or name == "jello" or name == "mustard" then
             rfsm.send_events(fsm, 'e_done')
           else
             rfsm.send_events(fsm, 'e_error')
